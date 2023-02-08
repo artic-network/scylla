@@ -1,0 +1,1 @@
+// module to make a single sample report during ingest containing kraken summary and qc stats

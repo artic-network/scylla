@@ -1,0 +1,1 @@
+// module to check for human contamination in reads and throw away
