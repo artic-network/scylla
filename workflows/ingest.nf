@@ -1,1 +1,0 @@
-// workflow to run kraken, check for human, run qc checks and generate html report for a single sample fastq

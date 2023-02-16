@@ -1,0 +1,17 @@
+name: scylla
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+  - epi2melabs
+dependencies:
+  - python<=3.10
+  - pysam
+  - nextflow
+  - pip
+  - kraken2
+  - bracken
+  - taxonkit
+  - fastcat
+  - pip:
+      - aplanat
