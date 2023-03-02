@@ -1,7 +1,6 @@
 // module to make a single sample report during ingest containing kraken summary and qc stats
 process make_report {
     publishDir path: "${params.out_dir}/${sample_id}", mode: 'copy'
-    label "scylla"
     maxForks 1
     cpus 1
     input:
@@ -16,9 +15,10 @@ process make_report {
     """
     $projectDir/../bin/single_sample_report.py \
         "${report_name}" \
+        --sample_id ${sample_id} \
         --stats ${stats} \
-        --lineages "${lineages}" \
-        --vistempl "${template}"
+        --lineages ${lineages} \
+        --report_template "${template}"
     """
 }
 

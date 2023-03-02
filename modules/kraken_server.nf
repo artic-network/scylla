@@ -22,7 +22,7 @@
 process unpackDatabase {
     label "wfmetagenomics"
     cpus 1
-    storeDir "${params.store_dir}/${database.simpleName}"
+    storeDir "${params.store_dir}/${params.database_set}"
     input:
         path database
     output:
@@ -91,7 +91,7 @@ process stop_kraken_server {
     label "scylla"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     // this shouldn't happen, but we'll keep retrying
-    errorStrategy = { task.exitStatus in [8] ? 'retry' : 'finish' }
+    errorStrategy = { task.exitStatus in [8, 14] && task.attempt < 3 ? 'retry' : 'ignore' }
     input:
         val stop
     """
@@ -104,8 +104,19 @@ workflow start_server {
         database
         taxonomy
     main:
-        database = unpackDatabase(database)
-        taxonomy = unpackTaxonomy(taxonomy)
+        input_database = file("${params.store_dir}/${params.database_set}/database_dir")
+        if (input_database.isEmpty()) {
+            database = unpackDatabase(database)
+        } else {
+            database = input_database
+        }
+
+        input_taxonomy = file("${params.store_dir}/${taxonomy.simpleName}/taxonomy_dir")
+        if (input_database.isEmpty()) {
+            taxonomy = unpackTaxonomy(taxonomy)
+        } else {
+            taxonomy = input_taxonomy
+        }
         kraken_server(database)
     emit:
         database = database

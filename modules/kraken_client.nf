@@ -7,6 +7,8 @@ include { generate_report } from '../modules/generate_report'
 kraken_compute = params.threads == 1 ? 1 : params.threads - 1
 
 process kraken2_client {
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxRetries 5
     label "scylla"
     publishDir path: "${params.out_dir}/${sample_id}/kraken", mode: 'copy'
 
@@ -67,7 +69,7 @@ process bracken {
 }
 
 process bracken_to_json {
-    publishDir path: "${params.out_dir}/${sample_id}/bracken", mode: 'copy'
+    publishDir path: "${params.out_dir}/${sample_id}/report", mode: 'copy'
     input:
         val sample_id
         path kraken_report

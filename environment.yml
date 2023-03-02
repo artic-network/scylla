@@ -10,8 +10,9 @@ dependencies:
   - nextflow
   - pip
   - kraken2
-  - bracken
+  - kraken2-server # not on mac
+  - bracken # needs to be manually installed from git and softlinked if Mac M1
   - taxonkit
   - fastcat
   - pip:
-      - aplanat
+      - git+https://github.com/rmcolq/aplanat_custom.git

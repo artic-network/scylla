@@ -44,7 +44,11 @@ workflow {
     run_kraken_and_bracken(sample_id, input_fastq, source_name, start_server.out.database, start_server.out.taxonomy)
     stop_server(run_kraken_and_bracken.out.report.collect())
     qc_checks(sample_id, input_fastq)
-    generate_report(sample_id, qc_checks.out, run_kraken_and_bracken.out.json)
+    all_bracken_jsons = Channel.fromPath("${params.out_dir}/${sample_id}/report/*.json")
+            .concat(run_kraken_and_bracken.out.json)
+            .unique {it.getName()}
+            .collect()
+    generate_report(sample_id, qc_checks.out, all_bracken_jsons )
 }
 
 

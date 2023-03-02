@@ -8,13 +8,14 @@ import os
 from aplanat import bars
 from aplanat.components import fastcat
 from aplanat.components import simple as scomponents
-from aplanat.report import WFReport
+from aplanat import report
 from aplanat.util import Colors
 from bokeh.layouts import layout
 from bokeh.plotting import figure
 from bokeh.resources import INLINE
 from jinja2 import Template
 
+print(report.__file__)
 
 def plot_hist_data(counts, edges, **kwargs):
     """Create histogram from json."""
@@ -61,13 +62,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("report", help="Report output file")
     parser.add_argument(
+            "--sample_id", required=True,
+            help="Unique sample ID.")
+    parser.add_argument(
         "--stats", required=True,
         help="Read summary JSON file.")
     parser.add_argument(
         "--lineages", nargs='+', required=True,
         help="Read lineage file.")
     parser.add_argument(
-        "--vistempl", required=True)
+            "--report_template", required=True)
     parser.add_argument(
         "--revision", default='unknown',
         help="git branch/tag of the executed workflow")
@@ -76,13 +80,13 @@ def main():
         help="git commit of the executed workflow")
     args = parser.parse_args()
 
-    report = WFReport(
-        "Scylla Metagenomics Report for ", "scylla",
-        revision=args.revision, commit=args.commit)
+    title="Single Sample Report"
+    out_report = report.CustomReport(
+                title=title, report_template=args.report_template, provider="snowy-leopard", workflow="scylla")
 
     templ = None
-    with open(args.vistempl, "r") as vistempl:
-        templ = vistempl.read()
+    with open(args.report_template, "r") as report_template:
+        templ = report_template.read()
 
     #
     # Sankey plot
@@ -98,17 +102,17 @@ def main():
         json.dumps(all_json).replace('"', '\\"'))
 
 
-    report.template = Template(templ)
+    out_report.template = Template(templ)
     bokeh_resources = INLINE.render()
-    report.template.render(bokeh_resources=bokeh_resources)
+    out_report.template.render(bokeh_resources=bokeh_resources)
 
     #
     # Standard read metrics
     #
-    section = report.add_section()
+    section = out_report.add_section()
     kraken(args.stats, section)
 
-    report.write(args.report)
+    out_report.write(args.report)
 
 
 if __name__ == "__main__":
