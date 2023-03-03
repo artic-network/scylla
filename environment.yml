@@ -14,5 +14,8 @@ dependencies:
   - bracken # needs to be manually installed from git and softlinked if Mac M1
   - taxonkit
   - fastcat
+  - biopython
+  - flye
+  - megahit
   - pip:
       - git+https://github.com/rmcolq/aplanat_custom.git
