@@ -10,9 +10,10 @@ workflow {
     if (!input_fastq.exists()) {
             throw new Exception("--fastq: File doesn't exist, check path.")
         }
-    sample_id = "${params.sample_id}"
-    if (sample_id == "null") {
-        sample_id = "${input_fastq.simpleName}"
+        
+    unique_id = "${params.unique_id}"
+    if (unique_id == "null") {
+        unique_id = "${input_fastq.simpleName}"
     }
 
     // Check source param is valid
@@ -41,14 +42,14 @@ workflow {
     database = file(source_database, type: "file")
 
     start_server(database, taxonomy)
-    run_kraken_and_bracken(sample_id, input_fastq, source_name, start_server.out.database, start_server.out.taxonomy)
-    stop_server(run_kraken_and_bracken.out.report.collect())
-    qc_checks(sample_id, input_fastq)
-    all_bracken_jsons = Channel.fromPath("${params.out_dir}/${sample_id}/report/*.json")
+    run_kraken_and_bracken(unique_id, input_fastq, start_server.out.database, start_server.out.taxonomy)
+    stop_server(run_kraken_and_bracken.out.bracken_report.collect())
+    qc_checks(unique_id, input_fastq)
+    all_bracken_jsons = Channel.fromPath("${params.out_dir}/${unique_id}/report/*.json")
             .concat(run_kraken_and_bracken.out.json)
             .unique {it.getName()}
             .collect()
-    generate_report(sample_id, qc_checks.out, all_bracken_jsons )
+    generate_report(unique_id, qc_checks.out, all_bracken_jsons )
 }
 
 

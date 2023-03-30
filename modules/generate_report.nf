@@ -1,10 +1,10 @@
 // module to make a single sample report during ingest containing kraken summary and qc stats
 process make_report {
-    publishDir path: "${params.out_dir}/${sample_id}", mode: 'copy'
+    publishDir path: "${params.out_dir}/${unique_id}", mode: 'copy'
     maxForks 1
     cpus 1
     input:
-        val sample_id
+        val unique_id
         path stats
         path lineages
         path template
@@ -15,7 +15,6 @@ process make_report {
     """
     $projectDir/../bin/single_sample_report.py \
         "${report_name}" \
-        --sample_id ${sample_id} \
         --stats ${stats} \
         --lineages ${lineages} \
         --report_template "${template}"
@@ -24,14 +23,14 @@ process make_report {
 
 workflow generate_report {
     take:
-        sample_id
+        unique_id
         stats
         bracken_jsons
     main:
         // Acquire report template
         template = file("$projectDir/../bin/report-visualisation.html")
 
-        make_report(sample_id, stats, bracken_jsons, template)
+        make_report(unique_id, stats, bracken_jsons, template)
     emit:
         make_report.out
 }

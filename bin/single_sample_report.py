@@ -62,7 +62,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("report", help="Report output file")
     parser.add_argument(
-            "--sample_id", required=True,
+            "--sample_id", required=False,
             help="Unique sample ID.")
     parser.add_argument(
         "--stats", required=True,
