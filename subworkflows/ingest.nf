@@ -1,22 +1,34 @@
 // workflow to run kraken, check for human, run qc checks and generate html report for a single sample fastq
 include { get_params_and_versions } from '../modules/get_params_and_versions'
+include { kraken_pipeline } from '../subworkflows/kraken_pipeline'
+
 
 workflow ingest {
     take:
+        unique_id
         fastq
-        metadata
-        database_set
+        //metadata
     main:
         get_params_and_versions()
         //clean_metadata(metadata)
-        //kraken2_pipeline(fastq, database_set)
-        //dehumanize(fastq,kraken_assignments)
-        //qc_checks(dehumanize.output)
-        //denovo_assemble(fastq, kraken_report)
-        //generate_report(fastq,metadata,kraken_report)
+        kraken_pipeline(unique_id, fastq)
+        assemble_taxa(unique_id, fastq, kraken_pipeline.out.kraken_assignments, kraken_pipeline.out.kraken_report, kraken_pipeline.out.bracken_report)
     emit:
-        clean_fastq
-        clean_metadata
-        html_report
+        html_report = kraken_pipeline.out.report
 
+}
+
+workflow {
+    // check input fastq exists
+    input_fastq = file("${params.fastq}")
+    if (!input_fastq.exists()) {
+            throw new Exception("--fastq: File doesn't exist, check path.")
+        }
+
+    unique_id = "${params.unique_id}"
+    if (unique_id == "null") {
+        unique_id = "${input_fastq.simpleName}"
+    }
+
+    ingest(unique_id, input_fastq)
 }
