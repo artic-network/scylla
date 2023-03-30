@@ -1,7 +1,7 @@
 // module to extract reads and de novo assemble top taxa
 
 process extract_reads {
-    publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy', pattern: "*.fa"
+    publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'
     input:
         val unique_id
         path fastq
@@ -9,7 +9,7 @@ process extract_reads {
         path kraken_report
         path bracken_report
     output:
-        path("reads.${tax_id}.f*")
+        path "reads.*.f*.gz"
     script:
     """
     $projectDir/../bin/extract_kraken_reads.py \
@@ -23,6 +23,11 @@ process extract_reads {
         --min_count_descendants ${params.assembly_min_reads} \
         --rank ${params.assembly_rank} \
         --min_percent ${params.assembly_min_percent}
+
+    for f in \$(ls reads.*.f*)
+      do
+        gzip \$f
+      done
     """
 }
 
@@ -33,20 +38,31 @@ process denovo_assemble {
         val unique_id
         path fastq
     output:
-        path "${fastq.baseName}"
+        path "assembly.*.f*.gz"
     script:
     mode = "${params.read_type}"
+    outfile = "${fastq.name}".replaceAll("reads","assembly")
     if( mode == 'ont' )
         """
             flye \
-                --nano-raw ${fasta} \
-                -o "${fasta.baseName}"
+                --nano-raw ${fastq} \
+                -o "assembly"
+            if [ -s assembly/final.contigs.fa ]
+            then
+                mv assembly/final.contigs.fa ${outfile}
+                gzip ${outfile}
+            fi
         """
     else if( mode == 'illumina' )
         """
             megahit \
-                --r ${fasta} \
-                -o "${fasta.baseName}"
+                --r ${fastq} \
+                -o "assembly"
+            if [ -s assembly/final.contigs.fa ]
+            then
+                mv assembly/final.contigs.fa ${outfile}
+                gzip ${outfile}
+            fi
         """
     else
         error "Invalid alignment read_type: ${mode} - must be one of [illumina, ont]"
@@ -61,14 +77,11 @@ workflow assemble_taxa {
         bracken_report
     main:
         extract_reads(unique_id, fastq, kraken_assignments, kraken_report, bracken_report)
-        denovo_assemble(unique_id, extract_reads_for_id.out)
+        denovo_assemble(unique_id, extract_reads.out.flatten())
 }
 
 workflow {
-    fastq = file("${params.fastq}")
-    if (!fastq.exists()) {
-            throw new Exception("--fastq: File doesn't exist, check path.")
-        }
+    fastq = file("${params.fastq}", type: "file", checkIfExists:true)
 
     unique_id = "${params.unique_id}"
     if ("${params.unique_id}" == "null") {

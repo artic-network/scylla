@@ -91,7 +91,8 @@ process stop_kraken_server {
     label "scylla"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     // this shouldn't happen, but we'll keep retrying
-    errorStrategy = { task.exitStatus in [8, 14] && task.attempt < 3 ? 'retry' : 'ignore' }
+    // errorStrategy = { task.exitStatus in [8, 14] && task.attempt < 3 ? 'retry' : 'ignore' }
+    errorStrategy 'ignore'
     input:
         val stop
     """

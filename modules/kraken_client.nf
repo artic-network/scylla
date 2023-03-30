@@ -105,7 +105,7 @@ workflow run_kraken_and_bracken {
     emit:
         bracken_report = bracken.output.report
         kraken_report = kraken2_client.output.report
-        assignments = kraken2_client.output.assignments
+        kraken_assignments = kraken2_client.output.assignments
         json = bracken_to_json.out
 }
 

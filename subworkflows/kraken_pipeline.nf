@@ -39,7 +39,7 @@ workflow kraken_pipeline {
         run_kraken_and_bracken(unique_id, fastq, start_server.out.database, start_server.out.taxonomy)
         stop_server(run_kraken_and_bracken.out.bracken_report.collect())
         qc_checks(unique_id, fastq)
-        all_bracken_jsons = Channel.fromPath("${params.out_dir}/${unique_id}/report/*.json")
+        all_bracken_jsons = Channel.fromPath("${params.out_dir}/${unique_id}/classifications/*.bracken.json")
                     .concat(run_kraken_and_bracken.out.json)
                     .unique {it.getName()}
                     .collect()
@@ -53,10 +53,7 @@ workflow kraken_pipeline {
 
 workflow {
     // check input fastq exists
-    input_fastq = file("${params.fastq}")
-    if (!input_fastq.exists()) {
-            throw new Exception("--fastq: File doesn't exist, check path.")
-        }
+    input_fastq = file("${params.fastq}", type: "file", checkIfExists:true)
 
     unique_id = "${params.unique_id}"
     if (unique_id == "null") {

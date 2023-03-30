@@ -1,7 +1,7 @@
 // workflow to run kraken, check for human, run qc checks and generate html report for a single sample fastq
 include { get_params_and_versions } from '../modules/get_params_and_versions'
 include { kraken_pipeline } from '../subworkflows/kraken_pipeline'
-
+include { assemble_taxa } from '../modules/assemble_taxa'
 
 workflow ingest {
     take:
@@ -20,10 +20,7 @@ workflow ingest {
 
 workflow {
     // check input fastq exists
-    input_fastq = file("${params.fastq}")
-    if (!input_fastq.exists()) {
-            throw new Exception("--fastq: File doesn't exist, check path.")
-        }
+    input_fastq = file("${params.fastq}", type: "file", checkIfExists:true)
 
     unique_id = "${params.unique_id}"
     if (unique_id == "null") {
