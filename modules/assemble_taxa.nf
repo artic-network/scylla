@@ -1,5 +1,12 @@
 // module to extract reads and de novo assemble top taxa
 
+
+// it is possible that no files would be extracted if there were no subsets of reads which matched the criteria
+// also note that the reads extracted don't match up with bracken abundance reestimates, although we do use those
+// as more accurate numbers when deciding what to pull out (bracken doesn't provide read break down)
+// probably want to count up how many have been found here for run log
+// ALSO this step will currently "fail" with exitcode 2 if the number of human reads found exceeds the number specified
+// in config so could be good dehuman sanity check
 process extract_reads {
     publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'
     input:
@@ -31,6 +38,10 @@ process extract_reads {
     """
 }
 
+// Very lossy step - we do not expect to get successful de novo assemblies, so we ignore any failures. These could
+// either be as a result of the pipeline failing for one of many reasons, or because the file generated at the end
+// of a successful pipeline run is empty, in which case it would be meaningless to copy
+// I've not had a successful test case with the very small numbers of reads/database on my laptop
 process denovo_assemble {
     errorStrategy 'ignore'
     publishDir path: "${params.out_dir}/${unique_id}/assemblies_by_taxa/", mode: 'copy'

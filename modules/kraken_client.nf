@@ -47,6 +47,7 @@ process determine_bracken_length {
     """
 }
 
+// this fails if the kraken file input is empty - currently have no check that it is populated
 process bracken {
     publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
     input:
