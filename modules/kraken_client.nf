@@ -10,24 +10,48 @@ process kraken2_client {
     errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
     maxRetries 5
     label "scylla"
-    publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
 
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     // retry if server responds out of resource
     errorStrategy = { task.exitStatus in [8] ? 'retry' : 'finish' }
     maxForks kraken_compute
     input:
-        val unique_id
         path fastq
+    output:
+        path "${fastq.baseName}.kraken_report.txt", emit: report
+        path "${fastq.baseName}.kraken_assignments.tsv", emit: assignments
+    script:
+    """
+    kraken2_client \
+        --port $params.port --report "${fastq.baseName}.kraken_report.txt" \
+        --sequence ${fastq} > "${fastq.baseName}.kraken_assignments.tsv"
+    """
+}
+
+process combine_kraken_outputs {
+    publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
+    input:
+        val unique_id
+        path kraken_reports
+        path kraken_assignments
     output:
         path "${params.database_set}.kraken_report.txt", emit: report
         path "${params.database_set}.kraken_assignments.tsv", emit: assignments
     script:
-    """
-    kraken2_client \
-        --port $params.port --report "${params.database_set}.kraken_report.txt" \
-        --sequence ${fastq} > "${params.database_set}.kraken_assignments.tsv"
-    """
+    if ( kraken_reports.size() == 1) {
+        """
+        mv ${kraken_reports[0]} "${params.database_set}.kraken_report.txt"
+        mv ${kraken_assignments[0]} "${params.database_set}.kraken_assignments.tsv"
+        """
+    } else {
+        """
+        $projectDir/../bin/combine_kreports.py \\
+                -r ${kraken_reports} \\
+                -o "${params.database_set}.kraken_report.txt"
+
+        cat ${kraken_assignments} > "${params.database_set}.kraken_assignments.tsv"
+        """
+    }
 }
 
 process determine_bracken_length {
@@ -99,14 +123,16 @@ workflow run_kraken_and_bracken {
         database
         taxonomy
     main:
-        kraken2_client(unique_id, fastq)
+        //fastq = Channel.fromPath(input_fastq)
+        kraken2_client(fastq)
+        combine_kraken_outputs(unique_id, kraken2_client.out.report.collect(), kraken2_client.out.assignments.collect())
         bracken_length = determine_bracken_length(database)
-        bracken(unique_id, kraken2_client.output.report, database, bracken_length)
-        bracken_to_json(unique_id, kraken2_client.output.report, taxonomy, bracken.out.summary)
+        bracken(unique_id, combine_kraken_outputs.output.report, database, bracken_length)
+        bracken_to_json(unique_id, combine_kraken_outputs.output.report, taxonomy, bracken.out.summary)
     emit:
         bracken_report = bracken.output.report
-        kraken_report = kraken2_client.output.report
-        kraken_assignments = kraken2_client.output.assignments
+        kraken_report = combine_kraken_outputs.output.report
+        kraken_assignments = combine_kraken_outputs.output.assignments
         json = bracken_to_json.out
 }
 
