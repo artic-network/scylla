@@ -8,6 +8,9 @@
 
     <title>${sample} report</title>
 
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
+          integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-dispatch@3"></script>
@@ -367,6 +370,27 @@
                 background-color: #dc3545;
                 color: white;
             }
+
+            /* For printing */
+
+            @media print {
+                .navbar {
+                    display: block;
+                    border-width:0 !important;
+                }
+                .navbar-toggle {
+                    display:none;
+                }
+
+                .dataTable-top {
+                    display:none !important;
+                }
+
+                .dataTable-bottom {
+                    display:none !important;
+                }
+            }
+
         </style>
 
         <h1>Single Sample Report</h1>
