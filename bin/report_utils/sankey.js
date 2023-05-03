@@ -1,3 +1,5 @@
+/* based on code from epi2ome/wf-metagenomics
+
     /**
     * Minified by jsDelivr using Terser v5.9.0.
     * Original file: /npm/simple-datatables@3.2.0/dist/umd/simple-datatables.js

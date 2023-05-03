@@ -8,4 +8,5 @@ NB about initial files and pipelines:
  - Need to think further about the directory structure for results
  - no files/modules/pipelines are complete
  - need to improve on the files modified from the wf-metagenomics pipeline
+ - to build docker image docker build --platform linux/amd64 -t scylla .
  - nextflow run ./subworkflows/kraken_pipeline.nf --fastq test/test_data/barcode02/barcode02.fq works
