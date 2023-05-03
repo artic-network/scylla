@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import json
 import csv
 from collections import defaultdict
@@ -53,21 +55,23 @@ def main():
 
     parser.add_argument("--assignments", help="JSON file of kraken/bracken assignments", required=True)
     parser.add_argument("--read_counts", help="JSON file of read_counts", required=False)
+    parser.add_argument("--sample_id", help="Unique ID of sample", required=False, default="sample")
 
     parser.add_argument("--prefix", help="HTML output prefix ", default="scylla")
 
-    parser.add_argument("--template", help="HTML template for report", default="scylla_report_old.mako.html")
+    parser.add_argument("--template", help="HTML template for report", default="scylla.mako.html")
     parser.add_argument("--version", help="Scylla version", default="unknown")
 
     args = parser.parse_args()
 
-    sample = "sample"
+    sample = args.sample_id
 
     with open(args.assignments, 'r') as bracken_file:
         assignments = bracken_file.read().strip().replace('"', '\\"')
 
     if args.read_counts:
-        read_counts = json.load(args.read_counts)
+        with open(args.read_counts, 'r') as qc_file:
+                read_counts = qc_file.read().strip().replace('"', '\\"')
     else:
         read_counts = {}
     data_for_report = {"sankey_data":assignments, "read_count_data": read_counts}

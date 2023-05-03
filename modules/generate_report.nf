@@ -9,15 +9,16 @@ process make_report {
         path lineages
         path template
     output:
-        path "scylla-report.html", emit: report_html
+        path "${unique_id}_report.html", emit: report_html
     script:
-        report_name = "scylla-report.html"
+        report_name = "${unique_id}"
     """
-    $projectDir/../bin/single_sample_report.py \
-        "${report_name}" \
-        --stats ${stats} \
-        --lineages ${lineages} \
-        --report_template "${template}"
+    $projectDir/../bin/make_report.py \
+        --prefix "${report_name}" \
+        --read_counts ${stats} \
+        --assignments ${lineages} \
+        --version "${workflow.manifest.version}" \
+        --template "${template}"
     """
 }
 
@@ -28,7 +29,7 @@ workflow generate_report {
         bracken_jsons
     main:
         // Acquire report template
-        template = file("$projectDir/../bin/report-visualisation.html")
+        template = file("$projectDir/../bin/scylla.mako.html")
 
         make_report(unique_id, stats, bracken_jsons, template)
     emit:
