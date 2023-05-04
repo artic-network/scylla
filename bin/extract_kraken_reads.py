@@ -227,7 +227,7 @@ min_count_descendants=None, min_percent=None, top_n=None, include_parents=False,
 
     summary = []
     for taxon in lists_to_extract:
-        summary.append({"human_readable": taxon, "tax_level": bracken_hierarchy[taxon]["rank"], "filename":"%s.%s.%s" %(prefix, taxon, filetype), "qc_metrics":{"num_reads":out_counts[taxon], "avg_qual":mean(quals[taxon]), "mean_len":mean(lens[taxon])}})
+        summary.append({"human_readable": bracken_hierarchy[taxon]["name"], "taxon": taxon, "tax_level": bracken_hierarchy[taxon]["rank"], "filename":"%s.%s.%s" %(prefix, taxon, filetype), "qc_metrics":{"num_reads":out_counts[taxon], "avg_qual":mean(quals[taxon]), "mean_len":mean(lens[taxon])}})
     with open("%s_summary.json" %prefix, 'w') as f:
         print(summary)
         json.dump(summary, f)
