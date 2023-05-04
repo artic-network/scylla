@@ -24,13 +24,16 @@ workflow kraken_pipeline {
             taxonomy = file(params.taxonomy, type: "dir", checkIfExists:true)
         }
 
-        source_database = source_data.get("database", false)
-        if (!source_database) {
-            throw new Exception(
-                "Error: Source $source_name does not include a database for "
-                + "use with kraken, please choose another source, "
-                + "provide a custom database or disable kraken.")
-        }
+        if (database) {
+            source_database = database
+        } else {
+            source_database = source_data.get("database", false)
+            if (!source_database) {
+                throw new Exception(
+                    "Error: Source $source_name does not include a database for "
+                    + "use with kraken, please choose another source, "
+                    + "provide a custom database or disable kraken.")
+            }
         database = file(source_database, type: "file")
 
         // start_server(database, taxonomy)
