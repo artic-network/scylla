@@ -1,5 +1,3 @@
-include { start_server } from '../modules/kraken_server'
-include { stop_server } from '../modules/kraken_server'
 include { run_kraken_and_bracken } from '../modules/kraken_client'
 include { qc_checks } from '../modules/qc_checks'
 include { generate_report } from '../modules/generate_report'
