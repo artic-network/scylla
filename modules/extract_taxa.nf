@@ -16,7 +16,8 @@ process extract_reads {
         path kraken_report
         path bracken_report
     output:
-        path "reads.*.f*.gz"
+        path "reads.*.f*.gz", emit: reads
+        path "reads_summary.json", emit: summary
     script:
     """
     $projectDir/../bin/extract_kraken_reads.py \

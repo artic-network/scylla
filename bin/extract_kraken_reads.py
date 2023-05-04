@@ -11,7 +11,22 @@ import sys
 import gzip
 from Bio import SeqIO
 import argparse
+import json
 from datetime import datetime
+
+def mean(l):
+    if len(l) == 0:
+        return 0
+    return sum(l)/len(l)
+
+def median(l):
+    if len(l)%2 == 0:
+        i = (len(l))/2
+    else:
+        i = (len(l) + 1)/2
+    i = int(i)
+    l = sorted(l)
+    return l[i]
 
 def parse_depth(name):
     parse_name = name.split(" ")
@@ -170,6 +185,8 @@ min_count_descendants=None, min_percent=None, top_n=None, include_parents=False,
     # open output files
     outfile_handles = {}
     out_counts = {}
+    quals = {}
+    lens = {}
 
     keys = {}
     for taxon in lists_to_extract:
@@ -180,6 +197,8 @@ min_count_descendants=None, min_percent=None, top_n=None, include_parents=False,
         outfile_handles[taxon] = open("%s.%s.%s" %(prefix, taxon, filetype), "w")
         print("opening %s.%s.%s" %(prefix, taxon, filetype))
         out_counts[taxon] = 0
+        quals[taxon] = []
+        lens[taxon] = []
     sys.stdout.write("INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES\n" %len(keys))
     sys.stdout.write("[%s]\n" %','.join(keys))
 
@@ -199,11 +218,19 @@ min_count_descendants=None, min_percent=None, top_n=None, include_parents=False,
                 for taxon in keys[tax_id]:
                     SeqIO.write(read, outfile_handles[taxon], filetype)
                     out_counts[taxon] += 1
+                    quals[taxon].append(median(read.letter_annotations["phred_quality"]))
+                    lens[taxon].append(len(read))
 
     for handle in outfile_handles:
         if outfile_handles[handle]:
             outfile_handles[handle].close()
 
+    summary = []
+    for taxon in lists_to_extract:
+        summary.append({"human_readable": bracken_hierarchy[taxon]["name"], "taxon": taxon, "tax_level": bracken_hierarchy[taxon]["rank"], "filename":"%s.%s.%s" %(prefix, taxon, filetype), "qc_metrics":{"num_reads":out_counts[taxon], "avg_qual":mean(quals[taxon]), "mean_len":mean(lens[taxon])}})
+    with open("%s_summary.json" %prefix, 'w') as f:
+        print(summary)
+        json.dump(summary, f)
     return out_counts
 
 #Main method

@@ -1,0 +1,1175 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="https://raw.githubusercontent.com/snowy-leopard/scylla/main/docs/mscape.png">
+
+    <title>${sample} report</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>
+    <link href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.print.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/gh/rambaut/figtree.js@9880/dist/figtree.umd.js"></script>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://sharonchoong.github.io/svg-exportJS/svg-export.min.js"></script>
+    <script src="https://unpkg.com/canvg/lib/umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfkit/js/pdfkit.min.js"></script>
+    <script src="https://github.com/devongovett/blob-stream/releases/download/v0.1.3/blob-stream.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-to-pdfkit/source.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.22.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.11.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-dispatch@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-ease@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-selection@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-timer@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-transition@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-drag@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-zoom@3"></script>
+    <script src="https://unpkg.com/d3-array@1"></script>
+    <script src="https://unpkg.com/d3-collection@1"></script>
+    <script src="https://unpkg.com/d3-path@1"></script>
+    <script src="https://unpkg.com/d3-shape@1"></script>
+    <script src="https://unpkg.com/d3-sankey@0"></script>
+
+    <% colorCodes = ["#e68781","#476970","#f5eece"] %>
+    <% themeColor = "#e68781" %>
+    <style>
+        body {
+            padding-top: 50px;
+            font-family: "ArialNova-Light","HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+        }
+        table text{
+            font-family: "ArialNova-Light","HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+        }
+        header {
+            display: block;
+            text-align: right;
+
+        }
+        svg {width: 90%; height: auto;}
+        .row {
+            display: flex;
+        }
+        .column {
+            padding: 10px;
+            flex: 50%;
+        }
+        .accordion {
+            background-color: #eee;
+            color: #444;
+            cursor: pointer;
+            padding: 13px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            transition: 0.4s;
+        }
+
+        .active, .accordion:hover {
+            background-color: ${themeColor};
+            color: white;
+        }
+
+        .accordion:after {
+            content: '\002B';
+            color: white;
+            font-weight: bold;
+            float: right;
+            margin-left: 5px;
+        }
+
+        .active:after {
+            content: "\2212";
+        }
+
+        .panel {
+            padding: 0 13px;
+            background-color: white;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+        }
+        .center {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 50%;
+        }
+        .node-background{
+            fill:dimgrey;
+            stroke:dimgrey;
+        }
+        .node circle{
+            stroke-width:0;
+            cursor:pointer;
+            /* fill:#7178bc; */
+            stroke:dimgrey;
+        }
+        .node circle.selected{
+            stroke-width:0;
+            cursor:pointer;
+            fill:${themeColor};
+            stroke:dimgrey;
+        }
+        .node-background.query_boolean-True{
+            stroke:${themeColor};
+        }
+        .node.query_boolean-True circle{
+            stroke:${themeColor};
+        }
+        .node.query_boolean-True circle.selected{
+            stroke:${themeColor};
+        }
+        .node-background.query_boolean-True circle.selected{
+            stroke:${themeColor};
+        }
+        .node.query_boolean-True.hovered circle{
+            stroke:${themeColor};
+        }
+        .node rect{
+            stroke-width:2;
+            fill:${themeColor};
+            stroke:dimgrey;
+        }
+        .svg-tooltip {
+            background: rgba(69,77,93,.9);
+            border-radius: .1rem;
+            color: #fff;
+            display: block;
+            font-size: 14px;
+            max-width: 320px;
+            padding: .2rem .4rem;
+            position: absolute;
+            text-overflow: ellipsis;
+            white-space: pre;
+            z-index: 300;
+            visibility: hidden;
+        }
+        .tooltip-header {
+            font-size: 1.3em;
+        }
+        .tooltip-key {
+            font-weight: bold;
+        }
+        .branch path{
+            stroke-width:2;
+            stroke: dimgrey;
+            stroke-linejoin:round;
+            cursor: pointer;
+        }
+        .branch.hovered path{
+            stroke-width:4;
+            stroke: dimgrey;
+        }
+        .node.hovered circle{
+            stroke-width:5;
+            stroke: dimgrey
+        }
+        .node text{
+            font-family: "ArialNova-Light","HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+            font-weight: 300;
+            font-size: 0.9em;
+        }
+        /* .starter-template {
+          padding: 40px 15px;
+          text-align: left;
+        } */
+        .dataTables_wrapper.no-footer .dataTables_scrollBody {
+            border-top: 1px solid  rgb(148, 148, 148);
+            border-bottom: none;
+        }
+        .svg-icon {
+            display: inline-flex;
+            align-self: center;
+        }
+        h3{
+            font-size: 1em;
+        }
+        #toTopBtn {
+            position: fixed;
+            bottom: 26px;
+            right: 39px;
+            z-index: 98;
+            padding: 21px;
+            background-color: ${themeColor}
+        }
+        .js .cd-top--fade-out {
+            opacity: .5
+        }
+        .js .cd-top--is-visible {
+            visibility: visible;
+            opacity: 1
+        }
+        .js .cd-top {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity .3s, visibility .3s, background-color .3s
+        }
+        .cd-top {
+            position: fixed;
+            bottom: 20px;
+            bottom: var(--cd-back-to-top-margin);
+            right: 20px;
+            right: var(--cd-back-to-top-margin);
+            display: inline-block;
+            height: 40px;
+            height: var(--cd-back-to-top-size);
+            width: 40px;
+            width: var(--cd-back-to-top-size);
+            box-shadow: 0 0 10px rgba(0, 0, 0, .05) !important;
+            background: url(https://res.cloudinary.com/dxfq3iotg/image/upload/v1571057658/cd-top-arrow.svg) no-repeat center 50%;
+            background-color: ${themeColor};
+            background-color: hsla(var(--cd-color-3-h), var(--cd-color-3-s), var(--cd-color-3-l), 0.8)
+        }
+        .slidecontainer {
+            width: 100%;
+        }
+        .colourSelect {
+            background: #eee;
+            border-radius: 5px;
+            padding: 4px;
+            stroke: dimgrey;
+            outline: none;
+            opacity: 0.7;
+        }
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 15px;
+            background: #d3d3d3;
+            border-radius: 5px;
+            stroke: dimgrey;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+        }
+        .slider:hover {
+            opacity: 1;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: ${themeColor};
+            stroke: dimgrey;
+            cursor: pointer;
+        }
+        .slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            stroke: dimgrey;
+            background: ${themeColor};
+            cursor: pointer;
+        }
+        .tree-container{
+            max-height: 1000px;
+            overflow: scroll;
+        }
+        .label{
+            display: none;
+        }
+        .label.show{
+            display: inline;
+        }
+        .node.hovered .label {
+            display:inline;
+        }
+        div.sticky {
+            position: -webkit-sticky; /* Safari */
+            position: sticky;
+            top: 0;
+        }
+        .searchbar {
+            border-style:solid;
+            border-color: lightgrey;
+            border-radius: 5px;
+            float:right
+        }
+        @media print {
+            html{zoom: 85%;}
+            *,
+            *::before,
+            *::after {
+                text-shadow: none !important;
+                box-shadow: none !important;
+            }
+            a:not(.btn) {
+                text-decoration: underline;
+            }
+            a[href]:after{content:none};
+            abbr[title]::after {
+                content: " (" attr(title) ")";
+            }
+            pre {
+                white-space: pre-wrap !important;
+            }
+            pre,
+            blockquote {
+                border: 1px solid #adb5bd;
+                page-break-inside: avoid;
+            }
+            tr,
+            img {
+                page-break-inside: avoid;
+            }
+            p,
+            h2,
+            h3 {
+                orphans: 3;
+                widows: 3;
+            }
+            h2,
+            h3 {
+                page-break-after: avoid;
+            }
+            @page {
+                size: A4 portrait;
+                size: 210mm 297mm ;
+                margin-top: 250mm;
+                margin-right: 250mm;
+                margin-left: 250mm;
+                margin-bottom: 250mm;
+            }
+            body {
+                min-width: 210mm !important;
+                padding-top: 56px;
+                -webkit-print-color-adjust:exact;
+            }
+            .container {
+                min-width: 210mm !important;
+            }
+            .mscape-header {
+                position:relative;
+                top: 0;
+                top: 0px;
+                right: 0px;
+                width: 100%;
+                height: 50px;
+            }
+            .spacer {
+                width: 100%;
+                height: 55px;
+            }
+
+            .page-footer {
+                position: relative;
+                bottom: 50px;
+                right: 0px;
+                width: 100%;
+                height: 50px;
+            }
+            .control {
+                display: none;
+            }
+            .content-block, p {
+                page-break-inside: avoid;
+            }
+            .searchbar {
+                display: none;
+            }
+            .badge {
+                border: 1px solid #000;
+            }
+            .table {
+                color: inherit;
+                background-color: inherit;
+                border-collapse: collapse !important;
+            }
+            .table td,
+            .table th {
+                background-color: #fff !important;
+            }
+            .scroll-container {
+                display: none;
+            }
+            .table-bordered th,
+            .table-bordered td {
+                border: 1px solid #dee2e6 !important;
+            }
+            .table-dark {
+                color: inherit;
+            }
+            .table-dark th,
+            .table-dark td,
+            .table-dark thead th,
+            .table-dark tbody + tbody {
+                border-color: #dee2e6;
+            }
+            .dataTables_filter {
+                display: none;
+            }
+            .sorting_desc{
+                display: none;
+            }
+            .sorting_asc{
+                display: none;
+            }
+            .scrollX {
+                display: none;
+            }
+            .accordion {
+                display: none;
+            }
+            .panel {
+                display: none;
+            }
+        }
+
+
+
+        #visualisation {
+            position: relative;
+        }
+
+        .wf-metagenomics-sankey h3 {
+            font-size: 24px;
+            margin: 0;
+            padding: 15px 0 15px 0;
+            font-family: inherit;
+            font-weight: 500;
+            line-height: 1.1;
+        }
+
+        .wf-metagenomics-sankey body {
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+
+        .wf-metagenomics-sankey ul {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        .wf-metagenomics-sankey input,
+        .wf-metagenomics-sankey select,
+        .wf-metagenomics-sankey select.dataTable-selector {
+            min-width: 200px;
+            cursor: pointer;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            position: relative;
+            margin-top: 5px;
+            outline: none;
+            background-color: #0084A9;
+            padding: 15px 25px;
+            border: 2px solid #0084A9;
+            color: white;
+            text-transform: uppercase;
+            font-size: 11px;
+            border-radius: 4px;
+            /* font-weight: bold; */
+            letter-spacing: 0.05em;
+            transition: 0.2s ease-in-out all;
+            font-weight: bold;
+            /* for Firefox */
+            appearance: none;
+            -moz-appearance: none;
+            /* for Chrome */
+            -webkit-appearance: none;
+        }
+
+        .wf-metagenomics-sankey input {
+            border: 2px solid #0084A9;
+            background-color: white;
+            color: #0084A9;
+        }
+
+        .wf-metagenomics-sankey input::placeholder {
+            color: #0084A9;
+        }
+
+        .wf-metagenomics-sankey select:hover {
+            background-color: #0084A9;
+            color: white
+        }
+
+        .wf-metagenomics-sankey option {
+            color: black
+        }
+
+        .wf-metagenomics-sankey button {
+            white-space: nowrap;
+            cursor: pointer;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            position: relative;
+            outline: none;
+            background-color: transparent;
+            padding: 15px 15px;
+            border: 2px solid #0084A9;
+            color: #0084A9;
+            text-transform: uppercase;
+            font-size: 11px;
+            border-radius: 4px;
+            /* font-weight: bold; */
+            letter-spacing: 0.05em;
+            transition: 0.2s ease-in-out all;
+            font-weight: bold;
+            /* for Firefox */
+            appearance: none;
+            -moz-appearance: none;
+            /* for Chrome */
+            -webkit-appearance: none;
+        }
+
+        .wf-metagenomics-sankey button:hover {
+            background-color: #0084A9;
+            color: white
+        }
+
+        .wf-metagenomics-sankey label {
+            color: black;
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: normal;
+            letter-spacing: 0.05em;
+            /* font-weight: bold; */
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .wf-metagenomics-sankey main {
+            max-width: 1200px;
+            /* padding: 50px; */
+            margin: 0 auto;
+        }
+
+        .wf-metagenomics-sankey #controls {
+            max-width: 1200px;
+        }
+
+        .wf-metagenomics-sankey #controls ul {
+            display: flex;
+        }
+
+        .wf-metagenomics-sankey #controls ul li {
+            display: flex;
+            flex-direction: column;
+            margin: 0 15px 0 0;
+            justify-content: end;
+        }
+
+        .wf-metagenomics-sankey #table {
+            font-family: Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .wf-metagenomics-sankey #table td,
+        .wf-metagenomics-sankey #table th {
+            border: 1px solid #ddd;
+            padding: 4px;
+        }
+
+        .wf-metagenomics-sankey #table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .wf-metagenomics-sankey #table tr:hover {
+            background-color: #90C5E7;
+        }
+
+        .wf-metagenomics-sankey #table th {
+            padding-top: 4px;
+            padding-bottom: 4px;
+            text-align: left;
+            background-color: #0084A9;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+<script>
+    $(document).ready(function() {
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 20) {
+                $('#toTopBtn').fadeIn();
+            } else {
+                $('#toTopBtn').fadeOut();
+            }
+        });
+
+        $('#toTopBtn').click(function() {
+            $("html, body").animate({
+                scrollTop: 0
+            }, 400);
+            return false;
+        });
+    });
+</script>
+
+
+<div class="container">
+    <a href="#" id="toTopBtn" class="cd-top text-replace js-cd-top cd-top--is-visible cd-top--fade-out" data-abc="true"></a>
+    <header class="mscape-header">
+        <div class="col-sm-8" style="text-align: left;">
+            <img class="mscape-logo" src="https://raw.githubusercontent.com/snowy-leopard/scylla/main/docs/mscape.png" vertical-align="left" width="30" height="30"></img>
+            mSCAPE | <small class="text-muted">metagenomics Surveillance Collaboraton and Analysis Programme</small>
+        </div>
+        <div class="col-sm-4" style="text-align: right;">
+            scylla | <small class="text-muted">Sample report</small>
+        </div>
+        <br>
+        <hr>
+        <div class="spacer">
+            &nbsp;
+        </div>
+    </header>
+
+    <div class="container1">
+        <style>
+            #visualisation {
+                position: relative;
+            }
+
+            .single-sample-sankey h3 {
+                font-size: 24px;
+                margin: 0;
+                padding: 15px 0 15px 0;
+                font-family: inherit;
+                font-weight: 500;
+                line-height: 1.1;
+            }
+
+            .single-sample-sankey body {
+                height: 100%;
+                padding: 0;
+                margin: 0;
+                box-sizing: border-box;
+                font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            }
+
+            .single-sample-sankey ul {
+                padding: 0;
+                margin: 0;
+                list-style: none;
+            }
+
+            .single-sample-sankey input,
+            .single-sample-sankey select,
+            .single-sample-sankey select.dataTable-selector {
+                min-width: 200px;
+                cursor: pointer;
+                border: 0;
+                padding: 0;
+                margin: 0;
+                position: relative;
+                margin-top: 5px;
+                outline: none;
+                background-color: #dc3545;
+                padding: 15px 25px;
+                border: 2px solid #dc3545;
+                color: white;
+                text-transform: uppercase;
+                font-size: 11px;
+                border-radius: 4px;
+                /* font-weight: bold; */
+                letter-spacing: 0.05em;
+                transition: 0.2s ease-in-out all;
+                font-weight: bold;
+                /* for Firefox */
+                appearance: none;
+                -moz-appearance: none;
+                /* for Chrome */
+                -webkit-appearance: none;
+            }
+
+            .single-sample-sankey input {
+                border: 2px solid #dc3545;
+                background-color: white;
+                color: #dc3545;
+            }
+
+            .single-sample-sankey input::placeholder {
+                color: #dc3545;
+            }
+
+            .single-sample-sankey select:hover {
+                background-color: #dc3545;
+                color: white
+            }
+
+            .single-sample-sankey option {
+                color: black
+            }
+
+            .single-sample-sankey button {
+                white-space: nowrap;
+                cursor: pointer;
+                border: 0;
+                padding: 0;
+                margin: 0;
+                position: relative;
+                outline: none;
+                background-color: transparent;
+                padding: 15px 15px;
+                border: 2px solid #dc3545;
+                color: #dc3545;
+                text-transform: uppercase;
+                font-size: 11px;
+                border-radius: 4px;
+                /* font-weight: bold; */
+                letter-spacing: 0.05em;
+                transition: 0.2s ease-in-out all;
+                font-weight: bold;
+                /* for Firefox */
+                appearance: none;
+                -moz-appearance: none;
+                /* for Chrome */
+                -webkit-appearance: none;
+            }
+
+            .single-sample-sankey button:hover {
+                background-color: #dc3545;
+                color: white
+            }
+
+            .single-sample-sankey label {
+                color: black;
+                text-transform: uppercase;
+                font-size: 11px;
+                font-weight: normal;
+                letter-spacing: 0.05em;
+                /* font-weight: bold; */
+                font-family: 'Courier New', Courier, monospace;
+            }
+
+            .single-sample-sankey main {
+                max-width: 1200px;
+                /* padding: 50px; */
+                margin: 0 auto;
+            }
+
+            .single-sample-sankey #controls {
+                max-width: 1200px;
+            }
+
+            .single-sample-sankey #controls ul {
+                display: flex;
+            }
+
+            .single-sample-sankey #controls ul li {
+                display: flex;
+                flex-direction: column;
+                margin: 0 15px 0 0;
+                justify-content: end;
+            }
+
+            .dataTable-top,
+            .dataTable-bottom {
+                display: flex;
+                align-items: end;
+                padding: 0 0 15px 0;
+            }
+
+            .dataTable-bottom {
+                padding: 15px 0 15px 0;
+                align-items: start;
+                justify-content: space-between;
+            }
+
+            .dataTable-selector {
+                padding: 6px;
+            }
+
+            .dataTable-info {
+                margin: 7px 0;
+            }
+
+            /* TABLE RANK */
+            .dataTable-rank label {
+                display: flex;
+                flex-direction: column;
+                margin: 0;
+            }
+
+            /* DROPDOWN */
+            .dataTable-dropdown label {
+                display: flex;
+                flex-direction: column-reverse;
+                margin: 0;
+            }
+
+            .dataTable-dropdown,
+            .dataTable-search {
+                padding-left: 15px;
+            }
+
+            /* PAGER */
+            .dataTable-pagination ul {
+                margin: 0;
+                padding-left: 0;
+            }
+
+            .dataTable-pagination li {
+                list-style: none;
+                float: left;
+            }
+
+            .dataTable-pagination li.pager {
+                margin: 0;
+            }
+
+            .dataTable-pagination a {
+                border: 1px solid transparent;
+                float: left;
+                margin-left: 2px;
+                padding: 6px 12px;
+                position: relative;
+                text-decoration: none;
+                color: #333;
+            }
+
+            .dataTable-pagination a:hover {
+                background-color: #d9d9d9;
+            }
+
+            .dataTable-pagination .active a,
+            .dataTable-pagination .active a:focus,
+            .dataTable-pagination .active a:hover {
+                background-color: #d9d9d9;
+                cursor: default;
+            }
+
+            .dataTable-pagination .ellipsis a,
+            .dataTable-pagination .disabled a,
+            .dataTable-pagination .disabled a:focus,
+            .dataTable-pagination .disabled a:hover {
+                cursor: not-allowed;
+            }
+
+            .dataTable-pagination .disabled a,
+            .dataTable-pagination .disabled a:focus,
+            .dataTable-pagination .disabled a:hover {
+                cursor: not-allowed;
+                opacity: 0.4;
+            }
+
+            .dataTable-pagination .pager a {
+                font-weight: bold;
+            }
+
+            /* TABLE */
+            .dataTable-table {
+                max-width: 100%;
+                width: 100%;
+                border-spacing: 0;
+                border-collapse: separate;
+            }
+
+            .dataTable-table>tbody>tr>td,
+            .dataTable-table>tbody>tr>th,
+            .dataTable-table>tfoot>tr>td,
+            .dataTable-table>tfoot>tr>th,
+            .dataTable-table>thead>tr>td,
+            .dataTable-table>thead>tr>th {
+                vertical-align: top;
+                padding: 8px 10px;
+            }
+
+            .dataTable-table>thead>tr>th {
+                vertical-align: bottom;
+                text-align: left;
+                border-bottom: 1px solid #d9d9d9;
+            }
+
+            .dataTable-table>tfoot>tr>th {
+                vertical-align: bottom;
+                text-align: left;
+                border-top: 1px solid #d9d9d9;
+            }
+
+            .dataTable-table th {
+                vertical-align: bottom;
+                text-align: left;
+            }
+
+            .dataTable-table th a {
+                text-decoration: none;
+                color: inherit;
+            }
+
+            .dataTable-sorter {
+                display: inline-block;
+                height: 100%;
+                position: relative;
+                width: 100%;
+            }
+
+            .dataTable-sorter::before,
+            .dataTable-sorter::after {
+                content: "";
+                height: 0;
+                width: 0;
+                position: absolute;
+                right: 4px;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                opacity: 0.2;
+            }
+
+            .dataTable-sorter::before {
+                border-top: 4px solid #000;
+                bottom: 0px;
+            }
+
+            .dataTable-sorter::after {
+                border-bottom: 4px solid #000;
+                border-top: 4px solid transparent;
+                top: 0px;
+            }
+
+            .asc .dataTable-sorter::after,
+            .desc .dataTable-sorter::before {
+                opacity: 0.6;
+            }
+
+            .dataTables-empty {
+                text-align: center;
+            }
+
+            .single-sample-sankey #table {
+                font-family: Arial, Helvetica, sans-serif;
+                border-collapse: collapse;
+                width: 100%;
+            }
+
+            .single-sample-sankey #table td,
+            .single-sample-sankey #table th {
+                border: 1px solid #ddd;
+                padding: 4px;
+            }
+
+            .single-sample-sankey #table tr:nth-child(even) {
+                background-color: #f2f2f2;
+            }
+
+            .single-sample-sankey #table tr:hover {
+                background-color: #90C5E7;
+            }
+
+            .single-sample-sankey #table th {
+                padding-top: 4px;
+                padding-bottom: 4px;
+                text-align: left;
+                background-color: #dc3545;
+                color: white;
+            }
+
+            /* For printing */
+
+            @media print {
+                .navbar {
+                    display: block;
+                    border-width:0 !important;
+                }
+                .navbar-toggle {
+                    display:none;
+                }
+
+                .dataTable-top {
+                    display:none !important;
+                }
+
+                .dataTable-bottom {
+                    display:none !important;
+                }
+            }
+
+        </style>
+
+        <h1>Single Sample Report</h1>
+        <p class="lead">Results generated through the scylla Nextflow workflow provided by snowy-leopard.</p>
+
+        <main class="single-sample-sankey">
+
+            <h3>Kraken classifications</h3>
+            <div id="controls">
+                <ul>
+                    <li>
+                        <label for="sample-select">Select kraken database</label>
+                        <select id="sample-select"></select>
+                    </li>
+                    <li>
+                        <label for="rank-select">Select rank</label>
+                        <select id="rank-select"></select>
+                    </li>
+                    <li>
+                        <label for="cutoff-select">Select cutoff</label>
+                        <select id="cutoff-select"></select>
+                    </li>
+                    <li>
+                        <button onclick="zoomIn()">[+] Zoom in</button>
+                    </li>
+                    <li>
+                        <button onclick="zoomOut()">[-] Zoom out</button>
+                    </li>
+                    <li>
+                        <button onclick="resetZoom()">[ ] Reset zoom</button>
+                    </li>
+                </ul>
+            </div>
+
+            <div id="visualisation">
+                <div id="sankey-plot"></div>
+                <div id="tooltip"></div>
+            </div>
+
+            <h3>Read counts by taxa</h3>
+            <table id="table">
+                <thead>
+                <tr></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <script>
+                /* ----------------------------------------------------------------------------
+                | Chart settings
+                |---------------------------------------------------------------------------- */
+                const width = 1500
+                const height = 500
+                const color = '#333333'
+                const cutoffs = [0.5, 1, 3, 5]
+                const ranks = ["superkingdom", "kingdom", "phylum", "class", "order", "family", "genus", "species"]
+                const colours = ["#6e40aa", "#6d41ab", "#6d41ad", "#6d42ae", "#6c43af", "#6c43b0", "#6b44b2", "#6b45b3", "#6a46b4", "#6a46b5", "#6a47b7", "#6948b8", "#6849b9", "#684aba", "#674abb", "#674bbd", "#664cbe", "#664dbf", "#654ec0", "#654fc1", "#6450c2", "#6350c3", "#6351c4", "#6252c5", "#6153c6", "#6154c7", "#6055c8", "#5f56c9", "#5f57ca", "#5e58cb", "#5d59cc", "#5c5acd", "#5c5bce", "#5b5ccf", "#5a5dd0", "#595ed1", "#595fd1", "#5860d2", "#5761d3", "#5662d4", "#5663d5", "#5564d5", "#5465d6", "#5366d7", "#5267d7", "#5168d8", "#5169d9", "#506ad9", "#4f6bda", "#4e6cda", "#4d6ddb", "#4c6edb", "#4b70dc", "#4b71dc", "#4a72dd", "#4973dd", "#4874de", "#4775de", "#4676df", "#4577df", "#4479df", "#447adf", "#437be0", "#427ce0", "#417de0", "#407ee0", "#3f80e1", "#3e81e1", "#3d82e1", "#3d83e1", "#3c84e1", "#3b86e1", "#3a87e1", "#3988e1", "#3889e1", "#378ae1", "#378ce1", "#368de1", "#358ee1", "#348fe1", "#3390e1", "#3292e1", "#3293e1", "#3194e0", "#3095e0", "#2f96e0", "#2e98e0", "#2e99df", "#2d9adf", "#2c9bdf", "#2b9cde", "#2b9ede", "#2a9fdd", "#29a0dd", "#29a1dd", "#28a2dc", "#27a4dc", "#26a5db", "#26a6db", "#25a7da", "#25a8d9", "#24aad9", "#23abd8", "#23acd8", "#22add7", "#22aed6", "#21afd5", "#21b1d5", "#20b2d4", "#20b3d3", "#1fb4d2", "#1fb5d2", "#1eb6d1", "#1eb8d0", "#1db9cf", "#1dbace", "#1dbbcd", "#1cbccc", "#1cbdcc", "#1cbecb", "#1bbfca", "#1bc0c9", "#1bc2c8", "#1ac3c7", "#1ac4c6", "#1ac5c5", "#1ac6c4", "#1ac7c2", "#1ac8c1", "#19c9c0", "#19cabf", "#19cbbe", "#19ccbd", "#19cdbc", "#19cebb", "#19cfb9", "#19d0b8", "#19d1b7", "#19d2b6", "#19d3b5", "#1ad4b4", "#1ad5b2", "#1ad5b1", "#1ad6b0", "#1ad7af", "#1bd8ad", "#1bd9ac", "#1bdaab", "#1bdbaa", "#1cdba8", "#1cdca7", "#1cdda6", "#1ddea4", "#1ddfa3", "#1edfa2", "#1ee0a0", "#1fe19f", "#1fe29e", "#20e29d", "#20e39b", "#21e49a", "#22e599", "#22e597", "#23e696", "#24e795", "#24e793", "#25e892", "#26e891", "#27e98f", "#27ea8e", "#28ea8d", "#29eb8c", "#2aeb8a", "#2bec89", "#2cec88", "#2ded87", "#2eed85", "#2fee84", "#30ee83", "#31ef82", "#32ef80", "#33f07f", "#34f07e", "#35f07d", "#37f17c", "#38f17a", "#39f279", "#3af278", "#3bf277", "#3df376", "#3ef375", "#3ff374", "#41f373", "#42f471", "#43f470", "#45f46f", "#46f46e", "#48f56d", "#49f56c", "#4bf56b", "#4cf56a", "#4ef56a", "#4ff669", "#51f668", "#52f667", "#54f666", "#55f665", "#57f664", "#59f664", "#5af663", "#5cf662", "#5ef661", "#5ff761", "#61f760", "#63f75f", "#64f75f", "#66f75e", "#68f75d", "#6af75d", "#6bf65c", "#6df65c", "#6ff65b", "#71f65b", "#73f65a", "#74f65a", "#76f659", "#78f659", "#7af659", "#7cf658", "#7ef658", "#80f558", "#81f558", "#83f557", "#85f557", "#87f557", "#89f557", "#8bf457", "#8df457", "#8ff457", "#91f457", "#93f457", "#94f357", "#96f357", "#98f357", "#9af357", "#9cf257", "#9ef258", "#a0f258", "#a2f258", "#a4f158", "#a6f159", "#a8f159", "#aaf159", "#abf05a", "#adf05a", "#aff05b"]
+
+                /* ----------------------------------------------------------------------------
+                | Ingest data
+                |---------------------------------------------------------------------------- */
+                const getData = () => "${data_for_report['sankey_data']}"
+
+                /* ----------------------------------------------------------------------------
+                | Helper methods
+                |---------------------------------------------------------------------------- */
+                const parseData = (_data) =>
+                    JSON.parse(_data);
+
+                const normaliseName = (name) =>
+                    name.split(' ').join('-')
+
+                ${data_for_report["sankey_js"]}
+
+
+
+            </script>
+
+            <h3>Read statistics</h3>
+            <div id="stats"></div>
+            <script>
+                const getStatsData = () => "${data_for_report['read_count_data']}"
+                const statsData = parseData(getStatsData())
+                const lenData  = statsData["raw_reads"]["len"]
+
+                // set the dimensions and margins of the graph
+                var margin = {
+                        top: 10,
+                        right: 30,
+                        bottom: 30,
+                        left: 40
+                    },
+                    width = 460 - margin.left - margin.right,
+                    height = 400 - margin.top - margin.bottom;
+
+                // append the svg object to the body of the page
+                var svg = d3.select("#stats")
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform",
+                        "translate(" + margin.left + "," + margin.top + ")");
+
+                // X axis: scale and draw:
+                var x = d3.scaleLinear()
+                    .domain([0, 1000]) // can use this instead of 1000 to have the max of data: d3.max(data, function(d) { return +d.price })
+                    .range([0, width]);
+                svg.append("g")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                // set the parameters for the histogram
+                var histogram = d3.histogram()
+                    .value(lenData.values()) // I need to give the vector of value
+                    .threshold(lenData.keys())
+                    .domain(x.domain()) // then the domain of the graphic
+                    .thresholds(x.ticks(70)); // then the numbers of bins
+
+                // And apply this function to data to get the bins
+                var bins = histogram(statsData);
+
+                // Y axis: scale and draw:
+                var y = d3.scaleLinear()
+                    .range([height, 0]);
+                y.domain([0, d3.max(bins, function(d) {
+                    return d.length;
+                })]); // d3.hist has to be called before the Y axis obviously
+                svg.append("g")
+                    .call(d3.axisLeft(y));
+
+                // append the bar rectangles to the svg element
+                svg.selectAll("rect")
+                    .data(bins)
+                    .enter()
+                    .append("rect")
+                    .attr("x", 1)
+                    .attr("transform", function(d) {
+                        return "translate(" + x(d.x0) + "," + y(d.length) + ")";
+                    })
+                    .attr("width", function(d) {
+                        return x(d.x1) - x(d.x0) - 1;
+                    })
+                    .attr("height", function(d) {
+                        return height - y(d.length);
+                    })
+                    .style("fill", "#69b3a2")
+            </script>
+        </main>
+
+    </div>
+
+
+    <footer class="page-footer">
+        <div class="container-fluid text-right text-md-right">
+            <hr>
+            <div class="row">
+                <div class="col-sm-1">
+                    <p>
+                        <img class="scylla-logo" src="https://raw.githubusercontent.com/snowy-leopard/scylla/main/docs/scylla.png" vertical-align="left" width="50" height="50"></img>
+                    <p>
+                </div>
+
+                <div class="col-sm-11" style="text-align: right;">
+                    scylla ${version} | <small class="text-muted">Sample report</small> <br><small class="text-muted">GNU General Public License v3.0</small></div>
+
+                <br><br>
+                </p>
+            </div>
+    </footer>
+</div>
+</body>
+</html>
