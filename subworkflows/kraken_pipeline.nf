@@ -35,9 +35,9 @@ workflow kraken_pipeline {
         }
         database = file(source_database, type: "file")
 
-        start_server(database, taxonomy)
-        run_kraken_and_bracken(unique_id, fastq, start_server.out.database, start_server.out.taxonomy)
-        stop_server(run_kraken_and_bracken.out.bracken_report.collect())
+        // start_server(database, taxonomy)
+        run_kraken_and_bracken(unique_id, fastq, database, taxonomy)
+        // stop_server(run_kraken_and_bracken.out.bracken_report.collect())
         qc_checks(unique_id, fastq)
         all_bracken_jsons = Channel.fromPath("${params.out_dir}/${unique_id}/classifications/*.bracken.json")
                     .concat(run_kraken_and_bracken.out.json)

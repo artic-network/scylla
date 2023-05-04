@@ -23,7 +23,8 @@ process kraken2_client {
     script:
     """
     kraken2_client \
-        --port $params.port --report "${fastq.baseName}.kraken_report.txt" \
+        --port ${params.k2_port} --host-ip ${params.k2_host} \
+        --report "${fastq.baseName}.kraken_report.txt" \
         --sequence ${fastq} > "${fastq.baseName}.kraken_assignments.tsv"
     """
 }
