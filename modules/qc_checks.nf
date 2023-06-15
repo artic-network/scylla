@@ -5,7 +5,7 @@ process read_stats {
     label "process_medium"
 
     conda "epi2melabs::kraken2-server=0.1.3"
-    container "biowilko/scylla@sha256:35fa2117d7dfe8b595dc25a422036888044ea5ae66b65fa26b82cc4ff457a7d9"
+    container "biowilko/scylla@${params.wf.container_sha}"
 
     input:
         path fastq
@@ -26,7 +26,7 @@ process combine_stats {
     publishDir "${params.out_dir}/${unique_id}/qc", mode: 'copy'
 
     conda "conda-forge::pandas=1.2.4 conda-forge::numpy=1.20.3"
-    container "biowilko/scylla@sha256:35fa2117d7dfe8b595dc25a422036888044ea5ae66b65fa26b82cc4ff457a7d9"
+    container "biowilko/scylla@${params.wf.container_sha}"
     
 
     input:
