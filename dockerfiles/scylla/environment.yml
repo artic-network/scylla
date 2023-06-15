@@ -1,0 +1,16 @@
+name: scylla
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+  - epi2melabs
+dependencies:
+  - python<=3.10
+  - pysam
+  - pip
+  - kraken2-server # not on mac
+  - bracken # needs to be manually installed from git and softlinked if Mac M1
+  - fastcat
+  - biopython
+  - pandas
+  - numpy

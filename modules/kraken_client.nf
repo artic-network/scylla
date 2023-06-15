@@ -7,7 +7,7 @@ process kraken2_client {
     label 'error_retry'
 
     conda "epi2melabs::kraken2-server=0.1.3"
-    container 'ontresearch/wf-metagenomics:shac290da60032a3a6c9c01808d58a71a0f17957681'
+    container "biowilko/scylla@sha256:35fa2117d7dfe8b595dc25a422036888044ea5ae66b65fa26b82cc4ff457a7d9"
 
     input:
         path fastq
@@ -25,8 +25,12 @@ process kraken2_client {
 
 process combine_kraken_outputs {
 
+    label 'process_single'
+
+    container "biowilko/scylla@sha256:35fa2117d7dfe8b595dc25a422036888044ea5ae66b65fa26b82cc4ff457a7d9"
 
     publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
+    
     input:
         val unique_id
         path kraken_reports
@@ -52,7 +56,11 @@ process combine_kraken_outputs {
 }
 
 process determine_bracken_length {
-    label "scylla"
+    label "process_low"
+
+    conda "anaconda::sed=4.8"
+    container "biowilko/scylla@sha256:35fa2117d7dfe8b595dc25a422036888044ea5ae66b65fa26b82cc4ff457a7d9"
+
     input:
         path database
     output:
@@ -106,7 +114,8 @@ process bracken_to_json {
     publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
     
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
-    container "biowilko/scylla_general:0.0.1"
+    container "biowilko/scylla@sha256:35fa2117d7dfe8b595dc25a422036888044ea5ae66b65fa26b82cc4ff457a7d9"
+
 
     input:
         val unique_id
