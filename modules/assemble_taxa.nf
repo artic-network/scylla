@@ -30,7 +30,7 @@ process extract_reads {
 
     script:
     """
-    $projectDir/../bin/extract_kraken_reads.py \
+    extract_kraken_reads.py \
         -s ${fastq} \
         -k ${kraken_assignments} \
         -r ${kraken_report} \

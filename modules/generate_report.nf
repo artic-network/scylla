@@ -18,7 +18,7 @@ process make_report {
     script:
         report_name = "${unique_id}"
     """
-    $projectDir/../bin/make_report.py \
+    make_report.py \
         --prefix "${report_name}" \
         --read_counts ${stats} \
         --assignments ${lineages} \

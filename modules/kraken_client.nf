@@ -46,7 +46,7 @@ process combine_kraken_outputs {
         """
     } else {
         """
-        $projectDir/../bin/combine_kreports.py \\
+        combine_kreports.py \\
                 -r ${kraken_reports} \\
                 -o "${params.database_set}.kraken_report.txt"
 
@@ -128,7 +128,7 @@ process bracken_to_json {
     cat "${bracken_summary}" | cut -f2,6 | tail -n+2 > taxacounts.txt
     cat "${bracken_summary}" | cut -f2 | tail -n+2 > taxa.txt
     taxonkit lineage --data-dir ${taxonomy_dir}  -R taxa.txt  > lineages.txt
-    $projectDir/../bin/aggregate_lineages_bracken.py \\
+    aggregate_lineages_bracken.py \\
             -i "lineages.txt" -b "taxacounts.txt" \\
             -u "${kraken_report}" \\
             -p "temp_bracken"
