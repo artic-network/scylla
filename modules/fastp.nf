@@ -16,8 +16,8 @@ process fastp_paired {
 
     output:
         val(prefix)
-        path("${prefix}_1.fastp.fastq.gz")
-        path("${prefix}_2.fastp.fastq.gz")
+        path("${prefix}_1.fastp.fastq.gz"), optional: true
+        path("${prefix}_2.fastp.fastq.gz"), optional: true
         path("${prefix}.fastp.fastq.gz"), emit: processed_fastq
         path("${prefix}.fastp.json")
 
@@ -26,13 +26,26 @@ process fastp_paired {
     fastp \\
         --in1 ${fastq_1} \\
         --in2 ${fastq_2} \\
-        --out1 ${prefix}_1.fastp.fastq.gz \\
-        --out2 ${prefix}_2.fastp.fastq.gz \\
-        --merged-out ${prefix}.fastp.fastq.gz \\
+        --out1 ${prefix}_1.fastp.fastq \\
+        --out2 ${prefix}_2.fastp.fastq \\
+        --merged-out ${prefix}.fastp.fastq \\
         --json ${prefix}.fastp.json \\
         --thread $task.cpus \\
         --detect_adapter_for_pe \\
         2> ${prefix}.fastp.log
+    
+    if [ -s ${prefix}_1.fastp.fastq ]; then
+        bgzip --threads -c $task.cpus > ${prefix}_1.fastp.fastq.gz
+    fi
+
+    if [ -s ${prefix}_2.fastp.fastq ]; then
+        bgzip --threads -c $task.cpus > ${prefix}_2.fastp.fastq.gz
+    fi
+
+    if [ -s ${prefix}.fastp.fastq ]; then
+        bgzip --threads -c $task.cpus > ${prefix}.fastp.fastq.gz
+    fi
+
     """
 
 }
@@ -62,9 +75,13 @@ process fastp_single {
     """
     fastp \\
         --in1 ${fastq} \\
-        --out1 ${prefix}.fastp.fastq.gz \\
+        --out1 ${prefix}.fastp.fastq \\
         --json ${prefix}.fastp.json \\
         --thread $task.cpus \\
         2> ${prefix}.fastp.log
+
+    if [ -s ${prefix}.fastp.fastq ]; then
+        bgzip --threads -c $task.cpus > ${prefix}.fastp.fastq.gz
+    fi
     """
 }
