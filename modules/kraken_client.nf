@@ -124,6 +124,7 @@ process bracken_to_json {
         path bracken_summary
     output:
         path "${params.database_set}.bracken.json"
+
     """
     cat "${bracken_summary}" | cut -f2,6 | tail -n+2 > taxacounts.txt
     cat "${bracken_summary}" | cut -f2 | tail -n+2 > taxa.txt
