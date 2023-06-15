@@ -81,11 +81,11 @@ def main():
 
     sample = args.sample_id
 
-    with open(args.assignments.resolve(), "r") as bracken_file:
+    with open(args.assignments.resolve(), "rt") as bracken_file:
         assignments = bracken_file.read().strip().replace('"', '\\"')
 
     if args.read_counts:
-        with open(args.read_counts.resolve(), "r") as qc_file:
+        with open(args.read_counts.resolve(), "rt") as qc_file:
             read_counts = qc_file.read().strip().replace('"', '\\"')
     else:
         read_counts = {}
