@@ -8,7 +8,16 @@
 // ALSO this step will currently "fail" with exitcode 2 if the number of human reads found exceeds the number specified
 // in config so could be good dehuman sanity check
 process extract_reads {
+    tag "$meta.id"
+    label 'process_medium'
+
     publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'
+
+    conda 'bioconda::biopython=1.78'
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/biopython%3A1.76' :
+        'biocontainers/biopython@sha256:b0204cf662a3d858f6c28627124b83ed6f564e2b156b8788092f2dd9256c9290' }"    
+
     input:
         val unique_id
         path fastq

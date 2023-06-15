@@ -1,7 +1,8 @@
 // workflow to run kraken, check for human, run qc checks and generate html report for a single sample fastq
-include { get_params_and_versions } from '../modules/get_params_and_versions'
-include { kraken_pipeline } from '../subworkflows/kraken_pipeline'
-include { extract_taxa } from '../modules/extract_taxa'
+include { get_params_and_versions } from '$baseDir/modules/get_params_and_versions'
+include { kraken_pipeline } from '$baseDir/subworkflows/kraken_pipeline'
+include { extract_taxa } from '$baseDir/modules/extract_taxa'
+include { fastp_single, fastp_paired} from '$baseDir/modules/fastp'
 
 workflow ingest {
     take:
@@ -19,13 +20,20 @@ workflow ingest {
 }
 
 workflow {
-    // check input fastq exists
-    input_fastq = file("${params.fastq}", type: "file", checkIfExists:true)
-
-    unique_id = "${params.unique_id}"
-    if (unique_id == "null") {
-        unique_id = "${input_fastq.simpleName}"
+    // check input fastq exists and run fastp
+    
+    if ($params.paired) {
+        input_fastq_1 = file("${params.fastq1}", type: "file", checkIfExists:true)
+        input_fastq_2 = file("${params.fastq2}", type: "file", checkIfExists:true)
+        fastp_paired("${params.unique_id}", input_fastq_1, input_fastq_2)
+        fastp_paired.out.processed_fastq
+            .set {processed_fastq}
+    } else {
+        input_fastq = file("${params.fastq}", type: "file", checkIfExists:true)
+        fastp_single("${params.unique_id}", input_fastq)
+        fastp_single.out.processed_fastq
+            .set {processed_fastq}
     }
 
-    ingest(unique_id, input_fastq)
+    ingest(unique_id, processed_fastq)
 }

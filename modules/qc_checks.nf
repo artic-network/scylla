@@ -1,6 +1,12 @@
 // module for other ingest qc checks
 
 process read_stats {
+    tag "$meta.id"
+    label "process_medium"
+
+    conda "epi2melabs::kraken2-server=0.1.3"
+    container 'ontresearch/wf-metagenomics:shac290da60032a3a6c9c01808d58a71a0f17957681'
+
     input:
         path fastq
     output:
@@ -14,7 +20,14 @@ process read_stats {
 }
 
 process combine_stats {
+    tag "$meta.id"
+    label "process_low"
+
     publishDir "${params.out_dir}/${unique_id}/qc", mode: 'copy'
+
+    conda "conda-forge::pandas=1.2.4 conda-forge::numpy=1.20.3"
+    container "biowilko/scylla_general:0.0.1"
+
     input:
         val unique_id
         path stats
@@ -24,7 +37,7 @@ process combine_stats {
     script:
     """
     cp ${stats} "raw_reads.stats"
-    $projectDir/../bin/fastcat_histogram.py \
+    fastcat_histogram.py \
             --sample_id "raw_reads" \
             "raw_reads.stats" "raw_reads.json"
     """
