@@ -1,5 +1,5 @@
 process fastp_paired {
-    tag "$meta.id"
+    
     label 'process_medium'
 
     publishDir "${params.out_dir}/preprocess/", mode: 'copy'
@@ -38,7 +38,7 @@ process fastp_paired {
 }
 
 process fastp_single {
-    tag "$meta.id"
+    
     label 'process_medium'
 
     publishDir "${params.out_dir}/preprocess/", mode: 'copy'

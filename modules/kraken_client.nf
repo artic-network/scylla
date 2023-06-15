@@ -2,7 +2,7 @@ include { qc_checks } from '../modules/qc_checks'
 include { generate_report } from '../modules/generate_report'
 
 process kraken2_client {
-    tag "$meta.id"
+    
     label 'process_low'
     label 'error_retry'
 
@@ -70,7 +70,7 @@ process determine_bracken_length {
 
 // this fails if the kraken file input is empty - currently have no check that it is populated
 process bracken {
-    tag "$meta.id"
+    
     label 'process_low'
 
     publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
@@ -100,7 +100,7 @@ process bracken {
 }
 
 process bracken_to_json {
-    tag "$meta.id"
+    
     label "process_low"
 
     publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'

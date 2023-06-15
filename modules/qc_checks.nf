@@ -1,7 +1,7 @@
 // module for other ingest qc checks
 
 process read_stats {
-    tag "$meta.id"
+    
     label "process_medium"
 
     conda "epi2melabs::kraken2-server=0.1.3"
@@ -20,7 +20,7 @@ process read_stats {
 }
 
 process combine_stats {
-    tag "$meta.id"
+    
     label "process_low"
 
     publishDir "${params.out_dir}/${unique_id}/qc", mode: 'copy'

@@ -36,7 +36,7 @@ workflow kraken_pipeline {
         //             + "use with kraken, please choose another source, "
         //             + "provide a custom database or disable kraken.")
         //     }
-        database = file($params.db, type: "dir", checkIfExists:true)
+        database = file(params.db, type: "dir", checkIfExists:true)
 
         // start_server(database, taxonomy)
         run_kraken_and_bracken(unique_id, fastq, database, taxonomy)

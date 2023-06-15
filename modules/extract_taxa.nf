@@ -8,7 +8,7 @@
 // ALSO this step will currently "fail" with exitcode 2 if the number of human reads found exceeds the number specified
 // in config so could be good dehuman sanity check
 process extract_reads {
-    tag "$meta.id"
+    
     label 'process_medium'
 
     publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'

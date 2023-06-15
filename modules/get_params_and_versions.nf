@@ -3,6 +3,9 @@
 import groovy.json.JsonBuilder
 
 process get_versions {
+
+    
+
     label "scylla"
     publishDir "${params.out_dir}/execution", mode: 'copy'
     cpus 1

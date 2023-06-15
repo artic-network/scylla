@@ -35,5 +35,5 @@ workflow {
             .set {processed_fastq}
     }
 
-    ingest(unique_id, processed_fastq)
+    ingest(params.unique_id, processed_fastq)
 }

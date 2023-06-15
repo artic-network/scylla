@@ -8,7 +8,7 @@
 // ALSO this step will currently "fail" with exitcode 2 if the number of human reads found exceeds the number specified
 // in config so could be good dehuman sanity check
 process extract_reads {
-    tag "$meta.id"
+    
     label 'process_medium'
 
     publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'
@@ -55,7 +55,7 @@ process extract_reads {
 // I've not had a successful test case with the very small numbers of reads/database on my laptop
 
 process flye_assemble {
-    tag "$meta.id"
+    
     label 'process_high'
 
     conda "bioconda::flye=2.9"
@@ -86,7 +86,7 @@ process flye_assemble {
 }
 
 process megahit_assemble {
-    tag "$meta.id"
+    
     label 'process_high'
 
     conda "bioconda::megahit=1.2.9"
