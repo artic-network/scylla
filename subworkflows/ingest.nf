@@ -22,7 +22,7 @@ workflow ingest {
 workflow {
     // check input fastq exists and run fastp
     
-    if ($params.paired) {
+    if (params.paired) {
         input_fastq_1 = file("${params.fastq1}", type: "file", checkIfExists:true)
         input_fastq_2 = file("${params.fastq2}", type: "file", checkIfExists:true)
         fastp_paired("${params.unique_id}", input_fastq_1, input_fastq_2)
