@@ -43,7 +43,7 @@ workflow kraken_pipeline {
 
         run_kraken_and_bracken.out.json
             .collect()
-            .set { kraken_jsons }
+            .set { bracken_jsons }
 
         // stop_server(run_kraken_and_bracken.out.bracken_report.collect())
         qc_checks(unique_id, fastq)
