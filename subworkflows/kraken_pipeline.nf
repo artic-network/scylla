@@ -24,7 +24,7 @@ workflow kraken_pipeline {
             
         // }
 
-        taxonomy = file($params.taxonomy_dir, type: "dir", checkIfExists:true)
+        taxonomy = file(params.taxonomy_dir, type: "dir", checkIfExists:true)
 
         // if (database) {
         //     source_database = database
