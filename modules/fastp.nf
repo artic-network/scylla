@@ -32,15 +32,15 @@ process fastp_paired {
         2> ${prefix}.fastp.log
     
     if [ -s ${prefix}_1.fastp.fastq ]; then
-        bgzip --threads $task.cpus -c > ${prefix}_1.fastp.fastq.gz
+        bgzip --threads $task.cpus -c ${prefix}_1.fastp.fastq > ${prefix}_1.fastp.fastq.gz
     fi
 
     if [ -s ${prefix}_2.fastp.fastq ]; then
-        bgzip --threads $task.cpus -c > ${prefix}_2.fastp.fastq.gz
+        bgzip --threads $task.cpus -c ${prefix}_2.fastp.fastq > ${prefix}_2.fastp.fastq.gz
     fi
 
     if [ -s ${prefix}.fastp.fastq ]; then
-        bgzip --threads $task.cpus -c > ${prefix}.fastp.fastq.gz
+        bgzip --threads $task.cpus -c ${prefix}.fastp.fastq > ${prefix}.fastp.fastq.gz
     fi
 
     """
@@ -75,7 +75,7 @@ process fastp_single {
         2> ${prefix}.fastp.log
 
     if [ -s ${prefix}.fastp.fastq ]; then
-        bgzip --threads $task.cpus -c > ${prefix}.fastp.fastq.gz
+        bgzip --threads $task.cpus -c ${prefix}.fastp.fastq > ${prefix}.fastp.fastq.gz
     fi
     """
 }
