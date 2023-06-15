@@ -4,10 +4,7 @@ process fastp_paired {
 
     publishDir "${params.out_dir}/preprocess/", mode: 'copy'
 
-    conda "bioconda::fastp=0.23.4"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/fastp:0.23.4--h5f740d0_0' :
-        'biocontainers/fastp:0.23.4--h5f740d0_0' }"
+    container "biowilko/scylla@${params.wf.container_sha}"
 
     input:
         val(prefix)
@@ -35,15 +32,15 @@ process fastp_paired {
         2> ${prefix}.fastp.log
     
     if [ -s ${prefix}_1.fastp.fastq ]; then
-        bgzip --threads -c $task.cpus > ${prefix}_1.fastp.fastq.gz
+        bgzip --threads $task.cpus -c > ${prefix}_1.fastp.fastq.gz
     fi
 
     if [ -s ${prefix}_2.fastp.fastq ]; then
-        bgzip --threads -c $task.cpus > ${prefix}_2.fastp.fastq.gz
+        bgzip --threads $task.cpus -c > ${prefix}_2.fastp.fastq.gz
     fi
 
     if [ -s ${prefix}.fastp.fastq ]; then
-        bgzip --threads -c $task.cpus > ${prefix}.fastp.fastq.gz
+        bgzip --threads $task.cpus -c > ${prefix}.fastp.fastq.gz
     fi
 
     """
@@ -56,10 +53,7 @@ process fastp_single {
 
     publishDir "${params.out_dir}/preprocess/", mode: 'copy'
 
-    conda "bioconda::fastp=0.23.4"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/fastp:0.23.4--h5f740d0_0' :
-        'biocontainers/fastp:0.23.4--h5f740d0_0' }"
+    container "biowilko/scylla@${params.wf.container_sha}"
 
     input:
         val(prefix)
@@ -81,7 +75,7 @@ process fastp_single {
         2> ${prefix}.fastp.log
 
     if [ -s ${prefix}.fastp.fastq ]; then
-        bgzip --threads -c $task.cpus > ${prefix}.fastp.fastq.gz
+        bgzip --threads $task.cpus -c > ${prefix}.fastp.fastq.gz
     fi
     """
 }
