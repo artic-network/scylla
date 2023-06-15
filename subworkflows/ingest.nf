@@ -23,14 +23,14 @@ workflow {
     // check input fastq exists and run fastp
     
     if (params.paired) {
-        input_fastq_1 = file("${params.fastq1}", type: "file", checkIfExists:true)
-        input_fastq_2 = file("${params.fastq2}", type: "file", checkIfExists:true)
-        fastp_paired("${params.unique_id}", input_fastq_1, input_fastq_2)
+        input_fastq_1 = file(params.fastq1, type: "file", checkIfExists:true)
+        input_fastq_2 = file(params.fastq2, type: "file", checkIfExists:true)
+        fastp_paired(params.unique_id, input_fastq_1, input_fastq_2)
         fastp_paired.out.processed_fastq
             .set {processed_fastq}
     } else {
-        input_fastq = file("${params.fastq}", type: "file", checkIfExists:true)
-        fastp_single("${params.unique_id}", input_fastq)
+        input_fastq = file(params.fastq, type: "file", checkIfExists:true)
+        fastp_single(params.unique_id, input_fastq)
         fastp_single.out.processed_fastq
             .set {processed_fastq}
     }
