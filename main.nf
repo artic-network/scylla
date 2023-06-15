@@ -1,5 +1,5 @@
 include { ingest } from './subworkflows/ingest'
-include { fastp_single; fastp_paired} from '../modules/fastp'
+include { fastp_single; fastp_paired} from './modules/fastp'
 
 workflow {
     // check input fastq exists and run fastp
