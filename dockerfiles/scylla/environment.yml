@@ -15,3 +15,5 @@ dependencies:
   - pandas
   - numpy
   - taxonkit
+  - fastp
+  - tabix
