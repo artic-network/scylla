@@ -26,7 +26,8 @@ process combine_stats {
     publishDir "${params.out_dir}/${unique_id}/qc", mode: 'copy'
 
     conda "conda-forge::pandas=1.2.4 conda-forge::numpy=1.20.3"
-    container "biowilko/scylla@sha256:362e51bf7f4fe4222aa674b7c75f514fe90d875263016b033ff69258f2eeae43"
+    container "biowilko/scylla@sha256:35fa2117d7dfe8b595dc25a422036888044ea5ae66b65fa26b82cc4ff457a7d9"
+    
 
     input:
         val unique_id

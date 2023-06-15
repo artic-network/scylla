@@ -6,7 +6,7 @@ process make_report {
     publishDir path: "${params.out_dir}/${unique_id}", mode: 'copy'
     
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
-    container "biowilko/scylla_general:0.0.1"
+    container "biowilko/scylla@sha256:35fa2117d7dfe8b595dc25a422036888044ea5ae66b65fa26b82cc4ff457a7d9"
     
     input:
         val unique_id
