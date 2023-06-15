@@ -2,7 +2,7 @@
 include { get_params_and_versions } from '$baseDir/modules/get_params_and_versions'
 include { kraken_pipeline } from '$baseDir/subworkflows/kraken_pipeline'
 include { extract_taxa } from '$baseDir/modules/extract_taxa'
-include { fastp_single, fastp_paired} from '$baseDir/modules/fastp'
+include { fastp_single; fastp_paired} from '$baseDir/modules/fastp'
 
 workflow ingest {
     take:
