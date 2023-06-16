@@ -25,7 +25,7 @@ process fastp_paired {
         --in2 ${fastq_2} \\
         --out1 ${prefix}_1.fastp.fastq \\
         --out2 ${prefix}_2.fastp.fastq \\
-        --merged-out ${prefix}.fastp.fastq \\
+        --merged_out ${prefix}.fastp.fastq \\
         -m \\
         --json ${prefix}.fastp.json \\
         --thread $task.cpus \\
