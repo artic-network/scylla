@@ -26,9 +26,9 @@ process fastp_paired {
         --out1 ${prefix}_1.fastp.fastq \\
         --out2 ${prefix}_2.fastp.fastq \\
         --merged-out ${prefix}.fastp.fastq \\
+        -m \\
         --json ${prefix}.fastp.json \\
         --thread $task.cpus \\
-        --detect_adapter_for_pe \\
         2> ${prefix}.fastp.log
     
     if [ -s ${prefix}_1.fastp.fastq ]; then
