@@ -29,7 +29,7 @@ process combine_kraken_outputs {
 
     container "biowilko/scylla@${params.wf.container_sha}"
 
-    publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
+    publishDir path: "${params.out_dir}/${params.unique_id}/classifications", mode: 'copy'
     
     input:
         val unique_id
@@ -81,7 +81,7 @@ process bracken {
     
     label 'process_low'
 
-    publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
+    publishDir path: "${params.out_dir}/${params.unique_id}/classifications", mode: 'copy'
 
     conda "bioconda::bracken=2.7"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -111,7 +111,7 @@ process bracken_to_json {
     
     label "process_low"
 
-    publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
+    publishDir path: "${params.out_dir}/${params.unique_id}/classifications", mode: 'copy'
     
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
     container "biowilko/scylla@${params.wf.container_sha}"

@@ -23,7 +23,7 @@ process combine_stats {
     
     label "process_low"
 
-    publishDir "${params.out_dir}/${unique_id}/qc", mode: 'copy'
+    publishDir "${params.out_dir}/${params.unique_id}/qc", mode: 'copy'
 
     conda "conda-forge::pandas=1.2.4 conda-forge::numpy=1.20.3"
     container "biowilko/scylla@${params.wf.container_sha}"

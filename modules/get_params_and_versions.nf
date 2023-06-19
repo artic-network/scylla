@@ -5,9 +5,7 @@ import groovy.json.JsonBuilder
 process get_versions {
 
     
-
-    label "scylla"
-    publishDir "${params.out_dir}/execution", mode: 'copy'
+    publishDir "${params.out_dir}/${params.unique_id}/execution", mode: 'copy'
     cpus 1
     output:
         path "versions.txt"
@@ -21,7 +19,7 @@ process get_versions {
 
 
 process get_params {
-    publishDir "${params.out_dir}/execution", mode: 'copy'
+    publishDir "${params.out_dir}/${params.unique_id}/execution", mode: 'copy'
     cpus 1
     output:
         path "params.json"
