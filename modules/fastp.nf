@@ -2,7 +2,7 @@ process fastp_paired {
     
     label 'process_medium'
 
-    publishDir "${params.out_dir}/preprocess/", mode: 'copy'
+    publishDir "${params.out_dir}/${unique_id}/preprocess/", mode: 'copy'
 
     container "biowilko/scylla@${params.wf.container_sha}"
 
