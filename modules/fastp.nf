@@ -2,11 +2,12 @@ process fastp_paired {
     
     label 'process_medium'
 
-    publishDir "${params.out_dir}/${params.unique_id}/preprocess/", mode: 'copy'
+    publishDir "${params.out_dir}/${unique_id}/preprocess/", mode: 'copy'
 
     container "biowilko/scylla@${params.wf.container_sha}"
 
     input:
+        val(unique_id)
         val(prefix)
         path(fastq_1)
         path(fastq_2)
@@ -51,11 +52,12 @@ process fastp_single {
     
     label 'process_medium'
 
-    publishDir "${params.out_dir}/${params.unique_id}/preprocess/", mode: 'copy'
+    publishDir "${params.out_dir}/${unique_id}/preprocess/", mode: 'copy'
 
     container "biowilko/scylla@${params.wf.container_sha}"
 
     input:
+        val(unique_id)
         val(prefix)
         path(fastq)
 

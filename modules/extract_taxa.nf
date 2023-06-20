@@ -11,7 +11,7 @@ process extract_reads {
     
     label 'process_medium'
 
-    publishDir path: "${params.out_dir}/${params.unique_id}/reads_by_taxa", mode: 'copy'
+    publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'
 
     conda 'bioconda::biopython=1.78'
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
