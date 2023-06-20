@@ -14,29 +14,33 @@ import argparse
 import json
 from datetime import datetime
 
+
 def mean(l):
     if len(l) == 0:
         return 0
-    return sum(l)/len(l)
+    return sum(l) / len(l)
+
 
 def median(l):
-    if len(l)%2 == 0:
-        i = (len(l))/2
+    if len(l) % 2 == 0:
+        i = (len(l)) / 2
     else:
-        i = (len(l) + 1)/2
+        i = (len(l) + 1) / 2
     i = int(i)
     l = sorted(l)
     return l[i]
+
 
 def parse_depth(name):
     parse_name = name.split(" ")
     depth = 0
     for i in parse_name:
-        if i!="":
+        if i != "":
             break
         depth += 1
-    depth = int(depth/2)
+    depth = int(depth / 2)
     return depth
+
 
 def get_bracken_hierarchy(kraken_file, bracken_file, max_human=None):
     first = kraken_file
@@ -49,24 +53,43 @@ def get_bracken_hierarchy(kraken_file, bracken_file, max_human=None):
         for line in f:
             if line.startswith("% of Seqs"):
                 continue
-            percentage, num_clade_root, num_direct, raw_rank, ncbi, name = line.strip().split("\t")
+            (
+                percentage,
+                num_clade_root,
+                num_direct,
+                raw_rank,
+                ncbi,
+                name,
+            ) = line.strip().split("\t")
             percentage = float(percentage)
             num_clade_root = int(num_clade_root)
             num_direct = int(num_direct)
             depth = parse_depth(name)
             name = name.strip()
             rank = raw_rank[0]
-            hierarchy = hierarchy[:depth - 1]
+            hierarchy = hierarchy[: depth - 1]
             hierarchy.append(ncbi)
 
-            if name in ['Homo sapiens', 'unclassified', 'root']:
-                if max_human and name == 'Homo sapiens' and num_direct > max_human:
-                    sys.stderr.write("ERROR: found %i human reads, max allowed is %i\n" %(num_direct, max_human))
-                    sys.exit(2)
+            if name in ["Homo sapiens", "unclassified", "root"]:
+                if max_human and name == "Homo sapiens" and num_direct > max_human:
+                    sys.stderr.write(
+                        "ERROR: found %i human reads, max allowed is %i\n"
+                        % (num_direct, max_human)
+                    )
+                    # sys.exit(2)
                 continue
 
-            entries[ncbi] = {"percentage": percentage, "count": num_direct, "count_descendants": num_clade_root,
-            "raw_rank": raw_rank, "rank": rank, "depth": depth, "name": name, "parents":[], "children":[]}
+            entries[ncbi] = {
+                "percentage": percentage,
+                "count": num_direct,
+                "count_descendants": num_clade_root,
+                "raw_rank": raw_rank,
+                "rank": rank,
+                "depth": depth,
+                "name": name,
+                "parents": [],
+                "children": [],
+            }
 
             if len(hierarchy) > 1:
                 parent = hierarchy[-2]
@@ -77,22 +100,45 @@ def get_bracken_hierarchy(kraken_file, bracken_file, max_human=None):
     if kraken_file and bracken_file:
         with open(bracken_file, "r") as f:
             for line in f:
-                percentage, num_clade_root, num_direct, raw_rank, ncbi, name = line.strip().split("\t")
+                (
+                    percentage,
+                    num_clade_root,
+                    num_direct,
+                    raw_rank,
+                    ncbi,
+                    name,
+                ) = line.strip().split("\t")
                 percentage = float(percentage)
                 num_clade_root = int(num_clade_root)
                 num_direct = int(num_direct)
                 name = name.strip()
 
-                if name in ['Homo sapiens', 'unclassified', 'root']:
-                        continue
+                if name in ["Homo sapiens", "unclassified", "root"]:
+                    continue
 
-                entries[ncbi].update({"percentage": percentage, "count": num_direct, "count_descendants": num_clade_root})
+                entries[ncbi].update(
+                    {
+                        "percentage": percentage,
+                        "count": num_direct,
+                        "count_descendants": num_clade_root,
+                    }
+                )
 
-    sys.stdout.write("FOUND %i TAXA IN BRACKEN REPORT\n" %len(entries))
+    sys.stdout.write("FOUND %i TAXA IN BRACKEN REPORT\n" % len(entries))
     return entries
 
-def get_taxon_id_lists(bracken_hierarchy, names=[], target_ranks=[], min_count=None,min_count_descendants=None,
-min_percent=None, top_n=None, include_parents=False, include_children=False):
+
+def get_taxon_id_lists(
+    bracken_hierarchy,
+    names=[],
+    target_ranks=[],
+    min_count=None,
+    min_count_descendants=None,
+    min_percent=None,
+    top_n=None,
+    include_parents=False,
+    include_children=False,
+):
     lists_to_extract = {}
     for taxon in bracken_hierarchy:
         entry = bracken_hierarchy[taxon]
@@ -116,8 +162,7 @@ min_percent=None, top_n=None, include_parents=False, include_children=False):
                 child = children.pop()
                 lists_to_extract[taxon].append(child)
                 children.extend(bracken_hierarchy[child]["children"])
-    sys.stdout.write("SELECTED %i TAXA TO EXTRACT\n" %len(lists_to_extract))
-
+    sys.stdout.write("SELECTED %i TAXA TO EXTRACT\n" % len(lists_to_extract))
 
     if top_n and len(lists_to_extract) > top_n:
         X = list(lists_to_extract.keys())
@@ -126,18 +171,18 @@ min_percent=None, top_n=None, include_parents=False, include_children=False):
         to_delete = ordered[top_n:]
         for taxon in to_delete:
             del lists_to_extract[taxon]
-        sys.stdout.write("REDUCED TO %i TAXA TO EXTRACT\n" %len(lists_to_extract))
-
+        sys.stdout.write("REDUCED TO %i TAXA TO EXTRACT\n" % len(lists_to_extract))
 
     return lists_to_extract
 
+
 def check_read_files(reads):
-    if(reads[-3:] == '.gz'):
-        read_file = gzip.open(reads,'rt')
-        zipped=True
+    if reads[-3:] == ".gz":
+        read_file = gzip.open(reads, "rt")
+        zipped = True
     else:
-        read_file = open(reads,'rt')
-        zipped=False
+        read_file = open(reads, "rt")
+        zipped = False
     first = read_file.readline()
     if len(first) == 0:
         sys.stderr.write("ERROR: sequence file's first line is blank\n")
@@ -151,10 +196,11 @@ def check_read_files(reads):
         sys.exit(1)
     return filetype, zipped
 
+
 def parse_kraken_assignment_line(line):
-    line_vals = line.strip().split('\t')
+    line_vals = line.strip().split("\t")
     if len(line_vals) < 5:
-        return -1, ''
+        return -1, ""
     if "taxid" in line_vals[2]:
         temp = line_vals[2].split("taxid ")[-1]
         tax_id = temp[:-1]
@@ -162,15 +208,30 @@ def parse_kraken_assignment_line(line):
         tax_id = line_vals[2]
 
     read_id = line_vals[1]
-    if (tax_id == 'A'):
+    if tax_id == "A":
         tax_id = 81077
     else:
         tax_id = tax_id
     return tax_id, read_id
 
 
-def extract_taxa(kraken_file, bracken_file, kraken_assignment_file, reads1, reads2, prefix, max_human=None, names=[], target_ranks=[],min_count=None,
-min_count_descendants=None, min_percent=None, top_n=None, include_parents=False, include_children=False):
+def extract_taxa(
+    kraken_file,
+    bracken_file,
+    kraken_assignment_file,
+    reads1,
+    reads2,
+    prefix,
+    max_human=None,
+    names=[],
+    target_ranks=[],
+    min_count=None,
+    min_count_descendants=None,
+    min_percent=None,
+    top_n=None,
+    include_parents=False,
+    include_children=False,
+):
     # open read files
     filetype, zipped = check_read_files(reads1)
     s_file1 = SeqIO.index(reads1, filetype)
@@ -179,8 +240,17 @@ min_count_descendants=None, min_percent=None, top_n=None, include_parents=False,
 
     # get taxids to extract
     bracken_hierarchy = get_bracken_hierarchy(kraken_file, bracken_file, max_human)
-    lists_to_extract = get_taxon_id_lists(bracken_hierarchy, names, target_ranks,min_count,min_count_descendants,
-    min_percent, top_n, include_parents, include_children)
+    lists_to_extract = get_taxon_id_lists(
+        bracken_hierarchy,
+        names,
+        target_ranks,
+        min_count,
+        min_count_descendants,
+        min_percent,
+        top_n,
+        include_parents,
+        include_children,
+    )
 
     # open output files
     outfile_handles = {}
@@ -194,16 +264,18 @@ min_count_descendants=None, min_percent=None, top_n=None, include_parents=False,
             if key not in keys:
                 keys[key] = []
             keys[key].append(taxon)
-        outfile_handles[taxon] = open("%s.%s.%s" %(prefix, taxon, filetype), "w")
-        print("opening %s.%s.%s" %(prefix, taxon, filetype))
+        outfile_handles[taxon] = open("%s.%s.%s" % (prefix, taxon, filetype), "w")
+        print("opening %s.%s.%s" % (prefix, taxon, filetype))
         out_counts[taxon] = 0
         quals[taxon] = []
         lens[taxon] = []
-    sys.stdout.write("INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES\n" %len(keys))
-    sys.stdout.write("[%s]\n" %','.join(keys))
+    sys.stdout.write(
+        "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES\n"
+        % len(keys)
+    )
+    sys.stdout.write("[%s]\n" % ",".join(keys))
 
-
-    with open(kraken_assignment_file, 'r') as kfile:
+    with open(kraken_assignment_file, "r") as kfile:
         for line in kfile:
             tax_id, read_id = parse_kraken_assignment_line(line)
             if tax_id in keys:
@@ -212,13 +284,17 @@ min_count_descendants=None, min_percent=None, top_n=None, include_parents=False,
                 elif reads2 and read_id in s_file2:
                     read = s_file2[read_id]
                 else:
-                    sys.stderr.write("ERROR: read id %s not found in read files\n" %read_id)
+                    sys.stderr.write(
+                        "ERROR: read id %s not found in read files\n" % read_id
+                    )
                     sys.exit(1)
 
                 for taxon in keys[tax_id]:
                     SeqIO.write(read, outfile_handles[taxon], filetype)
                     out_counts[taxon] += 1
-                    quals[taxon].append(median(read.letter_annotations["phred_quality"]))
+                    quals[taxon].append(
+                        median(read.letter_annotations["phred_quality"])
+                    )
                     lens[taxon].append(len(read))
 
     for handle in outfile_handles:
@@ -227,81 +303,192 @@ min_count_descendants=None, min_percent=None, top_n=None, include_parents=False,
 
     summary = []
     for taxon in lists_to_extract:
-        summary.append({"human_readable": bracken_hierarchy[taxon]["name"], "taxon": taxon, "tax_level": bracken_hierarchy[taxon]["rank"], "filename":"%s.%s.%s" %(prefix, taxon, filetype), "qc_metrics":{"num_reads":out_counts[taxon], "avg_qual":mean(quals[taxon]), "mean_len":mean(lens[taxon])}})
-    with open("%s_summary.json" %prefix, 'w') as f:
+        summary.append(
+            {
+                "human_readable": bracken_hierarchy[taxon]["name"],
+                "taxon": taxon,
+                "tax_level": bracken_hierarchy[taxon]["rank"],
+                "filename": "%s.%s.%s" % (prefix, taxon, filetype),
+                "qc_metrics": {
+                    "num_reads": out_counts[taxon],
+                    "avg_qual": mean(quals[taxon]),
+                    "mean_len": mean(lens[taxon]),
+                },
+            }
+        )
+    with open("%s_summary.json" % prefix, "w") as f:
         print(summary)
         json.dump(summary, f)
     return out_counts
 
-#Main method
+
+# Main method
 def main():
-    #Parse arguments
+    # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('-k', dest='kraken_assignment_file', required=True,
-        help='Kraken assignment file to parse')
-    parser.add_argument('-r', dest='kraken_report_file', required=False,
-            help='Kraken file of taxon relationships and quantities')
-    parser.add_argument('-b', dest='bracken_report_file', required=False,
-        help='Bracken file of taxon relationships and quantities. Quantities used in preference over kraken')
-    parser.add_argument('-s','-s1', '-1', dest='reads1', required=True,
-        help='FASTA/FASTQ File containing the raw reads.')
-    parser.add_argument('-s2', '-2', dest='reads2', default= "",
-        help='2nd FASTA/FASTQ File containing the raw reads (paired).')
+    parser.add_argument(
+        "-k",
+        dest="kraken_assignment_file",
+        required=True,
+        help="Kraken assignment file to parse",
+    )
+    parser.add_argument(
+        "-r",
+        dest="kraken_report_file",
+        required=False,
+        help="Kraken file of taxon relationships and quantities",
+    )
+    parser.add_argument(
+        "-b",
+        dest="bracken_report_file",
+        required=False,
+        help="Bracken file of taxon relationships and quantities. Quantities used in preference over kraken",
+    )
+    parser.add_argument(
+        "-s",
+        "-s1",
+        "-1",
+        dest="reads1",
+        required=True,
+        help="FASTA/FASTQ File containing the raw reads.",
+    )
+    parser.add_argument(
+        "-s2",
+        "-2",
+        dest="reads2",
+        default="",
+        help="2nd FASTA/FASTQ File containing the raw reads (paired).",
+    )
 
-    parser.add_argument('-p', "--prefix",dest='prefix', required=True, default="taxid",
-        help='Prefix for output files')
+    parser.add_argument(
+        "-p",
+        "--prefix",
+        dest="prefix",
+        required=True,
+        default="taxid",
+        help="Prefix for output files",
+    )
 
-    parser.add_argument("--taxid",dest='taxid', required=False, nargs='*',
-            help='List of taxonomy ID[s] or names to extract (space-delimited) - each to their own file')
-    parser.add_argument("--rank",dest='rank', required=False, nargs='*',
-                help='Rank(s) to extract')
-    parser.add_argument("--max_human",dest='max_human', required=False, type=int,
-                        help='Maximum human reads to allow')
-    parser.add_argument("--min_count",dest='min_count', required=False, type=int,
-                    help='Minimum direct read count')
-    parser.add_argument("--min_count_descendants",dest='min_count_descendants', required=False, type=int,
-                        help='Minimum read count at taxon level or descendants')
-    parser.add_argument("--min_percent",dest='min_percent', required=False, type=float,
-                        help='Minimum percentage of reads e.g 4')
-    parser.add_argument("--n",dest='top_n', required=False, type=int,
-                        help='Maximum number of taxa to extract (top n)')
-    parser.add_argument('--include_parents', dest="include_parents", required=False,
-        action='store_true',default=False,
-        help='Include reads classified at parent levels of the specified taxids')
-    parser.add_argument('--include_children', dest='include_children', required=False,
-        action='store_true',default=False,
-        help='Include reads classified more specifically than the specified taxids')
+    parser.add_argument(
+        "--taxid",
+        dest="taxid",
+        required=False,
+        nargs="*",
+        help="List of taxonomy ID[s] or names to extract (space-delimited) - each to their own file",
+    )
+    parser.add_argument(
+        "--rank", dest="rank", required=False, nargs="*", help="Rank(s) to extract"
+    )
+    parser.add_argument(
+        "--max_human",
+        dest="max_human",
+        required=False,
+        type=int,
+        help="Maximum human reads to allow",
+    )
+    parser.add_argument(
+        "--min_count",
+        dest="min_count",
+        required=False,
+        type=int,
+        help="Minimum direct read count",
+    )
+    parser.add_argument(
+        "--min_count_descendants",
+        dest="min_count_descendants",
+        required=False,
+        type=int,
+        help="Minimum read count at taxon level or descendants",
+    )
+    parser.add_argument(
+        "--min_percent",
+        dest="min_percent",
+        required=False,
+        type=float,
+        help="Minimum percentage of reads e.g 4",
+    )
+    parser.add_argument(
+        "--n",
+        dest="top_n",
+        required=False,
+        type=int,
+        help="Maximum number of taxa to extract (top n)",
+    )
+    parser.add_argument(
+        "--include_parents",
+        dest="include_parents",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Include reads classified at parent levels of the specified taxids",
+    )
+    parser.add_argument(
+        "--include_children",
+        dest="include_children",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Include reads classified more specifically than the specified taxids",
+    )
     parser.set_defaults(append=False)
 
-    args=parser.parse_args()
+    args = parser.parse_args()
 
     if not args.kraken_report_file and not args.bracken_report_file:
-        sys.stderr.write("ERROR: require at least one report file from bracken or kraken\n")
+        sys.stderr.write(
+            "ERROR: require at least one report file from bracken or kraken\n"
+        )
         sys.exit(1)
 
-    #Start Program
+    # Start Program
     now = datetime.now()
     time = now.strftime("%m/%d/%Y, %H:%M:%S")
-    sys.stdout.write("PROGRAM START TIME: " + time + '\n')
+    sys.stdout.write("PROGRAM START TIME: " + time + "\n")
 
-    rank_dict = {'kingdom':'K','domain':'D','phylum':'P','class':'C','order':'O','family':'F','genus':'G','species':'S',
-    'K':'K', 'D':'D', 'P':'P', 'C':'C', 'O':'O', 'F':'F', 'G':'G', 'S':'S'}
+    rank_dict = {
+        "kingdom": "K",
+        "domain": "D",
+        "phylum": "P",
+        "class": "C",
+        "order": "O",
+        "family": "F",
+        "genus": "G",
+        "species": "S",
+        "K": "K",
+        "D": "D",
+        "P": "P",
+        "C": "C",
+        "O": "O",
+        "F": "F",
+        "G": "G",
+        "S": "S",
+    }
     if args.rank:
         target_ranks = [rank_dict[r] for r in args.rank]
     else:
         target_ranks = []
     print(target_ranks)
 
-    out_counts = extract_taxa(args.kraken_report_file, args.bracken_report_file, args.kraken_assignment_file,
-                              args.reads1, args.reads2, args.prefix,
-                              max_human = args.max_human, target_ranks=target_ranks,min_count=args.min_count,
-                              min_count_descendants=args.min_count_descendants,
-                              min_percent=args.min_percent, top_n=args.top_n, include_parents=args.include_parents,
-                              include_children=args.include_children)
+    out_counts = extract_taxa(
+        args.kraken_report_file,
+        args.bracken_report_file,
+        args.kraken_assignment_file,
+        args.reads1,
+        args.reads2,
+        args.prefix,
+        max_human=args.max_human,
+        target_ranks=target_ranks,
+        min_count=args.min_count,
+        min_count_descendants=args.min_count_descendants,
+        min_percent=args.min_percent,
+        top_n=args.top_n,
+        include_parents=args.include_parents,
+        include_children=args.include_children,
+    )
 
     now = datetime.now()
     time = now.strftime("%m/%d/%Y, %H:%M:%S")
-    sys.stdout.write("PROGRAM END TIME: " + time + '\n')
+    sys.stdout.write("PROGRAM END TIME: " + time + "\n")
 
     sys.stdout.write("READ COUNTS: \n")
 
@@ -309,6 +496,7 @@ def main():
         sys.stdout.write("%s: %i\n" % (taxon, out_counts[taxon]))
 
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
