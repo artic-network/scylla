@@ -41,16 +41,20 @@ workflow kraken_pipeline {
         // start_server(database, taxonomy)
         run_kraken_and_bracken(unique_id, fastq, database, taxonomy)
 
-        run_kraken_and_bracken.out.json
-            .collect()
-            .set { bracken_jsons }
-
         // stop_server(run_kraken_and_bracken.out.bracken_report.collect())
         qc_checks(unique_id, fastq)
-        // all_bracken_jsons = Channel.fromPath("${params.out_dir}/${unique_id}/classifications/*.bracken.json")
-        //             .concat(run_kraken_and_bracken.out.json)
-        //             .unique {it.getName()}
-        //             .collect()
+        if (params.additional_bracken_jsons) {
+            Channel.of(file(params.additional_bracken_jsons, type: "file", checkIfExists:true))
+                .concat(run_kraken_and_bracken.out.json)
+                .unique {it.getName()}
+                .collect()
+                .set { bracken_jsons }
+        } else {
+            run_kraken_and_bracken.out.json
+                .collect()
+                .set { bracken_jsons }
+        }
+
         generate_report(unique_id, qc_checks.out, bracken_jsons )
     emit:
         bracken_report = run_kraken_and_bracken.out.bracken_report
