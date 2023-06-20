@@ -57,14 +57,14 @@ process fastp_single {
     container "biowilko/scylla@${params.wf.container_sha}"
 
     input:
-        val(unique_id)
-        val(prefix)
-        path(fastq)
+        val unique_id
+        val prefix
+        path fastq
 
     output:
-        val(prefix)
-        path("${prefix}.fastp.fastq.gz"), emit: processed_fastq
-        path("${prefix}.fastp.json")
+        val prefix
+        path "${prefix}.fastp.fastq.gz", emit: processed_fastq
+        path "${prefix}.fastp.json"
 
     script:
 
