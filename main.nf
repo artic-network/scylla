@@ -20,7 +20,7 @@ workflow {
         Channel.of(file(params.fastq, type: "file", checkIfExists:true))
             .set {input_fastq_ch}
 
-        fastp_single(unique_id, unique_id input_fastq_ch)
+        fastp_single(unique_id, unique_id, input_fastq_ch)
         fastp_single.out.processed_fastq
             .set {processed_fastq}
     }
