@@ -37,7 +37,7 @@ process get_params {
 
 workflow get_params_and_versions {
     take:
-        unique_ud
+        unique_id
     main:
         software_versions = get_versions(unique_id)
         workflow_params = get_params(unique_id)
