@@ -7,17 +7,17 @@ process fastp_paired {
     container "biowilko/scylla@${params.wf.container_sha}"
 
     input:
-        val(unique_id)
-        val(prefix)
-        path(fastq_1)
-        path(fastq_2)
+        val unique_id
+        val prefix
+        path fastq_1
+        path fastq_2
 
     output:
-        val(prefix)
-        path("${prefix}_1.fastp.fastq.gz"), optional: true
-        path("${prefix}_2.fastp.fastq.gz"), optional: true
-        path("${prefix}.fastp.fastq.gz"), emit: processed_fastq
-        path("${prefix}.fastp.json")
+        val prefix
+        path "${prefix}_1.fastp.fastq.gz", optional: true
+        path "${prefix}_2.fastp.fastq.gz", optional: true
+        path "${prefix}.fastp.fastq.gz", emit: processed_fastq
+        path "${prefix}.fastp.json"
 
     script:
     """
