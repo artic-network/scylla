@@ -41,7 +41,7 @@ workflow ingest {
 
                 fastq_2 = fastp_paired.out.processed_fastq_2
         } else { 
-                fastq_1 = proccessed_fastq
+                fastq_1 = processed_fastq
                 fastq_2 = None
         }
 
