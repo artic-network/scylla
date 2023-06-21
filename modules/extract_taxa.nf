@@ -20,7 +20,8 @@ process extract_reads {
 
     input:
         val unique_id
-        path fastq
+        path fastq1
+        path fastq2
         path kraken_assignments
         path kraken_report
         path bracken_report
@@ -28,24 +29,46 @@ process extract_reads {
         path "reads.*.f*.gz", emit: reads
         path "reads_summary.json", emit: summary
     script:
-    """
-    extract_kraken_reads.py \
-        -s ${fastq} \
-        -k ${kraken_assignments} \
-        -r ${kraken_report} \
-        -b ${bracken_report} \
-        -p reads \
-        --include_children \
-        --max_human ${params.max_human_reads_before_rejection} \
-        --min_count_descendants ${params.assembly_min_reads} \
-        --rank ${params.assembly_rank} \
-        --min_percent ${params.assembly_min_percent}
+    if (params.paired) {
+        """
+        extract_kraken_reads.py \
+            -s1 ${fastq1} \
+            -s2 ${fastq2} \
+            -k ${kraken_assignments} \
+            -r ${kraken_report} \
+            -b ${bracken_report} \
+            -p reads \
+            --include_children \
+            --max_human ${params.max_human_reads_before_rejection} \
+            --min_count_descendants ${params.assembly_min_reads} \
+            --rank ${params.assembly_rank} \
+            --min_percent ${params.assembly_min_percent}
 
-    for f in \$(ls reads.*.f*)
-      do
-        gzip \$f
-      done
-    """
+        for f in \$(ls reads.*.f*)
+          do
+            gzip \$f
+          done        
+        """
+    } else {
+        """
+        extract_kraken_reads.py \
+            -s ${fastq1} \
+            -k ${kraken_assignments} \
+            -r ${kraken_report} \
+            -b ${bracken_report} \
+            -p reads \
+            --include_children \
+            --max_human ${params.max_human_reads_before_rejection} \
+            --min_count_descendants ${params.assembly_min_reads} \
+            --rank ${params.assembly_rank} \
+            --min_percent ${params.assembly_min_percent}
+
+        for f in \$(ls reads.*.f*)
+        do
+            gzip \$f
+        done
+        """
+    }
 }
 
 
@@ -53,16 +76,25 @@ process extract_reads {
 workflow extract_taxa {
     take:
         unique_id
-        fastq
+        fastq_1
+        fastq_2
         kraken_assignments
         kraken_report
         bracken_report
     main:
-        extract_reads(unique_id, fastq, kraken_assignments, kraken_report, bracken_report)
+        extract_reads(unique_id, fastq_1, fastq_2, kraken_assignments, kraken_report, bracken_report)
 }
 
 workflow {
-    fastq = file("${params.fastq}", type: "file", checkIfExists:true)
+
+    if (params.paired) {
+            fastq_1 = file(params.fastq1, type: "file", checkIfExists:true)
+
+            fastq_2 = file(params.fastq2, type: "file", checkIfExists:true)
+    } else { 
+            fastq_1 = file(params.fastq, type: "file", checkIfExists:true)
+            fastq_2 = None
+    }
 
     unique_id = "${params.unique_id}"
     if ("${params.unique_id}" == "null") {
@@ -73,5 +105,5 @@ workflow {
     bracken_report = file("${params.bracken_report}")
     kraken_report = file("${params.kraken_report}")
 
-    extract_taxa(unique_id, fastq, kraken_assignments, kraken_report, bracken_report)
+    extract_taxa(unique_id, fastq_1, fastq_2, kraken_assignments, kraken_report, bracken_report)
 }

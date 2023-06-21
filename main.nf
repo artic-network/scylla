@@ -1,5 +1,5 @@
 include { ingest } from './subworkflows/ingest'
-include { fastp_single; fastp_paired} from './modules/fastp'
+include { fastp_single; fastp_paired; paired_concatenate } from './modules/preprocess'
 
 workflow {
     unique_id = "${params.unique_id}"
@@ -13,14 +13,17 @@ workflow {
         Channel.of(file(params.fastq2, type: "file", checkIfExists:true))
             .set {input_fastq_2_ch}
 
-        fastp_paired(unique_id, unique_id, input_fastq_1_ch, input_fastq_2_ch)
+        fastp_paired(unique_id, input_fastq_1_ch, input_fastq_2_ch)
+
+
+
         fastp_paired.out.processed_fastq
             .set {processed_fastq}
     } else {
         Channel.of(file(params.fastq, type: "file", checkIfExists:true))
             .set {input_fastq_ch}
 
-        fastp_single(unique_id, unique_id, input_fastq_ch)
+        fastp_single(unique_id, input_fastq_ch)
         fastp_single.out.processed_fastq
             .set {processed_fastq}
     }
