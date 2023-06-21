@@ -8,7 +8,7 @@ workflow kraken_pipeline {
         fastq
     main:
         // Check source param is valid if applicable
-        if (!params.database and !params.taxonomy_dir) {
+        if (!params.database and !params.taxonomy) {
             sources = params.database_sets
             source_name = params.database_set
             source_data = sources.get(source_name, false)
