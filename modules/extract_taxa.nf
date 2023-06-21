@@ -45,7 +45,7 @@ process extract_paired_reads {
 
         for f in \$(ls reads.*.f*)
           do
-            gzip \$f
+            bgzip --threads $task.cpus \$f
           done        
         """
 }
@@ -85,9 +85,9 @@ process extract_reads {
             --min_percent ${params.assembly_min_percent}
 
         for f in \$(ls reads.*.f*)
-        do
-            gzip \$f
-        done
+          do
+            bgzip --threads $task.cpus \$f
+          done
         """
 }
 
