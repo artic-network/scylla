@@ -34,7 +34,7 @@ process fastp_paired {
 
     if [ -s ${unique_id}_2.fastp.fastq ]; then
         bgzip --threads $task.cpus -c ${unique_id}_2.fastp.fastq > ${unique_id}_2.fastp.fastq.gz
-    fi
+    fi    
     """
 
 }
