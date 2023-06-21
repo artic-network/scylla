@@ -1,7 +1,7 @@
 // workflow to run kraken, check for human, run qc checks and generate html report for a single sample fastq
 include { get_params_and_versions } from '../modules/get_params_and_versions'
 include { kraken_pipeline } from '../subworkflows/kraken_pipeline'
-include { extract_reads } from '../modules/extract_taxa'
+include { extract_reads; extract_paired_reads } from '../modules/extract_taxa'
 include { fastp_single; fastp_paired; paired_concatenate } from '../modules/preprocess'
 
 workflow ingest {
