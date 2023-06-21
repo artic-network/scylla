@@ -76,7 +76,7 @@ def get_bracken_hierarchy(kraken_file, bracken_file, max_human=None):
                         "ERROR: found %i human reads, max allowed is %i\n"
                         % (num_direct, max_human)
                     )
-                    # sys.exit(2)
+                    sys.exit(2)
                 continue
 
             entries[ncbi] = {
@@ -534,7 +534,7 @@ def main():
         args.reads2,
         args.prefix,
         max_human=args.max_human,
-        names = args.taxid,
+        names=args.taxid,
         target_ranks=target_ranks,
         min_count=args.min_count,
         min_count_descendants=args.min_count_descendants,

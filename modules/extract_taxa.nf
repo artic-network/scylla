@@ -9,7 +9,7 @@
 // in config so could be good dehuman sanity check
 process extract_paired_reads {
     
-    label 'process_medium'
+    label 'process_high'
 
     publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'
 
@@ -50,13 +50,13 @@ process extract_paired_reads {
 
 process extract_reads {
 
-    label 'process_medium'
+    label 'process_high'
 
     publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
     container "biowilko/scylla@${params.wf.container_sha}"   
-    
+
     input:
         val unique_id
         path fastq
