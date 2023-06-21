@@ -339,19 +339,39 @@ def extract_taxa(
 
     summary = []
     for taxon in lists_to_extract:
-        summary.append(
-            {
-                "human_readable": bracken_hierarchy[taxon]["name"],
-                "taxon": taxon,
-                "tax_level": bracken_hierarchy[taxon]["rank"],
-                "filename": "%s.%s.%s" % (prefix, taxon, filetype),
-                "qc_metrics": {
-                    "num_reads": out_counts[taxon],
-                    "avg_qual": mean(quals[taxon]),
-                    "mean_len": mean(lens[taxon]),
-                },
-            }
-        )
+        if reads2:
+            summary.append(
+                {
+                    "human_readable": bracken_hierarchy[taxon]["name"],
+                    "taxon": taxon,
+                    "tax_level": bracken_hierarchy[taxon]["rank"],
+                    "filenames": [
+                        "%s.%s_1.%s" % (prefix, taxon, filetype),
+                        "%s.%s_2.%s" % (prefix, taxon, filetype),
+                    ],
+                    "qc_metrics": {
+                        "num_reads": out_counts[taxon],
+                        "avg_qual": mean(quals[taxon]),
+                        "mean_len": mean(lens[taxon]),
+                    },
+                }
+            )
+        else:
+            summary.append(
+                {
+                    "human_readable": bracken_hierarchy[taxon]["name"],
+                    "taxon": taxon,
+                    "tax_level": bracken_hierarchy[taxon]["rank"],
+                    "filenames": [
+                        "%s.%s.%s" % (prefix, taxon, filetype),
+                    ],
+                    "qc_metrics": {
+                        "num_reads": out_counts[taxon],
+                        "avg_qual": mean(quals[taxon]),
+                        "mean_len": mean(lens[taxon]),
+                    },
+                }
+            )
     with open("%s_summary.json" % prefix, "w") as f:
         print(summary)
         json.dump(summary, f)
