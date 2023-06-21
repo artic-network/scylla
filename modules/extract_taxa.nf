@@ -93,34 +93,34 @@ process extract_reads {
 
 
 
-workflow extract_taxa {
-    take:
-        unique_id
-        fastq_1
-        fastq_2
-        kraken_assignments
-        kraken_report
-        bracken_report
-    main:
-        extract_reads(unique_id, fastq_1, fastq_2, kraken_assignments, kraken_report, bracken_report)
-}
+// workflow extract_taxa {
+//     take:
+//         unique_id
+//         fastq_1
+//         fastq_2
+//         kraken_assignments
+//         kraken_report
+//         bracken_report
+//     main:
+//         extract_reads(unique_id, fastq_1, fastq_2, kraken_assignments, kraken_report, bracken_report)
+// }
 
-workflow {
-    unique_id = "${params.unique_id}"
-    if ("${params.unique_id}" == "null") {
-        unique_id = "${fastq.simpleName}"
-    }
+// workflow {
+//     unique_id = "${params.unique_id}"
+//     if ("${params.unique_id}" == "null") {
+//         unique_id = "${fastq.simpleName}"
+//     }
 
-    kraken_assignments = file("${params.kraken_assignments}")
-    bracken_report = file("${params.bracken_report}")
-    kraken_report = file("${params.kraken_report}")
+//     kraken_assignments = file("${params.kraken_assignments}")
+//     bracken_report = file("${params.bracken_report}")
+//     kraken_report = file("${params.kraken_report}")
 
-    if (params.paired) {
-            fastq_1 = file(params.fastq1, type: "file", checkIfExists:true)
-            fastq_2 = file(params.fastq2, type: "file", checkIfExists:true)
-            extract_paired_reads(unique_id, fastq_1, fastq_2, kraken_assignments, kraken_report, bracken_report)
-    } else {
-            fastq = file(params.fastq, type: "file", checkIfExists:true)
-            extract_reads(unique_id, fastq, kraken_assignments, kraken_report, bracken_report)
-    }
-}
+//     if (params.paired) {
+//             fastq_1 = file(params.fastq1, type: "file", checkIfExists:true)
+//             fastq_2 = file(params.fastq2, type: "file", checkIfExists:true)
+//             extract_paired_reads(unique_id, fastq_1, fastq_2, kraken_assignments, kraken_report, bracken_report)
+//     } else {
+//             fastq = file(params.fastq, type: "file", checkIfExists:true)
+//             extract_reads(unique_id, fastq, kraken_assignments, kraken_report, bracken_report)
+//     }
+// }
