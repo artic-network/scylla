@@ -430,6 +430,7 @@ def main():
         dest="taxid",
         required=False,
         nargs="*",
+        default=[],
         help="List of taxonomy ID[s] or names to extract (space-delimited) - each to their own file",
     )
     parser.add_argument(
