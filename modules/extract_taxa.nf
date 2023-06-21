@@ -13,10 +13,8 @@ process extract_paired_reads {
 
     publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'
 
-    conda 'bioconda::biopython=1.78'
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/biopython%3A1.76' :
-        'biocontainers/biopython@sha256:b0204cf662a3d858f6c28627124b83ed6f564e2b156b8788092f2dd9256c9290' }"    
+    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    container "biowilko/scylla@${params.wf.container_sha}"   
 
     input:
         val unique_id
@@ -56,11 +54,9 @@ process extract_reads {
 
     publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'
 
-    conda 'bioconda::biopython=1.78'
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/biopython%3A1.76' :
-        'biocontainers/biopython@sha256:b0204cf662a3d858f6c28627124b83ed6f564e2b156b8788092f2dd9256c9290' }"
-
+    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    container "biowilko/scylla@${params.wf.container_sha}"   
+    
     input:
         val unique_id
         path fastq
