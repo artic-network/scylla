@@ -80,7 +80,7 @@ process paired_concatenate {
 
     output:
         val unique_id
-        path "${unique_id}.fastp.fastq.gz", emit: concatenated_fastq
+        path "${unique_id}.concatenated.fastq.gz", emit: concatenated_fastq
 
     script:
     """
@@ -89,6 +89,6 @@ process paired_concatenate {
         > ${unique_id}.concatenated.fastq
 
     
-    bgzip --threads $task.cpus -c ${unique_id}.concatenated.fastq > ${unique_id}.fastp.fastq.gz
+    bgzip --threads $task.cpus -c ${unique_id}.concatenated.fastq > ${unique_id}.concatenated.fastq.gz
     """
 }
