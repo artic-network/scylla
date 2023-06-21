@@ -73,7 +73,7 @@ process extract_reads {
     script:
         """
         extract_kraken_reads.py \
-            -s ${fastq1} \
+            -s ${fastq} \
             -k ${kraken_assignments} \
             -r ${kraken_report} \
             -b ${bracken_report} \
