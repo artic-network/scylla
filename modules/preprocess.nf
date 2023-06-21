@@ -13,8 +13,8 @@ process fastp_paired {
 
     output:
         val unique_id
-        path "${unique_id}_1.fastp.fastq", emit: processed_fastq_1
-        path "${unique_id}_2.fastp.fastq", emit: processed_fastq_2
+        path "${unique_id}_1.fastp.fastq.gz", emit: processed_fastq_1
+        path "${unique_id}_2.fastp.fastq.gz", emit: processed_fastq_2
         path "${unique_id}.fastp.json"
 
     script:
@@ -27,7 +27,14 @@ process fastp_paired {
         --json ${unique_id}.fastp.json \\
         --thread $task.cpus \\
         2> ${unique_id}.fastp.log
-    
+
+    if [ -s ${unique_id}_1.fastp.fastq ]; then
+        bgzip --threads $task.cpus -c ${unique_id}_1.fastp.fastq > ${unique_id}_1.fastp.fastq.gz
+    fi
+
+    if [ -s ${unique_id}_2.fastp.fastq ]; then
+        bgzip --threads $task.cpus -c ${unique_id}_2.fastp.fastq > ${unique_id}_2.fastp.fastq.gz
+    fi
     """
 
 }
