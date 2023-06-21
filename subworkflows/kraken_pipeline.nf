@@ -8,35 +8,45 @@ workflow kraken_pipeline {
         fastq
     main:
 
-        // Check source param is valid
-        // sources = params.database_sets
-        // source_name = params.database_set
-        // source_data = sources.get(source_name, false)
-        // if (!sources.containsKey(source_name) || !source_data) {
-        //     keys = sources.keySet()
-        //     throw new Exception("Source $params.source is invalid, must be one of $keys")
-        // }
+
+        // Check source param is valid if applicable
+        if not (params.database and params.taxonomy_dir) {
+            sources = params.database_sets
+            source_name = params.database_set
+            source_data = sources.get(source_name, false)
+            if (!sources.containsKey(source_name) || !source_data) {
+                keys = sources.keySet()
+                throw new Exception("Source $params.source is invalid, must be one of $keys")
+            }
+        }
 
         // Grab taxonomy files
-        // taxonomy = file(sources[source_name]["taxonomy"], type: "file")
-        // if (params.taxonomy) {
-        //     log.info("Checking custom taxonomy mapping exists")
-            
-        // }
+        if (params.taxonomy) {
+            taxonomy = file(params.taxonomy, type: "dir", checkIfExists:true)
+        } else {
+            default_taxonomy = source_data.get("taxonomy", false)
+            if (!default_taxonomy) {
+                throw new Exception(
+                    "Error: Source $source_name does not include a taxonomy for "
+                    + "use with kraken, please choose another source or"
+                    + "provide a custom taxonomy.")
+            }
+            taxonomy = unpackTaxonomy(default_taxonomy)
+        }
 
-        taxonomy = file(params.taxonomy_dir, type: "dir", checkIfExists:true)
-
-        // if (database) {
-        //     source_database = database
-        // } else {
-        //     source_database = source_data.get("database", false)
-        //     if (!source_database) {
-        //         throw new Exception(
-        //             "Error: Source $source_name does not include a database for "
-        //             + "use with kraken, please choose another source, "
-        //             + "provide a custom database or disable kraken.")
-        //     }
-        database = file(params.db, type: "dir", checkIfExists:true)
+       // Grab database files
+        if (params.database) {
+            database = file(params.database, type: "dir", checkIfExists:true)
+        } else {
+            default_database = source_data.get("database", false)
+            if (!default_database) {
+                throw new Exception(
+                    "Error: Source $source_name does not include a database for "
+                    + "use with kraken, please choose another source or "
+                    + "provide a custom database.")
+            }
+            database = unpackDatabase(default_database)
+        }
 
         // start_server(database, taxonomy)
         run_kraken_and_bracken(unique_id, fastq, database, taxonomy)
