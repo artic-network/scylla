@@ -42,7 +42,7 @@ workflow ingest {
                 fastq_2 = fastp_paired.out.processed_fastq_2
         } else { 
                 fastq_1 = processed_fastq
-                fastq_2 = None
+                fastq_2 = null
         }
 
         extract_reads(unique_id, fastq_1, fastq_2, kraken_pipeline.out.kraken_assignments, kraken_pipeline.out.kraken_report, kraken_pipeline.out.bracken_report)
