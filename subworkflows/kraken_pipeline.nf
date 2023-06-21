@@ -1,4 +1,6 @@
 include { run_kraken_and_bracken } from '../modules/kraken_client'
+include { unpackDatabase } from '../modules/kraken_server'
+include { unpackTaxonomy } from '../modules/kraken_server'
 include { qc_checks } from '../modules/qc_checks'
 include { generate_report } from '../modules/generate_report'
 
