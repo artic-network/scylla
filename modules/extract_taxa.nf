@@ -50,7 +50,7 @@ process extract_paired_reads {
 
 process extract_reads {
 
-    label 'process_medium'
+    label 'process_high'
 
     publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'
 
