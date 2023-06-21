@@ -15,9 +15,9 @@ workflow {
 
         fastp_paired(unique_id, input_fastq_1_ch, input_fastq_2_ch)
 
+        paired_concatenate(unique_id, fastp_paired.out.processed_fastq_1, fastp_paired.out.processed_fastq_2)
 
-
-        fastp_paired.out.processed_fastq
+        paired_concatenate.out.concatenated_fastq
             .set {processed_fastq}
     } else {
         Channel.of(file(params.fastq, type: "file", checkIfExists:true))
