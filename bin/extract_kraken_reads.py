@@ -264,8 +264,18 @@ def extract_taxa(
             if key not in keys:
                 keys[key] = []
             keys[key].append(taxon)
-        outfile_handles[taxon] = open("%s.%s.%s" % (prefix, taxon, filetype), "w")
-        print("opening %s.%s.%s" % (prefix, taxon, filetype))
+        if reads2:
+            outfile_handles[taxon] = {
+                1: open("%s.%s_1.%s" % (prefix, taxon, filetype), "w"),
+                2: open("%s.%s_2.%s" % (prefix, taxon, filetype), "w"),
+            }
+            print(
+                "opening %s.%s_1.%s and %s.%s_2.%s"
+                % (prefix, taxon, filetype, prefix, taxon, filetype)
+            )
+        else:
+            outfile_handles[taxon] = open("%s.%s.%s" % (prefix, taxon, filetype), "w")
+            print("opening %s.%s.%s" % (prefix, taxon, filetype))
         out_counts[taxon] = 0
         quals[taxon] = []
         lens[taxon] = []
@@ -279,27 +289,53 @@ def extract_taxa(
         for line in kfile:
             tax_id, read_id = parse_kraken_assignment_line(line)
             if tax_id in keys:
-                if read_id in s_file1:
-                    read = s_file1[read_id]
-                elif reads2 and read_id in s_file2:
-                    read = s_file2[read_id]
+                if reads2:
+                    if read_id in s_file1 and read_id in s_file2:
+                        read1 = s_file1[read_id]
+                        read2 = s_file2[read_id]
+                    else:
+                        sys.stderr.write(
+                            "ERROR: read id %s not found in read files\n" % read_id
+                        )
+                        sys.exit(1)
+
+                    for taxon in keys[tax_id]:
+                        SeqIO.write(read1, outfile_handles[taxon][1], filetype)
+                        SeqIO.write(read2, outfile_handles[taxon][2], filetype)
+                        out_counts[taxon] += 2
+                        quals[taxon].append(
+                            median(read1.letter_annotations["phred_quality"])
+                        )
+                        quals[taxon].append(
+                            median(read2.letter_annotations["phred_quality"])
+                        )
+                        lens[taxon].append(len(read1))
+                        lens[taxon].append(len(read2))
+
                 else:
-                    sys.stderr.write(
-                        "ERROR: read id %s not found in read files\n" % read_id
-                    )
-                    sys.exit(1)
+                    if read_id in s_file1:
+                        read = s_file1[read_id]
+                    else:
+                        sys.stderr.write(
+                            "ERROR: read id %s not found in read file\n" % read_id
+                        )
+                        sys.exit(1)
 
-                for taxon in keys[tax_id]:
-                    SeqIO.write(read, outfile_handles[taxon], filetype)
-                    out_counts[taxon] += 1
-                    quals[taxon].append(
-                        median(read.letter_annotations["phred_quality"])
-                    )
-                    lens[taxon].append(len(read))
-
-    for handle in outfile_handles:
-        if outfile_handles[handle]:
-            outfile_handles[handle].close()
+                    for taxon in keys[tax_id]:
+                        SeqIO.write(read, outfile_handles[taxon], filetype)
+                        out_counts[taxon] += 1
+                        quals[taxon].append(
+                            median(read.letter_annotations["phred_quality"])
+                        )
+                        lens[taxon].append(len(read))
+    if reads2:
+        for handle_dict in outfile_handles:
+            outfile_handles[handle_dict][1].close()
+            outfile_handles[handle_dict][2].close()
+    else:
+        for handle in outfile_handles:
+            if outfile_handles[handle]:
+                outfile_handles[handle].close()
 
     summary = []
     for taxon in lists_to_extract:
