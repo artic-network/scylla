@@ -80,7 +80,7 @@ process paired_concatenate {
 
     output:
         val unique_id
-        path "${unique_id}.fastp.fastq.gz", emit: concatented_fastq
+        path "${unique_id}.fastp.fastq.gz", emit: concatenated_fastq
 
     script:
     """
