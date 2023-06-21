@@ -59,7 +59,8 @@ def main():
 
     parser.add_argument(
         "--assignments",
-        help="JSON file of kraken/bracken assignments",
+        help="JSON file(s) of kraken/bracken assignments",
+        nargs='+',
         required=True,
         type=Path,
     )
@@ -81,8 +82,14 @@ def main():
 
     sample = args.sample_id
 
-    with open(args.assignments.resolve(), "rt") as bracken_file:
-        assignments = bracken_file.read().strip().replace('"', '\\"')
+    assignments = None
+    for bracken_file in args.assignments:
+        with open(bracken_file.resolve(), "rt") as bracken_handle:
+            contents = bracken_handle.read().strip().replace('"', '\\"')
+            if not assignments:
+                assignments = contents
+            else:
+                assignments = assignments[:-1] + ", " + contents
 
     if args.read_counts:
         with open(args.read_counts.resolve(), "rt") as qc_file:
