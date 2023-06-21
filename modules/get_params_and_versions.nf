@@ -3,9 +3,12 @@
 import groovy.json.JsonBuilder
 
 process get_versions {
-    label "scylla"
-    publishDir "${params.out_dir}/execution", mode: 'copy'
+
+    
+    publishDir "${params.out_dir}/${unique_id}/execution", mode: 'copy'
     cpus 1
+    input:
+        val unique_id
     output:
         path "versions.txt"
     script:
@@ -18,8 +21,10 @@ process get_versions {
 
 
 process get_params {
-    publishDir "${params.out_dir}/execution", mode: 'copy'
+    publishDir "${params.out_dir}/${unique_id}/execution", mode: 'copy'
     cpus 1
+    input:
+        val unique_id
     output:
         path "params.json"
     script:
@@ -31,9 +36,11 @@ process get_params {
 }
 
 workflow get_params_and_versions {
+    take:
+        unique_id
     main:
-        software_versions = get_versions()
-        workflow_params = get_params()
+        software_versions = get_versions(unique_id)
+        workflow_params = get_params(unique_id)
     emit:
         software_versions
         workflow_params

@@ -1,18 +1,14 @@
 include { qc_checks } from '../modules/qc_checks'
 include { generate_report } from '../modules/generate_report'
 
-
-kraken_compute = params.threads == 1 ? 1 : params.threads - 1
-
 process kraken2_client {
-    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxRetries 5
-    label "scylla"
+    
+    label 'process_low'
+    label 'error_retry'
 
-    containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
-    // retry if server responds out of resource
-    errorStrategy = { task.exitStatus in [8] ? 'retry' : 'finish' }
-    maxForks kraken_compute
+    conda "epi2melabs::kraken2-server=0.1.3"
+    container "biowilko/scylla@${params.wf.container_sha}"
+
     input:
         path fastq
     output:
@@ -28,7 +24,13 @@ process kraken2_client {
 }
 
 process combine_kraken_outputs {
+
+    label 'process_single'
+
+    container "biowilko/scylla@${params.wf.container_sha}"
+
     publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
+    
     input:
         val unique_id
         path kraken_reports
@@ -44,7 +46,7 @@ process combine_kraken_outputs {
         """
     } else {
         """
-        $projectDir/../bin/combine_kreports.py \\
+        combine_kreports.py \\
                 -r ${kraken_reports} \\
                 -o "${params.database_set}.kraken_report.txt"
 
@@ -54,7 +56,11 @@ process combine_kraken_outputs {
 }
 
 process determine_bracken_length {
-    label "scylla"
+    label "process_low"
+
+    conda "anaconda::sed=4.8"
+    container "biowilko/scylla@${params.wf.container_sha}"
+
     input:
         path database
     output:
@@ -72,7 +78,16 @@ process determine_bracken_length {
 
 // this fails if the kraken file input is empty - currently have no check that it is populated
 process bracken {
+    
+    label 'process_low'
+
     publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
+
+    conda "bioconda::bracken=2.7"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/bracken:2.7--py39hc16433a_0':
+        'biocontainers/bracken:2.7--py39hc16433a_0' }"
+
     input:
         val unique_id
         path kraken_report
@@ -93,7 +108,15 @@ process bracken {
 }
 
 process bracken_to_json {
+    
+    label "process_low"
+
     publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
+    
+    conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
+    container "biowilko/scylla@${params.wf.container_sha}"
+
+
     input:
         val unique_id
         path kraken_report
@@ -101,11 +124,12 @@ process bracken_to_json {
         path bracken_summary
     output:
         path "${params.database_set}.bracken.json"
+
     """
     cat "${bracken_summary}" | cut -f2,6 | tail -n+2 > taxacounts.txt
     cat "${bracken_summary}" | cut -f2 | tail -n+2 > taxa.txt
     taxonkit lineage --data-dir ${taxonomy_dir}  -R taxa.txt  > lineages.txt
-    $projectDir/../bin/aggregate_lineages_bracken.py \\
+    aggregate_lineages_bracken.py \\
             -i "lineages.txt" -b "taxacounts.txt" \\
             -u "${kraken_report}" \\
             -p "temp_bracken"

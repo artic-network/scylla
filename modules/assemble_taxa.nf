@@ -8,18 +8,29 @@
 // ALSO this step will currently "fail" with exitcode 2 if the number of human reads found exceeds the number specified
 // in config so could be good dehuman sanity check
 process extract_reads {
+    
+    label 'process_medium'
+
     publishDir path: "${params.out_dir}/${unique_id}/reads_by_taxa", mode: 'copy'
+
+    conda 'bioconda::biopython=1.78'
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/biopython%3A1.76' :
+        'biocontainers/biopython@sha256:b0204cf662a3d858f6c28627124b83ed6f564e2b156b8788092f2dd9256c9290' }"
+    
     input:
         val unique_id
         path fastq
         path kraken_assignments
         path kraken_report
         path bracken_report
+        
     output:
         path "reads.*.f*.gz"
+
     script:
     """
-    $projectDir/../bin/extract_kraken_reads.py \
+    extract_kraken_reads.py \
         -s ${fastq} \
         -k ${kraken_assignments} \
         -r ${kraken_report} \
@@ -42,7 +53,62 @@ process extract_reads {
 // either be as a result of the pipeline failing for one of many reasons, or because the file generated at the end
 // of a successful pipeline run is empty, in which case it would be meaningless to copy
 // I've not had a successful test case with the very small numbers of reads/database on my laptop
+
+process flye_assemble {
+    
+    label 'process_high'
+
+    conda "bioconda::flye=2.9"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/flye:2.9--py39h6935b12_1' :
+        'biocontainers/flye:2.9--py39h6935b12_1' }"
+
+    input:
+        val unique_id
+        path fastq
+    output:
+        path "assembly.*.f*.gz"
+
+    script:
+    outfile = "${fastq.name}".replaceAll("reads","assembly")
+
+    """
+    flye \
+        --nano-raw ${fastq} \
+        -o "assembly"
+    if [ -s assembly/final.contigs.fa ]
+    then
+        mv assembly/final.contigs.fa ${outfile}
+        gzip ${outfile}
+    fi
+    """
+    
+}
+
+process megahit_assemble {
+    
+    label 'process_high'
+
+    conda "bioconda::megahit=1.2.9"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/mulled-v2-0f92c152b180c7cd39d9b0e6822f8c89ccb59c99:8ec213d21e5d03f9db54898a2baeaf8ec729b447-0' :
+        'biocontainers/mulled-v2-0f92c152b180c7cd39d9b0e6822f8c89ccb59c99:8ec213d21e5d03f9db54898a2baeaf8ec729b447-0' }"
+
+    script:
+    """
+    megahit \
+        --r ${fastq} \
+        -o "assembly"
+    if [ -s assembly/final.contigs.fa ]
+    then
+        mv assembly/final.contigs.fa ${outfile}
+        gzip ${outfile}
+    fi
+    """
+}
+
 process denovo_assemble {
+
     errorStrategy 'ignore'
     publishDir path: "${params.out_dir}/${unique_id}/assemblies_by_taxa/", mode: 'copy'
     input:

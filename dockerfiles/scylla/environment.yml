@@ -1,4 +1,4 @@
-name: scylla_dev
+name: scylla
 channels:
   - bioconda
   - conda-forge
@@ -7,15 +7,11 @@ channels:
 dependencies:
   - python<=3.10
   - pysam
-  - nextflow
   - pip
-  - kraken2
   - kraken2-server # not on mac
   - bracken # needs to be manually installed from git and softlinked if Mac M1
   - fastcat
   - biopython
-  - flye
-  - megahit
   - pandas
   - numpy
   - taxonkit

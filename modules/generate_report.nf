@@ -1,8 +1,13 @@
 // module to make a single sample report during ingest containing kraken summary and qc stats
 process make_report {
-    publishDir path: "${params.out_dir}/${unique_id}", mode: 'copy'
-    maxForks 1
-    cpus 1
+    
+    label "process_low"
+
+    publishDir path: "${params.out_dir}/${unique_id}/", mode: 'copy'
+    
+    conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
+    container "biowilko/scylla@${params.wf.container_sha}"
+    
     input:
         val unique_id
         path stats
@@ -13,7 +18,7 @@ process make_report {
     script:
         report_name = "${unique_id}"
     """
-    $projectDir/../bin/make_report.py \
+    make_report.py \
         --prefix "${report_name}" \
         --read_counts ${stats} \
         --assignments ${lineages} \
@@ -29,7 +34,7 @@ workflow generate_report {
         bracken_jsons
     main:
         // Acquire report template
-        template = file("$projectDir/../bin/scylla.mako.html")
+        template = file("$baseDir/bin/scylla.mako.html")
 
         make_report(unique_id, stats, bracken_jsons, template)
     emit:
