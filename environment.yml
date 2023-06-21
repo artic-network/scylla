@@ -1,4 +1,4 @@
-name: scylla
+name: scylla_dev
 channels:
   - bioconda
   - conda-forge
@@ -16,3 +16,9 @@ dependencies:
   - biopython
   - flye
   - megahit
+  - pandas
+  - numpy
+  - taxonkit
+  - fastp
+  - tabix
+  - mako
