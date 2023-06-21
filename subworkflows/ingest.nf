@@ -38,14 +38,14 @@ workflow ingest {
 
         if (params.paired) {
                 fastq_1 = fastp_paired.out.processed_fastq_1
-
                 fastq_2 = fastp_paired.out.processed_fastq_2
+                extract_paired_reads(unique_id, fastq_1, fastq_2, kraken_pipeline.out.kraken_assignments, kraken_pipeline.out.kraken_report, kraken_pipeline.out.bracken_report)
+
         } else { 
-                fastq_1 = processed_fastq
-                fastq_2 = null
+                fastq = processed_fastq
+                extract_reads(unique_id, fastq, kraken_pipeline.out.kraken_assignments, kraken_pipeline.out.kraken_report, kraken_pipeline.out.bracken_report)
         }
 
-        extract_reads(unique_id, fastq_1, fastq_2, kraken_pipeline.out.kraken_assignments, kraken_pipeline.out.kraken_report, kraken_pipeline.out.bracken_report)
     emit:
         html_report = kraken_pipeline.out.report
 
