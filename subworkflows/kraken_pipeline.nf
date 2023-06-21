@@ -7,10 +7,8 @@ workflow kraken_pipeline {
         unique_id
         fastq
     main:
-
-
         // Check source param is valid if applicable
-        if not (params.database and params.taxonomy_dir) {
+        if (!params.database and !params.taxonomy_dir) {
             sources = params.database_sets
             source_name = params.database_set
             source_data = sources.get(source_name, false)
@@ -34,7 +32,7 @@ workflow kraken_pipeline {
             taxonomy = unpackTaxonomy(default_taxonomy)
         }
 
-       // Grab database files
+        // Grab database files
         if (params.database) {
             database = file(params.database, type: "dir", checkIfExists:true)
         } else {
