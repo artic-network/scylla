@@ -31,6 +31,7 @@ workflow ingest {
             fastp_single.out.processed_fastq
                 .set {processed_fastq}
         } else if (params.fastq_dir) {
+            fastqdir = file("${params.fastq_dir}", type: "dir", checkIfExists:true)
             Channel.fromPath( fastqdir / "*.f*q*", type: "file")
                 .set {input_fastq_ch}
 
