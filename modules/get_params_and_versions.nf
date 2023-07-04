@@ -5,7 +5,7 @@ import groovy.json.JsonBuilder
 process get_versions {
 
     
-    publishDir "${params.out_dir}/${unique_id}/execution", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/execution", mode: 'copy'
     cpus 1
     input:
         val unique_id
@@ -21,7 +21,7 @@ process get_versions {
 
 
 process get_params {
-    publishDir "${params.out_dir}/${unique_id}/execution", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/execution", mode: 'copy'
     cpus 1
     input:
         val unique_id
