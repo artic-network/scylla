@@ -83,7 +83,7 @@ process kraken_server {
     kraken2_server \
         --max-requests ${kraken_compute + 1} \
         --port ${params.k2_port} \
-        --host ${params.k2_host} \
+        --host-ip ${params.k2_host} \
         --db ./${database}/
     """
 }
@@ -98,7 +98,7 @@ process stop_kraken_server {
     input:
         val stop
     """
-    kraken2_client --port ${params.k2_port} --host ${params.k2_host} --shutdown
+    kraken2_client --port ${params.k2_port} --host-ip ${params.k2_host} --shutdown
     """
 }
 
