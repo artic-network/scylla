@@ -23,13 +23,20 @@ workflow ingest {
 
             paired_concatenate.out.concatenated_fastq
                 .set {processed_fastq}
-        } else {
+        } else if (params.fastq) {
             Channel.of(file(params.fastq, type: "file", checkIfExists:true))
                 .set {input_fastq_ch}
 
             fastp_single(unique_id, input_fastq_ch)
             fastp_single.out.processed_fastq
-            .set {processed_fastq}
+                .set {processed_fastq}
+        } else if (params.fastq_dir) {
+            Channel.fromPath( fastqdir / "*.f*q*", type: "file")
+                .set {input_fastq_ch}
+
+            fastp_single(unique_id, input_fastq_ch)
+            fastp_single.out.processed_fastq
+                .set {processed_fastq}
         }
 
         // get_params_and_versions()
