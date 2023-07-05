@@ -97,7 +97,7 @@ process bracken {
         path "${params.database_set}.bracken_summary.txt", emit: summary
         path "${params.database_set}.bracken_report.txt", emit: report
     """
-    if [[ $(wc -l <${kraken_report} -ge 3 ]]
+    if [[ \$(wc -l <${kraken_report}) -ge 3 ]]
     then
         bracken \
           -d "${database}" \
