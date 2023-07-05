@@ -53,7 +53,7 @@ process fastp_single {
 
     output:
         val unique_id
-        path "${fastq.simpleName}.fastp.fastq.gz", emit: processed_fastq
+        path "${unique_id}.fastp.fastq.gz", emit: processed_fastq
         path "${unique_id}.fastp.json"
 
     script:
@@ -67,7 +67,7 @@ process fastp_single {
         2> ${unique_id}.fastp.log
 
     if [ -s ${unique_id}.fastp.fastq ]; then
-        bgzip --threads $task.cpus -c ${unique_id}.fastp.fastq > ${fastq.simpleName}.fastp.fastq.gz
+        bgzip --threads $task.cpus -c ${unique_id}.fastp.fastq > ${unique_id}.fastp.fastq.gz
     fi
     """
 }
