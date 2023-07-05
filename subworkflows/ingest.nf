@@ -34,9 +34,9 @@ workflow ingest {
             fastqdir = file("${params.fastq_dir}", type: "dir", checkIfExists:true)
             Channel.fromPath( fastqdir / "*.f*q*", type: "file")
                 .set {input_fastq_ch}
-
+	    
             fastp_single(unique_id, input_fastq_ch)
-            fastp_single.out.processed_fastq
+            fastp_single.out.processed_fastq.collectFile(name: 'processed.fq.gz')
                 .set {processed_fastq}
         }
 
