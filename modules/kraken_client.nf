@@ -97,13 +97,19 @@ process bracken {
         path "${params.database_set}.bracken_summary.txt", emit: summary
         path "${params.database_set}.bracken_report.txt", emit: report
     """
-    bracken \
-      -d "${database}" \
-      -i "${kraken_report}" \
-      -r "${bracken_length}" \
-      -l "${params.bracken_level}" \
-      -o "${params.database_set}.bracken_summary.txt" \
-      -w "${params.database_set}.bracken_report.txt"
+    if [[ $(wc -l <${kraken_report} -ge 3 ]]
+    then
+        bracken \
+          -d "${database}" \
+          -i "${kraken_report}" \
+          -r "${bracken_length}" \
+          -l "${params.bracken_level}" \
+          -o "${params.database_set}.bracken_summary.txt" \
+          -w "${params.database_set}.bracken_report.txt"
+    else
+        cp ${kraken_report} "${params.database_set}.bracken_report.txt"
+        touch "${params.database_set}.bracken_report.txt"
+    fi
     """
 }
 
