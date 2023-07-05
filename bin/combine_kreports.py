@@ -97,7 +97,7 @@ def write_entry(out_handle, entry):
 
 
 def choose_next(entries, taxa, ncbi="0"):
-    if len(taxa) == 0:
+    if len(taxa) <= 1:
         return None, taxa
 
     next = None
