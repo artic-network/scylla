@@ -97,14 +97,15 @@ def write_entry(out_handle, entry):
 
 
 def choose_next(entries, taxa, ncbi="0"):
-    if len(taxa) <= 1:
+    if len(taxa) == 0:
         return None, taxa
 
     next = None
     if ncbi == "0":
         next = "1"
         taxa.remove(ncbi)
-        taxa.remove(next)
+        if len(taxa) > 0:
+            taxa.remove(next)
     else:
         max_pcent = 0
         for child in entries[ncbi]["children"]:
