@@ -37,6 +37,7 @@ nextflow.enable.dsl = 2
 // set parameters
 
 params.fastq = "/localdisk/home/s2420489/mscape_test/data/CAMB_28_6_23_B2_SISPArapid/CAMB_28_6_23_B2_SISPArapid.fq"
+params.unique_id = "test1_ont"
 params.out_dir = "/localdisk/home/s2420489/nextflow/mscape/test_pipeline"
 
 //params.classifier = "virbot"
@@ -58,20 +59,12 @@ if ( params.read_type == 'ont' ) {
 workflow classify_novel_taxa {
 
 	take:
-	if ( params.paired ) {
-		unique_id
-		processed_fastq_1
-		processed_fastq_2
-	} else {
-		unique_id
-		fastq
-	}
-
-
-
+	unique_id
+	fastq
+		
 	main:
 	if ( params.paired ) {
-		assemble_paired(unique_id, processed_fastq_1, processed_fastq_2)
+		assemble_paired(unique_id, fastq[0], fastq[1])
 		gen_assembly_stats(unique_id,assemble_paired.out)
 		run_virbot(unique_id,assemble_paired.out)
 		run_genomad(unique_id,assemble_paired.out)
@@ -130,6 +123,7 @@ process assemble {
 			
 			readsfile = file(${fastq})
 			readsfile.renameTo("reads.fastq")
+			
 			"""
 			rnabloom -long reads.fastq -t ${task.cpus} -outdir rnabloom
 
@@ -145,7 +139,8 @@ process assemble {
 	} else if ( params.read_type == 'illumina' ) {
 		if ( params.assembler == 'megahit' ) {
 			conda "bioconda::megahit"
-                	"""
+                	
+			"""
                 	megahit -r ${fastq} -m 0.5 --min-contig-len 100 \
 				--presets meta-sensitive -t ${task.cpus} -o megahit
 			if [ -s megahit/final.contigs.fa ]
@@ -210,7 +205,7 @@ process gen_assembly_stats {
 	
         conda "bioconda::bbmap"
 
-        //publishDir "${params.out_dir}/${unique_id}/viral_rna_classifications", mode: 'copy', saveAs: { filename -> "${assembler}_${filename}" }
+        publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { filename -> "${assembler}_${filename}" }
 
         input:
 	val unique_id
@@ -229,7 +224,7 @@ process run_virbot {
         // UPLOAD ENV & ADD CONTAINERS
 	conda "/localdisk/home/s2420489/conda/virbot.yml"
 
-        publishDir "${params.out_dir}/${unique_id}/viral_rna_classifications", mode: 'copy'
+        publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy'
 
         input:
         val unique_id
@@ -247,7 +242,7 @@ process run_virbot {
 process run_genomad {
 
 	conda "/localdisk/home/s2420489/conda/genomad.yml"
-	publishDir "${params.out_dir}/${unique_id}/viral_rna_classifications", mode: 'copy'
+	publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy'
 
 	input:
         val unique_id
