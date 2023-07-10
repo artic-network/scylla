@@ -45,7 +45,7 @@ process unpackDatabase {
 
 process unpackTaxonomy {
     cpus 1
-    storeDir "${params.store_dir}/${taxonomy.simpleName}"
+    storeDir "${params.store_dir}/${params.database_set}"
     input:
         path taxonomy
     output:
@@ -81,7 +81,9 @@ process kraken_server {
     """
     # we add one to requests to allow for stop signal
     kraken2_server \
-        --max-requests ${kraken_compute + 1} --port ${params.port} \
+        --max-requests ${kraken_compute + 1} \
+        --port ${params.k2_port} \
+        --host-ip ${params.k2_host} \
         --db ./${database}/
     """
 }
@@ -96,38 +98,55 @@ process stop_kraken_server {
     input:
         val stop
     """
-    kraken2_client --port $params.port --shutdown
+    kraken2_client --port ${params.k2_port} --host-ip ${params.k2_host} --shutdown
     """
 }
 
 workflow start_server {
     take:
         database
-        taxonomy
     main:
-        input_database = file("${params.store_dir}/${params.database_set}/database_dir")
-        if (input_database.isEmpty()) {
-            database = unpackDatabase(database)
-        } else {
-            database = input_database
-        }
-
-        input_taxonomy = file("${params.store_dir}/${taxonomy.simpleName}/taxonomy_dir")
-        if (input_database.isEmpty()) {
-            taxonomy = unpackTaxonomy(taxonomy)
-        } else {
-            taxonomy = input_taxonomy
-        }
         kraken_server(database)
     emit:
-        database = database
-        taxonomy = taxonomy
         server = kraken_server.out
 }
 
 workflow stop_server {
     take:
+        server
         stop
     main:
         stop_kraken_server(stop)
+}
+
+workflow {
+    // Grab database files
+    if (params.database) {
+        database = file(params.database, type: "dir", checkIfExists:true)
+    } else {
+            sources = params.database_sets
+            source_name = params.database_set
+            source_data = sources.get(source_name, false)
+            if (!sources.containsKey(source_name) || !source_data) {
+                keys = sources.keySet()
+                throw new Exception("Source $params.source is invalid, must be one of $keys")
+            }
+
+            default_database = source_data.get("database", false)
+            if (!default_database) {
+                throw new Exception(
+                    "Error: Source $source_name does not include a database for "
+                    + "use with kraken, please choose another source or "
+                    + "provide a custom database.")
+            }
+
+            input_database = file("${params.store_dir}/${params.database_set}/database_dir")
+            if (input_database.isEmpty()) {
+                database = unpackDatabase(default_database)
+            } else {
+                database = input_database
+            }
+    }
+
+    start_server(params.database)
 }

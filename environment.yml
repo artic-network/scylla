@@ -1,4 +1,4 @@
-name: scylla_dev
+name: scylla
 channels:
   - bioconda
   - conda-forge
