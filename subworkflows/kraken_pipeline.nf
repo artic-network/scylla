@@ -1,6 +1,8 @@
 include { run_kraken_and_bracken } from '../modules/kraken_client'
 include { unpackDatabase } from '../modules/kraken_server'
 include { unpackTaxonomy } from '../modules/kraken_server'
+include { start_server } from '../modules/kraken_server'
+include { stop_server } from '../modules/kraken_server'
 include { qc_checks } from '../modules/qc_checks'
 include { generate_report } from '../modules/generate_report'
 
@@ -10,7 +12,7 @@ workflow kraken_pipeline {
         fastq
     main:
         // Check source param is valid if applicable
-        if (!params.database and !params.taxonomy) {
+        if (!params.database or !params.taxonomy) {
             sources = params.database_sets
             source_name = params.database_set
             source_data = sources.get(source_name, false)
@@ -31,7 +33,12 @@ workflow kraken_pipeline {
                     + "use with kraken, please choose another source or"
                     + "provide a custom taxonomy.")
             }
-            taxonomy = unpackTaxonomy(default_taxonomy)
+            input_taxonomy = file("${params.store_dir}/${params.database_set}/taxonomy_dir")
+            if (input_taxonomy.isEmpty()) {
+                taxonomy = unpackTaxonomy(default_taxonomy)
+            } else {
+                taxonomy = input_taxonomy
+            }
         }
 
         // Grab database files
@@ -45,13 +52,25 @@ workflow kraken_pipeline {
                     + "use with kraken, please choose another source or "
                     + "provide a custom database.")
             }
-            database = unpackDatabase(default_database)
+
+            input_database = file("${params.store_dir}/${params.database_set}/database_dir")
+            if (input_database.isEmpty()) {
+                database = unpackDatabase(default_database)
+            } else {
+                database = input_database
+            }
         }
 
-        // start_server(database, taxonomy)
+        if (params.raise_server) {
+            start_server(database)
+        }
+
         run_kraken_and_bracken(unique_id, fastq, database, taxonomy)
 
-        // stop_server(run_kraken_and_bracken.out.bracken_report.collect())
+        if (params.raise_server) {
+            stop_server(start_server.out.server, run_kraken_and_bracken.out.bracken_report.collect())
+        }
+
         qc_checks(unique_id, fastq)
         if (params.additional_bracken_jsons) {
             Channel.of(file(params.additional_bracken_jsons, type: "file", checkIfExists:true))
@@ -88,7 +107,7 @@ workflow {
         if (unique_id == "null") {
             unique_id = "${fastqdir.simpleName}"
         }
-        input_fastq = Channel.fromPath( fastqdir / "*.f*q", type: "file")
+        input_fastq = Channel.fromPath( fastqdir / "*.f*q*", type: "file")
     } else {
         exit 1, "One of fastq or fastq_dir need to be provided -- aborting"
     }

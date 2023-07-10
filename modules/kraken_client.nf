@@ -29,7 +29,7 @@ process combine_kraken_outputs {
 
     container "biowilko/scylla@${params.wf.container_sha}"
 
-    publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
     
     input:
         val unique_id
@@ -81,7 +81,7 @@ process bracken {
     
     label 'process_low'
 
-    publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     conda "bioconda::bracken=2.7"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -98,12 +98,12 @@ process bracken {
         path "${params.database_set}.bracken_report.txt", emit: report
     """
     bracken \
-      -d "${database}" \
-      -i "${kraken_report}" \
-      -r "${bracken_length}" \
-      -l "${params.bracken_level}" \
-      -o "${params.database_set}.bracken_summary.txt" \
-      -w "${params.database_set}.bracken_report.txt"
+          -d "${database}" \
+          -i "${kraken_report}" \
+          -r "${bracken_length}" \
+          -l "${params.bracken_level}" \
+          -o "${params.database_set}.bracken_summary.txt" \
+          -w "${params.database_set}.bracken_report.txt"
     """
 }
 
@@ -111,7 +111,7 @@ process bracken_to_json {
     
     label "process_low"
 
-    publishDir path: "${params.out_dir}/${unique_id}/classifications", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
     
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
     container "biowilko/scylla@${params.wf.container_sha}"

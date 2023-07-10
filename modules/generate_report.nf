@@ -3,7 +3,7 @@ process make_report {
     
     label "process_low"
 
-    publishDir path: "${params.out_dir}/${unique_id}/", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/", mode: 'copy'
     
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
     container "biowilko/scylla@${params.wf.container_sha}"
