@@ -90,9 +90,14 @@ workflow classify_novel_taxa_single {
 
 
 	gen_assembly_stats(unique_id,contigs)
-	run_virbot(unique_id,contigs)
-	run_genomad(unique_id,contigs)
-	
+
+	if ( params.classifier == 'virbot' ) {
+		run_virbot(unique_id,contigs)
+	} else if ( params.classifier == 'genomad' ) {
+		run_genomad(unique_id,contigs)	
+	} else {
+		error "Invalid classifier: ${params.classifier} - must be either 'virbot' or 'genomad'"
+	}
 }
 
 workflow classify_novel_taxa_paired {
@@ -113,8 +118,14 @@ workflow classify_novel_taxa_paired {
         }
 	
         gen_assembly_stats(unique_id,contigs)
-        run_virbot(unique_id,contigs)
-        run_genomad(unique_id,contigs)
+
+        if ( params.classifier == 'virbot' ) {
+                run_virbot(unique_id,contigs)
+        } else if ( params.classifier == 'genomad' ) {
+                run_genomad(unique_id,contigs)
+        } else {
+                error "Invalid classifier: ${params.classifier} - must be either 'virbot' or 'genomad'"
+        }
 }
 
 // test run workflow (on test data)
@@ -133,14 +144,7 @@ workflow {
 	classify_novel_taxa_single(unique_id,fastq)
 }
 
-process test_conda {
-	conda "bioconda::megahit"
 
-	script:
-	"""
-	megahit -h
-	"""
-}
 
 // processes
 
@@ -266,7 +270,7 @@ process gen_assembly_stats {
 
         conda "bioconda::bbmap"
 
-        publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { filename -> "${assembler}_${filename}" }
+        publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { filename -> "${params.assembler}_${filename}" }
 
         input:
 	val unique_id
@@ -287,37 +291,42 @@ process run_virbot {
         // UPLOAD ENV & ADD CONTAINERS
 	conda "/localdisk/home/s2420489/conda/virbot.yml"
 
-        publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy'
+        publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "output.vb.fasta" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 
         input:
         val unique_id
 	path contigs
 
         output:
-        path "virbot"
+        path "virbot/output.vb.fasta"
+	path "virbot/pos_contig_score.tsv"
 
         script:
         """
-        VirBot.py --input "${contigs}" --output virbot &
+        VirBot.py --input "${contigs}" --output virbot
+	awk -F',' 'BEGIN {print "contig_id\ttaxonomy"} NR>1{ gsub(/; /, ";", $4) ; print $1"\t"$4 }' pos_contig_score.csv > pos_contig_score.tsv
         """
 }
 
 process run_genomad {
 
 	conda "/localdisk/home/s2420489/conda/genomad.yml"
-	publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy'
+	publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "*.transcripts_virus.fna" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 
 	input:
         val unique_id
         path contigs
 
         output:
-        path "genomad"
+        path "genomad/*.transcripts_summary/*.transcripts_virus.fna"
+	path "tax_assignments.tsv"
 
         script:
         """
         genomad end-to-end -t ${task.cpus} --disable-find-proviruses --relaxed \
 		${contigs} genomad ${params.genomad_db}
+	grep 'Riboviria' genomad/*.transcripts_summary/*.transcripts_virus_summary.tsv | \
+		awk 'BEGIN{print "contig_id\ttaxonomy"} NR>1{print $1"\t"$11}' > tax_assignments.tsv
         """
 }
 
