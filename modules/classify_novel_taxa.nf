@@ -56,153 +56,214 @@ if ( params.read_type == 'ont' ) {
 
 // main pipeline workflow
 
-workflow classify_novel_taxa {
+workflow classify_novel_taxa_single {
 
 	take:
 	unique_id
 	fastq
 		
 	main:
-	if ( params.paired ) {
-		assemble_paired(unique_id, fastq[0], fastq[1])
-		gen_assembly_stats(unique_id,assemble_paired.out)
-		run_virbot(unique_id,assemble_paired.out)
-		run_genomad(unique_id,assemble_paired.out)
-	}
-        else {
-		assemble(unique_id,fastq)
-		gen_assembly_stats(unique_id,assemble.out)
-		run_virbot(unique_id,assemble.out)
-		run_genomad(unique_id,assemble.out)
+	if ( params.read_type == 'ont' ) {
+                if ( params.assembler == 'flye' ) {
+			assemble_flye(unique_id,fastq)
+				.set{ contigs }
+		} else if ( params.assembler == 'rnabloom' ) {
+			assemble_rnabloom(unique_id,fastq)
+			        .set{ contigs }
+		} else {
+                        error "Invalid assembler specification for ont reads: ${params.assembler} - must be one of [flye, rnabloom]"
+                }
+
+        } else if ( params.read_type == 'illumina' ) {
+                if ( params.assembler == 'megahit' ) {
+			assemble_megahit(unique_id,fastq)
+			        .set{ contigs }
+		} else if ( params.assembler == 'rnaspades' ) {
+			assemble_rnaspades(unique_id,fastq)
+				.set{ contigs }
+		} else {
+                        error "Invalid assembler specification for Illumina reads: ${params.assembler} - must be one of [megahit, rnaspades]"
+                }
+        } else {
+                error "Invalid read_type specification: ${params.read_type} - must be one of [ont, illumina]"
+        }
+
+
+	gen_assembly_stats(unique_id,contigs)
+	run_virbot(unique_id,contigs)
+	run_genomad(unique_id,contigs)
+	
+}
+
+workflow classify_novel_taxa_paired {
+        take:
+        unique_id
+        fastq_1
+	fastq_2
+
+        main:
+	if (params.assembler == 'megahit') {
+		assemble_megahit_paired(unique_id, fastq_1, fastq_2)
+			.set{ contigs }
+	} else if (params.assembler == 'rnaspades') {
+		assemble_rnaspades_paired(unique_id, fastq_1, fastq_2)
+			.set{ contigs }
+	} else {
+                error "Invalid assembler specification for Illumina reads: ${params.assembler} - must be one of [megahit, rnaspades]"
         }
 	
+        gen_assembly_stats(unique_id,contigs)
+        run_virbot(unique_id,contigs)
+        run_genomad(unique_id,contigs)
 }
 
 // test run workflow (on test data)
 
 workflow {
 	fastq = file("${params.fastq}", type: "file", checkIfExists:true)
+	println(fastq)
+
+	test_conda()
 
 	unique_id = "${params.unique_id}"
 	if ("${params.unique_id}" == "null") {
 		unique_id = "${fastq.simpleName}"
 	}
 	
-	classify_novel_taxa(unique_id,fastq)
+	classify_novel_taxa_single(unique_id,fastq)
 }
 
+process test_conda {
+	conda "bioconda::megahit"
+
+	script:
+	"""
+	megahit -h
+	"""
+}
 
 // processes
 
-process assemble {
+// 1. Assemble reads into contigs
 
-	input:
-	val unique_id
-	path fastq
+process assemble_flye {
 
-	output:
-	path "final_contigs.fa"
+	conda "bioconda::flye=2.9"
+        container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        	'https://depot.galaxyproject.org/singularity/flye:2.9--py39h6935b12_1' :
+                'biocontainers/flye:2.9--py39h6935b12_1' }"
+
+        input:
+        val unique_id
+        path fastq
+
+        output:
+        path "flye/final.contigs.fa"
 
 	script:
-	if ( params.read_type == 'ont' ) {
-		if ( params.assembler == 'flye' ) {
-			conda "bioconda::flye=2.9"
-    			container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        			'https://depot.galaxyproject.org/singularity/flye:2.9--py39h6935b12_1' :
-        			'biocontainers/flye:2.9--py39h6935b12_1' }"
-
-			"""
-			flye --nano-raw ${fastq} --meta -t ${task.cpus} -outdir "flye"
-    			if [ -s assembly/final.contigs.fa ]
-    			then
-        		mv assembly/final.contigs.fa final_contigs.fa
-    			fi
-			"""
-		} else if ( params.assembler == 'rnabloom' ) {
-			conda "bioconda::rnabloom"
-			
-			readsfile = file(${fastq})
-			readsfile.renameTo("reads.fastq")
-			
-			"""
-			rnabloom -long reads.fastq -t ${task.cpus} -outdir rnabloom
-
-			if [ -s rnabloom/rnabloom.transcripts.fa ]
-			then
-			mv rnabloom/rnabloom.transcripts.fa final_contigs.fa
-			fi
-			"""
-		} else {
-			 error "Invalid assembler specification for ont reads: ${params.assembler} - must be one of [flye, rnabloom]"
-		}
-
-	} else if ( params.read_type == 'illumina' ) {
-		if ( params.assembler == 'megahit' ) {
-			conda "bioconda::megahit"
-                	
-			"""
-                	megahit -r ${fastq} -m 0.5 --min-contig-len 100 \
-				--presets meta-sensitive -t ${task.cpus} -o megahit
-			if [ -s megahit/final.contigs.fa ]
-                	then
-                	mv megahit/final.contigs.fa contigs.fa
-                	fi
-                	"""
-		} else if ( params.assembler == 'rnaspades' ) {
-			"""
-			spades.py --rna -s ${fastq} -t ${task.cpus} -o rnaspades
-			if [ -s rnaspades/transcripts.fasta ]
-                	then
-                	mv rnaspades/transcripts.fasta final_contigs.fa
-                	fi
-			"""
-		} else {
-			error "Invalid assembler specification for Illumina reads: ${params.assembler} - must be one of [megahit, rnaspades]"
-		}
-	} else {
-		error "Invalid read_type specification: ${params.read_type} - must be one of [ont, illumina]"
-	}
+        """
+        flye --nano-raw ${fastq} --meta -t ${task.cpus} -outdir "flye"
+        """	
 }
 
-process assemble_paired {
+process assemble_rnabloom {
+
+	conda "bioconda::rnabloom"
+
+        input:
+        val unique_id
+        path fastq, name: 'reads.fastq'
+
+	output:
+        path "rnabloom/rnabloom.transcripts.fa"
+
+	script:
+	"""
+        rnabloom -long reads.fastq -t ${task.cpus} -outdir "rnabloom"
+	"""
+}
+
+
+process assemble_megahit {
+	
+	conda "bioconda::megahit"
+
+        input:
+        val unique_id
+        path fastq
+
+        output:
+        path "megahit/final.contigs.fa"
+
+	script:
+	"""
+	megahit -r ${fastq} -m 0.5 --min-contig-len 100 \
+        	--presets meta-sensitive -t ${task.cpus} -o megahit
+	"""
+}
+
+process assemble_rnaspades {
+
+	//----------ENV----------
+
+        input:
+        val unique_id
+        path fastq
+
+        output:
+        path "rnaspades/transcripts.fasta"
+
+	script:
+	"""
+	spades.py --rna -s ${fastq} -t ${task.cpus} -o rnaspades
+	"""
+}
+
+// paired input
+
+process assemble_megahit_paired {
+	
+	conda "bioconda::megahit"
 
         input:
         val unique_id
         path fastq_1
-	path fastq_2
+        path fastq_2
 
         output:
-        path "contigs.fa"
+        path "megahit/final.contigs.fa"
 
-        script:
-	if (params.assembler == 'megahit') {
-       		conda "bioconda::megahit"
-        	"""
-		megahit -1 ${fastq_1} -2 ${fastq_2} \
-			-m 0.5 --min-contig-len 150 --presets meta-sensitive -t 8 -o megahit
-        	if [ -s megahit/final.contigs.fa ]
-		then
-		mv megahit/final.contigs.fa contigs.fa
-		fi
-		"""
-	} else if (params.assembler == 'rnaspades') {
-		// FAULTY CONDA RELEASE
-		// USE PARAMS.SPADES_PATH ??
-
-		"""
-        	spades.py --rna -1 ${fastq_1} -2 ${fastq_2} -t ${task.cpus} -o rnaspades
-        	if [ -s rnaspades/transcripts.fasta ]
-                then
-                mv rnaspades/transcripts.fasta contigs.fa
-                fi
-		"""
-	} else {
-		error "Invalid assembler specification for Illumina reads: ${params.assembler} - must be one of [megahit, rnaspades]"
-	}
+	script:
+	"""
+	megahit -1 ${fastq_1} -2 ${fastq_2} \
+        	-m 0.5 --min-contig-len 150 --presets meta-sensitive -t 8 -o megahit
+	"""
 }
 
+process assemble_rnaspades_paired {
+
+	//----------ENV-----------
+
+        input:
+        val unique_id
+        path fastq_1
+        path fastq_2
+
+        output:
+        path "rnaspades/transcripts.fasta"
+
+	script:
+	"""
+	spades.py --rna -1 ${fastq_1} -2 ${fastq_2} -t ${task.cpus} -o rnaspades
+	"""
+}
+
+
+
+// 1a. Count assembly statistics
+
 process gen_assembly_stats {
-	
+
         conda "bioconda::bbmap"
 
         publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { filename -> "${assembler}_${filename}" }
@@ -219,6 +280,8 @@ process gen_assembly_stats {
         stats.sh in=${contigs} out="assembly_stats.txt"
         """
 }
+
+// 2. Run identification
 
 process run_virbot {
         // UPLOAD ENV & ADD CONTAINERS
@@ -258,6 +321,7 @@ process run_genomad {
         """
 }
 
+// preprocess before genomad
 process filter_short_contigs {
         conda "bioconda::bbmap"
 
