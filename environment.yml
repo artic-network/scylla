@@ -22,3 +22,8 @@ dependencies:
   - fastp
   - tabix
   - mako
+  - spades # install manually ???
+  - rnabloom
+  - bbmap
+  - genomad # env
+  - virbot # environment - manually ??? 
