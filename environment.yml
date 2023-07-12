@@ -22,8 +22,11 @@ dependencies:
   - fastp
   - tabix
   - mako
-  - spades # install manually ???
+  - spades # test installation
   - rnabloom
   - bbmap
-  - genomad # env
-  - virbot # environment - manually ??? 
+  - genomad # test installation
+# for virbot:
+  - prodigal
+  - hmmer
+  - diamond
