@@ -3,7 +3,8 @@
 // 2) runs VirBot or GeNomad classification on them.
 // The output currently is the "discovery" folder with a "virbot" and/or "genomad" output directory and 
 //			     {assembler}_assembly_stats.txt file with the performed assembly statistics
-// Desired output: file with viral contigs and simple tsv mapping, ideally the same for virbot and genomad
+// Output: file with contigs identified as RNA viral 'viral_contigs.fa'
+//         contig id to taxonomy mapping file 'tax_ide', in the 'discovery' directory
 
 // Related options and params:
 // --paired) default: false
@@ -12,20 +13,27 @@
 //              for long (Oxford Nanopore) reads: 'rnabloom' (default), 'flye'
 // Notes: megahit is faster while rnaspades tends to produce more contiguous assembly 
 //	  megahit here allows short contigs (>=150 bp) whereas rnaspades does not,
-//		so in the case of low-quality sequincing data rnaspades might lead to lower recall
+//		so in the case of low-quality sequincing data the assembly with
+//		rnaspades might lead to lower recall
 //        rnaspades results in the identification of more sequences of retroviral origin
 //        flye assembly requires high coverage with reads (at least ~x30) to complete, 
-//		so it is common to fail, and FAILURE IS NOT HANDLED.
-// --classifier) 'virbot'|'genomad', default: both are run
+//		so it was common to fail, and FAILURE IS NOT HANDLED.
+//	  rnabloom will fail if there are very few reads, again, FAILURE IS NOT HANDLED.
+//		Also it might produce an empty fasta file if all the resulting contigs have
+//		length below the threshold of 200 bp. This will fail with genomad but not with virbot 
+// --classifier) 'virbot'|'genomad', default: virbot
 // Notes: genomad requires longer contigs for its neural network to run,
 //		so the contigs are filtered by length (>=2kbp) beforehand.
 //		Therefore, it is adviced to use genomad on long read data or relatively contiguous assembly
-//        overall, at times virbot has greater sensitivity while genomad is more precise, 
-//		generally they produce similar output
+//        overall, at times virbot has greater sensitivity while genomad might be more precise (?), 
+//		but generally they produce similar output
 //        virbot does classification to the lowest level possible
 //        genomad here is run on preset 'relaxed' (no end filtering)
+//        for genomad, the assignments other than 'Riboviria' (including those labeled as 'Unclassified') 
+//		are excluded from the final taxonomy and contigs files
 // --out_dir) output directory of the pipeline; REQUIRED for testing
 // --genomad_db) path to the directory with genomad database
+// --write_assembly_stats) default: false
 //
 // (for workflow test run:)
 // --fastq) path to the file with reads; REQUIRED for testing
@@ -94,7 +102,9 @@ workflow classify_novel_taxa_single {
 	if ( params.classifier == 'virbot' ) {
 		run_virbot(unique_id,contigs)
 	} else if ( params.classifier == 'genomad' ) {
-		run_genomad(unique_id,contigs)	
+                filter_short_contigs(unique_id,contigs)
+                run_genomad(unique_id,filter_short_contigs.out)
+                select_Riboviria(unique_id,run_genomad.out.taxonomy,run_genomad.out.contigs)
 	} else {
 		error "Invalid classifier: ${params.classifier} - must be either 'virbot' or 'genomad'"
 	}
@@ -117,12 +127,17 @@ workflow classify_novel_taxa_paired {
                 error "Invalid assembler specification for Illumina reads: ${params.assembler} - must be one of [megahit, rnaspades]"
         }
 	
-        gen_assembly_stats(unique_id,contigs)
+
+	if ( params.write_assembly_stats ) {
+        	gen_assembly_stats(unique_id,contigs)
+	}
 
         if ( params.classifier == 'virbot' ) {
                 run_virbot(unique_id,contigs)
         } else if ( params.classifier == 'genomad' ) {
-                run_genomad(unique_id,contigs)
+		filter_short_contigs(unique_id,contigs)
+                run_genomad(unique_id,filter_short_contigs.out)
+		select_Riboviria(unique_id,run_genomad.out.taxonomy,run_genomad.out.contigs)
         } else {
                 error "Invalid classifier: ${params.classifier} - must be either 'virbot' or 'genomad'"
         }
@@ -133,8 +148,6 @@ workflow classify_novel_taxa_paired {
 workflow {
 	fastq = file("${params.fastq}", type: "file", checkIfExists:true)
 	println(fastq)
-
-	test_conda()
 
 	unique_id = "${params.unique_id}"
 	if ("${params.unique_id}" == "null") {
@@ -152,10 +165,10 @@ workflow {
 
 process assemble_flye {
 
+	label "process_high"
+
 	conda "bioconda::flye=2.9"
-        container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        	'https://depot.galaxyproject.org/singularity/flye:2.9--py39h6935b12_1' :
-                'biocontainers/flye:2.9--py39h6935b12_1' }"
+	container "biowilko/scylla@${params.wf.container_sha}"
 
         input:
         val unique_id
@@ -172,7 +185,10 @@ process assemble_flye {
 
 process assemble_rnabloom {
 
+	label "process_high"
+
 	conda "bioconda::rnabloom"
+	container "biowilko/scylla@${params.wf.container_sha}"
 
         input:
         val unique_id
@@ -190,7 +206,10 @@ process assemble_rnabloom {
 
 process assemble_megahit {
 	
+        label "process_high"
+
 	conda "bioconda::megahit"
+	container "biowilko/scylla@${params.wf.container_sha}"
 
         input:
         val unique_id
@@ -208,7 +227,10 @@ process assemble_megahit {
 
 process assemble_rnaspades {
 
+        label "process_high"
+
 	//----------ENV----------
+	container "biowilko/scylla@${params.wf.container_sha}"
 
         input:
         val unique_id
@@ -227,7 +249,10 @@ process assemble_rnaspades {
 
 process assemble_megahit_paired {
 	
+	label "process_high"
+
 	conda "bioconda::megahit"
+	container "biowilko/scylla@${params.wf.container_sha}"
 
         input:
         val unique_id
@@ -246,7 +271,10 @@ process assemble_megahit_paired {
 
 process assemble_rnaspades_paired {
 
+	label "process_high"
+
 	//----------ENV-----------
+	container "biowilko/scylla@${params.wf.container_sha}"
 
         input:
         val unique_id
@@ -268,7 +296,10 @@ process assemble_rnaspades_paired {
 
 process gen_assembly_stats {
 
+	label "process_single"
+
         conda "bioconda::bbmap"
+	container "biowilko/scylla@${params.wf.container_sha}"
 
         publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { filename -> "${params.assembler}_${filename}" }
 
@@ -288,8 +319,12 @@ process gen_assembly_stats {
 // 2. Run identification
 
 process run_virbot {
+
+	label "process_medium"
+
         // UPLOAD ENV & ADD CONTAINERS
 	conda "/localdisk/home/s2420489/conda/virbot.yml"
+	container "biowilko/scylla@${params.wf.container_sha}"
 
         publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "output.vb.fasta" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 
@@ -310,29 +345,36 @@ process run_virbot {
 
 process run_genomad {
 
+	label "process_medium"	
+
+	//UPLOAD ENV
 	conda "/localdisk/home/s2420489/conda/genomad.yml"
-	publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "*.transcripts_virus.fna" ? "viral_contigs.fa" : "tax_assignments.tsv" }
+	container "biowilko/scylla@${params.wf.container_sha}"
 
 	input:
         val unique_id
         path contigs
 
         output:
-        path "genomad/*.transcripts_summary/*.transcripts_virus.fna"
-	path "tax_assignments.tsv"
+        path "genomad/*.transcripts_summary/*.transcripts_virus.fna", emit: contigs
+	path "tax_assignments.tsv", emit: taxonomy
 
         script:
         """
         genomad end-to-end -t ${task.cpus} --disable-find-proviruses --relaxed \
 		${contigs} genomad ${params.genomad_db}
 	grep 'Riboviria' genomad/*.transcripts_summary/*.transcripts_virus_summary.tsv | \
-		awk 'BEGIN{print "contig_id\ttaxonomy"} NR>1{print $1"\t"$11}' > tax_assignments.tsv
+		awk -F'\t' 'BEGIN{print "contig_id\ttaxonomy"} NR>1{print $1"\t"$11}' > tax_assignments.tsv
         """
 }
 
-// preprocess before genomad
+// preprocess assembly before genomad
 process filter_short_contigs {
+
+	label "process_low"
+
         conda "bioconda::bbmap"
+	container "biowilko/scylla@${params.wf.container_sha}"
 
         input:
         val unique_id
@@ -345,4 +387,30 @@ process filter_short_contigs {
         """
         reformat.sh in=${contigs} out=filtered_contigs.fa minlength=2000
         """
+}
+
+// postprocess genomad output selecting RNA viral contigs
+process select_Riboviria {
+
+	label "process_single"
+
+	conda "bioconda::bbmap"
+	container "biowilko/scylla@${params.wf.container_sha}"
+
+	publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "RNA_viral_contigs.fa" ? "viral_contigs.fa" : "tax_assignments.tsv" }
+
+	input:
+	val unique_id
+	path tax_ids
+	path viral_contigs
+	
+	output:
+	path tax_ids
+	path "RNA_viral_contigs.fa"
+
+	script:
+	"""
+	awk '{print $1}' ${tax_ids} > names.txt
+	filterbyname.sh in=${viral_contigs} out=RNA_viral_contigs.fa names=names.txt
+	"""
 }
