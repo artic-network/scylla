@@ -4,7 +4,7 @@
 // The output currently is the "discovery" folder with a "virbot" and/or "genomad" output directory and 
 //			     {assembler}_assembly_stats.txt file with the performed assembly statistics
 // Output: file with contigs identified as RNA viral 'viral_contigs.fa'
-//         contig id to taxonomy mapping file 'tax_ide', in the 'discovery' directory
+//         contig id to taxonomy mapping file 'tax_assignments.tsv', in the 'discovery' directory
 
 // Related options and params:
 // --paired) default: false
@@ -21,6 +21,7 @@
 //	  rnabloom will fail if there are very few reads, again, FAILURE IS NOT HANDLED.
 //		Also it might produce an empty fasta file if all the resulting contigs have
 //		length below the threshold of 200 bp. This will fail with genomad but not with virbot 
+//        all mentioned assemblers (rnabloom, flye, megahit, spades) should work on gzipped files
 // --classifier) 'virbot'|'genomad', default: virbot
 // Notes: genomad requires longer contigs for its neural network to run,
 //		so the contigs are filtered by length (>=2kbp) beforehand.
@@ -33,7 +34,7 @@
 //		are excluded from the final taxonomy and contigs files
 // --out_dir) output directory of the pipeline; REQUIRED for testing
 // --genomad_db) path to the directory with genomad database
-// --write_assembly_stats) default: false
+// --write_assembly_stats) default: true
 //
 // (for workflow test run:)
 // --fastq) path to the file with reads; REQUIRED for testing
@@ -44,11 +45,11 @@ nextflow.enable.dsl = 2
 
 // set parameters
 
-params.fastq = "/localdisk/home/s2420489/mscape_test/data/CAMB_28_6_23_B2_SISPArapid/CAMB_28_6_23_B2_SISPArapid.fq"
-params.unique_id = "test1_ont"
+params.fastq = "/localdisk/home/s2420489/mscape_test/data/CAMB_28_6_23_B2_SISPArapid/CAMB_28_6_23_B2_SISPArapid.fq.gz"
+params.unique_id = "test2_ont"
 params.out_dir = "/localdisk/home/s2420489/nextflow/mscape/test_pipeline"
 
-//params.classifier = "virbot"
+params.classifier = "virbot"
 params.genomad_db = "/localdisk/home/s2420489/software/genomad_db"
 
 params.paired = false
@@ -60,6 +61,8 @@ if ( params.read_type == 'ont' ) {
 } else {
 	error "Invalid specification of read_type: ${params.read_type} - must be one of [ont, illumina]"
 }
+params.write_assembly_stats = true
+
 
 
 // main pipeline workflow
@@ -71,6 +74,7 @@ workflow classify_novel_taxa_single {
 	fastq
 		
 	main:
+	// 1. Assembly reads into contigs
 	if ( params.read_type == 'ont' ) {
                 if ( params.assembler == 'flye' ) {
 			assemble_flye(unique_id,fastq)
@@ -96,9 +100,12 @@ workflow classify_novel_taxa_single {
                 error "Invalid read_type specification: ${params.read_type} - must be one of [ont, illumina]"
         }
 
+	// 1a. Write assembly statistics
+	if ( params.write_assembly_stats ) {
+		gen_assembly_stats(unique_id,contigs)
+	}
 
-	gen_assembly_stats(unique_id,contigs)
-
+	// 2. Run viral identification
 	if ( params.classifier == 'virbot' ) {
 		run_virbot(unique_id,contigs)
 	} else if ( params.classifier == 'genomad' ) {
@@ -113,10 +120,11 @@ workflow classify_novel_taxa_single {
 workflow classify_novel_taxa_paired {
         take:
         unique_id
-        fastq_1
-	fastq_2
+        fastq
+	fastq
 
         main:
+	// 1. Assembly reads into contigs
 	if (params.assembler == 'megahit') {
 		assemble_megahit_paired(unique_id, fastq_1, fastq_2)
 			.set{ contigs }
@@ -127,11 +135,12 @@ workflow classify_novel_taxa_paired {
                 error "Invalid assembler specification for Illumina reads: ${params.assembler} - must be one of [megahit, rnaspades]"
         }
 	
-
+	// 1a. Write assembly statistics
 	if ( params.write_assembly_stats ) {
         	gen_assembly_stats(unique_id,contigs)
 	}
 
+	// 2. Run viral identification
         if ( params.classifier == 'virbot' ) {
                 run_virbot(unique_id,contigs)
         } else if ( params.classifier == 'genomad' ) {
@@ -192,14 +201,14 @@ process assemble_rnabloom {
 
         input:
         val unique_id
-        path fastq, name: 'reads.fastq'
+        path fastq, name: "reads.fastq.gz"
 
 	output:
         path "rnabloom/rnabloom.transcripts.fa"
 
 	script:
 	"""
-        rnabloom -long reads.fastq -t ${task.cpus} -outdir "rnabloom"
+        rnabloom -long reads.fastq.gz -t ${task.cpus} -outdir "rnabloom"
 	"""
 }
 
@@ -339,7 +348,7 @@ process run_virbot {
         script:
         """
         VirBot.py --input "${contigs}" --output virbot
-	awk -F',' 'BEGIN {print "contig_id\ttaxonomy"} NR>1{ gsub(/; /, ";", $4) ; print $1"\t"$4 }' pos_contig_score.csv > pos_contig_score.tsv
+	awk -F',' 'BEGIN {print "contig_id\ttaxonomy"} NR>1{ gsub(/; /, ";", \$4) ; print \$1"\t"\$4 }' virbot/pos_contig_score.csv > pos_contig_score.tsv
         """
 }
 
@@ -364,7 +373,7 @@ process run_genomad {
         genomad end-to-end -t ${task.cpus} --disable-find-proviruses --relaxed \
 		${contigs} genomad ${params.genomad_db}
 	grep 'Riboviria' genomad/*.transcripts_summary/*.transcripts_virus_summary.tsv | \
-		awk -F'\t' 'BEGIN{print "contig_id\ttaxonomy"} NR>1{print $1"\t"$11}' > tax_assignments.tsv
+		awk -F'\t' 'BEGIN{print "contig_id\ttaxonomy"} NR>1{print \$1"\t"\$11}' > tax_assignments.tsv
         """
 }
 
@@ -410,7 +419,7 @@ process select_Riboviria {
 
 	script:
 	"""
-	awk '{print $1}' ${tax_ids} > names.txt
+	awk '{print \$1}' ${tax_ids} > names.txt
 	filterbyname.sh in=${viral_contigs} out=RNA_viral_contigs.fa names=names.txt
 	"""
 }
