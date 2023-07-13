@@ -3,7 +3,7 @@ include { get_params_and_versions } from '../modules/get_params_and_versions'
 include { kraken_pipeline } from '../subworkflows/kraken_pipeline'
 include { extract_reads; extract_paired_reads } from '../modules/extract_taxa'
 include { fastp_single; fastp_paired; paired_concatenate } from '../modules/preprocess'
-include { classify_novel_taxa_single; classify_novel_taxa_paired } from '../modules/classify_novel_taxa'
+include { classify_novel_taxa; classify_novel_taxa_paired } from '../modules/classify_novel_taxa'
 
 workflow ingest {
     take:
@@ -53,7 +53,7 @@ workflow ingest {
         } else { 
                 fastq = processed_fastq
                 extract_reads(unique_id, fastq, kraken_pipeline.out.kraken_assignments, kraken_pipeline.out.kraken_report, kraken_pipeline.out.bracken_report)
-		classify_novel_taxa_single(unique_id, fastq)
+		classify_novel_taxa(unique_id, fastq)
         }
 
     emit:
