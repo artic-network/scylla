@@ -45,18 +45,20 @@ nextflow.enable.dsl = 2
 
 // set parameters
 
-params.fastq = "/localdisk/home/s2420489/mscape_test/data/CAMB_28_6_23_B2_SISPArapid/CAMB_28_6_23_B2_SISPArapid.fq.gz"
-params.unique_id = "test2_ont"
+params.fastq = "/localdisk/home/s2420489/mscape_test/data/market_unpaired/EPI_ISL_13052298.fq.gz"
+params.unique_id = "test1_illumina_unpaired"
 params.out_dir = "/localdisk/home/s2420489/nextflow/mscape/test_pipeline"
 
 params.classifier = "virbot"
 params.genomad_db = "/localdisk/home/s2420489/software/genomad_db"
+// if running from docker: params.genomad_db = "/usr/genomad_db"
 
 params.paired = false
-params.read_type = 'ont'
+params.read_type = 'illumina'
+
 if ( params.read_type == 'ont' ) {
 	params.assembler = 'rnabloom'
-} else if ( read_type == 'illumina' ) {
+} else if ( params.read_type == 'illumina' ) {
 	params.assembler = 'megahit'
 } else {
 	error "Invalid specification of read_type: ${params.read_type} - must be one of [ont, illumina]"
@@ -67,7 +69,7 @@ params.write_assembly_stats = true
 
 // main pipeline workflow
 
-workflow classify_novel_taxa_single {
+workflow classify_novel_taxa {
 
 	take:
 	unique_id
@@ -335,7 +337,7 @@ process run_virbot {
 	conda "/localdisk/home/s2420489/conda/virbot.yml"
 	container "biowilko/scylla@${params.wf.container_sha}"
 
-        publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "output.vb.fasta" ? "viral_contigs.fa" : "tax_assignments.tsv" }
+        publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 
         input:
         val unique_id
@@ -343,7 +345,7 @@ process run_virbot {
 
         output:
         path "virbot/output.vb.fasta"
-	path "virbot/pos_contig_score.tsv"
+	path "pos_contig_score.tsv"
 
         script:
         """
@@ -362,19 +364,21 @@ process run_genomad {
 
 	input:
         val unique_id
-        path contigs
+        path contigs, name: 'filtered_contigs.fa'
 
         output:
-        path "genomad/*.transcripts_summary/*.transcripts_virus.fna", emit: contigs
+        path "genomad/filtered_contigs_summary/filtered_contigs_virus.fna", emit: contigs
 	path "tax_assignments.tsv", emit: taxonomy
 
         script:
         """
         genomad end-to-end -t ${task.cpus} --disable-find-proviruses --relaxed \
 		${contigs} genomad ${params.genomad_db}
-	grep 'Riboviria' genomad/*.transcripts_summary/*.transcripts_virus_summary.tsv | \
+	if [ -s 'genomad/filtered_contigs_summary/filtered_contigs_virus_summary.tsv' ]; then
+	grep 'Riboviria' genomad/filtered_contigs_summary/filtered_contigs_virus_summary.tsv | \
 		awk -F'\t' 'BEGIN{print "contig_id\ttaxonomy"} NR>1{print \$1"\t"\$11}' > tax_assignments.tsv
-        """
+        fi
+	"""
 }
 
 // preprocess assembly before genomad
