@@ -122,8 +122,8 @@ workflow classify_novel_taxa {
 workflow classify_novel_taxa_paired {
         take:
         unique_id
-        fastq
-	fastq
+        fastq_1
+	fastq_2
 
         main:
 	// 1. Assembly reads into contigs
