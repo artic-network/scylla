@@ -165,7 +165,7 @@ workflow {
 		unique_id = "${fastq.simpleName}"
 	}
 	
-	classify_novel_taxa_single(unique_id,fastq)
+	classify_novel_taxa(unique_id,fastq)
 }
 
 
