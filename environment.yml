@@ -25,8 +25,7 @@ dependencies:
   - spades # test installation
   - rnabloom
   - bbmap
-  - genomad # test installation
-# for virbot:
-  - prodigal
-  - hmmer
-  - diamond
+  - prodigal # for virbot
+  - hmmer # for virbot
+  - diamond # for virbot
+  - genomad
