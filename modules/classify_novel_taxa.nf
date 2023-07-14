@@ -1,10 +1,10 @@
 // This workflow is for trying to find and classify possibly novel RNA viruses that might have been overlooked by kraken. 
 // 1) runs a metagenomic assembly on short or long reads,
-// 2) runs VirBot or GeNomad classification on them.
-// The output currently is the "discovery" folder with a "virbot" and/or "genomad" output directory and 
-//			     {assembler}_assembly_stats.txt file with the performed assembly statistics
-// Output: file with contigs identified as RNA viral 'viral_contigs.fa'
-//         contig id to taxonomy mapping file 'tax_assignments.tsv', in the 'discovery' directory
+// 2) runs VirBot or GeNomad classification on them.		     
+// Output: file with contigs identified as RNA viral 'viral_contigs.fa',
+//         contig id to taxonomy mapping file 'tax_assignments.tsv',
+//         (optional) {assembler}_assembly_stats.txt file with the performed assembly statistics - 
+//         all in the 'discovery' directory
 
 // Related options and params:
 // --paired) default: false
