@@ -28,6 +28,9 @@ dependencies:
   - prodigal # for virbot
   - hmmer # for virbot
   - diamond # for virbot
+  - keras 
+  - tensorflow
+  - tensorflow-estimator
   - genomad
   - pip:
-    - git+https://github.com/rmcolq/RNA_virus_detector.git
+    - git+https://github.com/rmcolq/RNA_virus_detector.git@dev
