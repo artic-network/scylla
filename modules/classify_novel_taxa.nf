@@ -40,31 +40,6 @@
 // --fastq) path to the file with reads; REQUIRED for testing
 // --unique_id) sample or run unique id
 
-nextflow.enable.dsl = 2
-
-
-// set parameters
-
-params.fastq = "/localdisk/home/s2420489/mscape_test/data/market_unpaired/EPI_ISL_13052298.fq.gz"
-params.unique_id = "test1_illumina_unpaired"
-params.out_dir = "/localdisk/home/s2420489/nextflow/mscape/test_pipeline"
-
-params.classifier = "virbot"
-params.genomad_db = "/localdisk/home/s2420489/software/genomad_db"
-// if running from docker: params.genomad_db = "/usr/genomad_db"
-
-params.paired = false
-params.read_type = 'illumina'
-
-if ( params.read_type == 'ont' ) {
-	params.assembler = 'rnabloom'
-} else if ( params.read_type == 'illumina' ) {
-	params.assembler = 'megahit'
-} else {
-	error "Invalid specification of read_type: ${params.read_type} - must be one of [ont, illumina]"
-}
-params.write_assembly_stats = true
-
 
 
 // main pipeline workflow
@@ -76,6 +51,16 @@ workflow classify_novel_taxa {
 	fastq
 		
 	main:
+
+	// specify the assembler
+	if ( params.read_type == 'ont' ) {
+        	params.assembler = 'rnabloom'
+	} else if ( params.read_type == 'illumina' ) {
+        	params.assembler = 'megahit'
+	} else {
+        	error "Invalid specification of read_type: ${params.read_type} - must be one of [ont, illumina]"
+	}
+
 	// 1. Assembly reads into contigs
 	if ( params.read_type == 'ont' ) {
                 if ( params.assembler == 'flye' ) {
@@ -172,7 +157,11 @@ workflow {
 
 // processes
 
+
+
 // 1. Assemble reads into contigs
+
+// long reads input
 
 process assemble_flye {
 
@@ -214,6 +203,7 @@ process assemble_rnabloom {
 	"""
 }
 
+// single illumina reads input
 
 process assemble_megahit {
 	
@@ -333,7 +323,7 @@ process run_virbot {
 
 	label "process_medium"
 
-        // UPLOAD ENV & ADD CONTAINERS
+        // UPLOAD ENV - DELETE WHEN SET!!!
 	conda "/localdisk/home/s2420489/conda/virbot.yml"
 	container "biowilko/scylla@${params.wf.container_sha}"
 
@@ -381,8 +371,8 @@ process run_genomad {
 	"""
 }
 
-// preprocess assembly before genomad
 process filter_short_contigs {
+	// preprocess assembly before genomad
 
 	label "process_low"
 
@@ -402,8 +392,8 @@ process filter_short_contigs {
         """
 }
 
-// postprocess genomad output selecting RNA viral contigs
 process select_Riboviria {
+	// postprocess genomad output selecting RNA viral contigs
 
 	label "process_single"
 
