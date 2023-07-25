@@ -17,7 +17,7 @@ dependencies:
   - flye
   - megahit
   - pandas
-  - numpy
+  - numpy~=1.23.1
   - taxonkit
   - fastp
   - tabix
@@ -28,9 +28,6 @@ dependencies:
   - prodigal # for virbot
   - hmmer # for virbot
   - diamond # for virbot
-  - keras 
-  - tensorflow
-  - tensorflow-estimator
   - genomad
   - pip:
     - git+https://github.com/rmcolq/RNA_virus_detector.git@dev
