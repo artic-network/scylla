@@ -32,7 +32,7 @@
 //        genomad here is run on preset 'relaxed' (no end filtering)
 //        for genomad, the assignments other than 'Riboviria' (including those labeled as 'Unclassified') 
 //		are excluded from the final taxonomy and contigs files
-// --out_dir) output directory of the pipeline; REQUIRED for testing
+// --outdir) output directory of the pipeline; REQUIRED for testing
 // --genomad_db) path to the directory with genomad database
 // --write_assembly_stats) default: true
 //
@@ -180,7 +180,7 @@ process gen_assembly_stats {
     conda "bioconda::bbmap"
 	container "biowilko/scylla@${params.wf.container_sha}"
 
-    publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { filename -> "${params.assembler}_${filename}" }
+    publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { filename -> "${params.assembler}_${filename}" }
 
     input:
 	    val unique_id
@@ -205,7 +205,7 @@ process run_virbot {
 	conda "/localdisk/home/s2420489/conda/virbot.yml"
 	container "biowilko/scylla@${params.wf.container_sha}"
 
-    publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "viral_contigs.fa" : "tax_assignments.tsv" }
+    publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 
     input:
         val unique_id
@@ -295,7 +295,7 @@ process select_Riboviria {
 	conda "bioconda::bbmap"
 	container "biowilko/scylla@${params.wf.container_sha}"
 
-	publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "RNA_viral_contigs.fa" ? "viral_contigs.fa" : "tax_assignments.tsv" }
+	publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "RNA_viral_contigs.fa" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 
 	input:
 	    val unique_id
@@ -365,16 +365,16 @@ workflow classify_novel_taxa {
 	if ( params.classifier == 'virbot' ) {
 		run_virbot(unique_id,contigs)
 	} else if ( params.classifier == 'genomad' ) {
-	    if (params.genomad_db == 'null') {
+	    if (! params.genomad_db) {
 	        download_genomad_database()
 	        download_genomad_database.out.set {genomad_db_ch}
 	    } else {
-	        Channel.of(file(params.genomad_db, type: "dir", checkIfExists:true))
+	        Channel.of(file(${params.genomad_db}, type: "dir", checkIfExists:true))
 	            .set {genomad_db_ch}
 	    }
-        filter_short_contigs(unique_id,contigs)
-        run_genomad(unique_id,filter_short_contigs.out, genomad_db_ch)
-        select_Riboviria(unique_id,run_genomad.out.taxonomy,run_genomad.out.contigs)
+            filter_short_contigs(unique_id,contigs)
+            run_genomad(unique_id,filter_short_contigs.out, genomad_db_ch)
+            select_Riboviria(unique_id,run_genomad.out.taxonomy,run_genomad.out.contigs)
 	} else {
 		error "Invalid classifier: ${params.classifier} - must be either 'virbot' or 'genomad'"
 	}
@@ -407,16 +407,16 @@ workflow classify_novel_taxa_paired {
         if ( params.classifier == 'virbot' ) {
                 run_virbot(unique_id,contigs)
         } else if ( params.classifier == 'genomad' ) {
-            if (params.genomad_db == 'null') {
+            if (! params.genomad_db) {
                 download_genomad_database()
             	download_genomad_database.out.set {genomad_db_ch}
             } else {
-                Channel.of(file(params.genomad_db, type: "dir", checkIfExists:true))
+                Channel.of(file(${params.genomad_db}, type: "dir", checkIfExists:true))
             	    .set {genomad_db_ch}
             }
-		    filter_short_contigs(unique_id,contigs)
+	    filter_short_contigs(unique_id,contigs)
             run_genomad(unique_id,filter_short_contigs.out, genomad_db_ch)
-		    select_Riboviria(unique_id,run_genomad.out.taxonomy,run_genomad.out.contigs)
+	    select_Riboviria(unique_id,run_genomad.out.taxonomy,run_genomad.out.contigs)
         } else {
                 error "Invalid classifier: ${params.classifier} - must be either 'virbot' or 'genomad'"
         }
@@ -429,13 +429,13 @@ workflow {
     // check input fastq exists
     if (params.fastq) {
         fastq = file("${params.fastq}", type: "file", checkIfExists:true)
-        if (unique_id == "null") {
+        if (! unique_id) {
             unique_id = "${fastq.simpleName}"
         }
         input_fastq = Channel.fromPath(fastq)
     } else if (params.fastq_dir) {
         fastqdir = file("${params.fastq_dir}", type: "dir", checkIfExists:true)
-        if (unique_id == "null") {
+        if (! unique_id) {
             unique_id = "${fastqdir.simpleName}"
         }
         input_fastq = Channel.fromPath( fastqdir / "*.f*q*", type: "file")
