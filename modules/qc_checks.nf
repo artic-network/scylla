@@ -5,7 +5,7 @@ process read_stats {
     label "process_medium"
 
     conda "epi2melabs::kraken2-server=0.1.3"
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         path fastq
@@ -26,7 +26,7 @@ process combine_stats {
     publishDir "${params.outdir}/${unique_id}/qc", mode: 'copy'
 
     conda "conda-forge::pandas=1.2.4 conda-forge::numpy=1.20.3"
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_sha}"
     
 
     input:
@@ -51,9 +51,9 @@ workflow qc_checks {
     main:
         read_stats(fastq)
         all_stats = read_stats.out.collectFile(name:"all_stats.txt", keepHeader:true, skip: 1)
-        combine_stats(unique_id, all_stats)
+        //combine_stats(unique_id, all_stats)
     emit:
-        combine_stats.out.json
+        all_stats
 }
 
 workflow {

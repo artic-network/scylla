@@ -7,7 +7,7 @@ process kraken2_client {
     label 'error_retry'
 
     conda "epi2melabs::kraken2-server=0.1.3"
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         path fastq
@@ -27,7 +27,7 @@ process combine_kraken_outputs {
 
     label 'process_single'
 
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_sha}"
 
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
     
@@ -59,7 +59,7 @@ process determine_bracken_length {
     label "process_low"
 
     conda "anaconda::sed=4.8"
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         path database
@@ -114,7 +114,7 @@ process bracken_to_json {
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
     
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_sha}"
 
 
     input:

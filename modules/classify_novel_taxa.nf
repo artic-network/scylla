@@ -48,7 +48,7 @@ process assemble_flye {
 	label "process_high"
 
 	conda "bioconda::flye=2.9"
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         val unique_id
@@ -68,7 +68,7 @@ process assemble_rnabloom {
 	label "process_high"
 
 	conda "bioconda::rnabloom"
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         val unique_id
@@ -89,7 +89,7 @@ process assemble_megahit {
     label "process_high"
 
 	conda "bioconda::megahit"
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         val unique_id
@@ -110,7 +110,7 @@ process assemble_rnaspades {
     label "process_high"
 
 	//----------ENV----------
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         val unique_id
@@ -131,7 +131,7 @@ process assemble_megahit_paired {
 	label "process_high"
 
 	conda "bioconda::megahit"
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         val unique_id
@@ -153,7 +153,7 @@ process assemble_rnaspades_paired {
 	label "process_high"
 
 	//----------ENV-----------
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         val unique_id
@@ -178,7 +178,7 @@ process gen_assembly_stats {
 	label "process_single"
 
     conda "bioconda::bbmap"
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "${params.wf.container}@${params.wf.container_sha}"
 
     publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { filename -> "${params.assembler}_${filename}" }
 
@@ -203,7 +203,7 @@ process run_virbot {
 
         // UPLOAD ENV - DELETE WHEN SET!!!
 	conda "/localdisk/home/s2420489/conda/virbot.yml"
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "${params.wf.container}@${params.wf.container_sha}"
 
     publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 
@@ -243,7 +243,7 @@ process run_genomad {
 
 	//UPLOAD ENV
 	conda "/localdisk/home/s2420489/conda/genomad.yml"
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "${params.wf.container}@${params.wf.container_sha}"
 
 	input:
         val unique_id
@@ -272,7 +272,7 @@ process filter_short_contigs {
 	label "process_low"
 
     conda "bioconda::bbmap"
-	container "biowilko/scylla@${params.wf.container_sha}"
+container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         val unique_id
@@ -293,7 +293,7 @@ process select_Riboviria {
 	label "process_single"
 
 	conda "bioconda::bbmap"
-	container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_sha}"
 
 	publishDir "${params.out_dir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "RNA_viral_contigs.fa" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 

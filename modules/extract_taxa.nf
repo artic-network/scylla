@@ -16,7 +16,7 @@ process extract_paired_reads {
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-    container "biowilko/scylla@${params.wf.container_sha}"   
+    container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         val unique_id
@@ -59,7 +59,7 @@ process extract_reads {
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-    container "biowilko/scylla@${params.wf.container_sha}"   
+    container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         val unique_id

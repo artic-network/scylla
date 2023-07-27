@@ -92,8 +92,12 @@ def main():
                 assignments = assignments[:-1] + ", " + contents
 
     if args.read_counts:
-        with open(args.read_counts.resolve(), "rt") as qc_file:
-            read_counts = qc_file.read().strip().replace('"', '\\"')
+        df = pd.read_csv(
+                args.read_counts, sep="\t",
+                usecols=['read_length', 'mean_quality'],
+                dtype={'read_length': int, 'mean_quality': float})
+        read_counts["mean_quality"] = list(df["mean_quality"])
+        read_counts["read_length"] = list(df["read_length"])
     else:
         read_counts = {}
     data_for_report = {"sankey_data": assignments, "read_count_data": read_counts}

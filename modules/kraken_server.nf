@@ -20,8 +20,7 @@
 
 
 process unpackDatabase {
-    label "wfmetagenomics"
-    cpus 1
+    label "process_single"
     storeDir "${params.store_dir}/${params.database_set}"
     input:
         path database
@@ -44,7 +43,7 @@ process unpackDatabase {
 }
 
 process unpackTaxonomy {
-    cpus 1
+    label "process_single"
     storeDir "${params.store_dir}/${params.database_set}"
     input:
         path taxonomy
@@ -70,8 +69,8 @@ kraken_compute = params.threads == 1 ? 1 : params.threads - 1
 
 process kraken_server {
     errorStrategy 'ignore'
-    label "scylla"
-    cpus params.threads
+    label "process_long"
+    container "${params.wf.container}@${params.wf.container_sha}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     input:
         path database
@@ -90,7 +89,8 @@ process kraken_server {
 
 
 process stop_kraken_server {
-    label "scylla"
+    label "process_single"
+    container "${params.wf.container}@${params.wf.container_sha}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     // this shouldn't happen, but we'll keep retrying
     // errorStrategy = { task.exitStatus in [8, 14] && task.attempt < 3 ? 'retry' : 'ignore' }
