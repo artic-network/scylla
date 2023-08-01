@@ -53,7 +53,7 @@ workflow qc_checks {
         all_stats = read_stats.out.collectFile(name:"all_stats.txt", keepHeader:true, skip: 1)
         combine_stats(unique_id, all_stats)
     emit:
-        combine_stats.json
+        combine_stats.out.json
 }
 
 workflow {

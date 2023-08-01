@@ -1079,80 +1079,120 @@
             </script>
 
             <h3>Read statistics</h3>
-            <div id="stats"></div>
+            <div id="stats1"></div>
+            <div id="stats2"></div>
+
             <script>
                 const getStatsData = () => "${data_for_report['read_count_data']}"
                 const statsData = parseData(getStatsData())["raw_reads"]
 
-                // set the dimensions and margins of the graph
-                var margin = {
-                        top: 10,
-                        right: 30,
-                        bottom: 30,
-                        left: 40
-                    },
-                    width = 460 - margin.left - margin.right,
-                    height = 400 - margin.top - margin.bottom;
+                var createHistogram = function(data, div, title, xtitle, ytitle) {
 
-                // append the svg object to the body of the page
-                var svg = d3.select("#stats")
-                    .append("svg")
-                    .attr("width", width + margin.left + margin.right)
-                    .attr("height", height + margin.top + margin.bottom)
-                    .append("g")
-                    .attr("transform",
-                        "translate(" + margin.left + "," + margin.top + ")");
+                    // A formatter for counts.
+                    var formatCount = d3.format(",.0f");
+                    var totalWidth = 460;
+                    var totalHeight = 400;
+                    var margin = {top: 10, right: 30, bottom: 30, left: 40},
+                        width = totalWidth - margin.left - margin.right,
+                        height = totalHeight - margin.top - margin.bottom;
 
-                // X axis: scale and draw:
-                var x = d3.scaleLinear()
-                    .domain([0, d3.max(statsData, function(d) { return +d.read_length })
-                    .range([0, width]);
-                svg.append("g")
-                    .attr("transform", "translate(0," + height + ")")
-                    .call(d3.axisBottom(x));
+                    var binArray = data.keys();
+                    var binTicks = data.keys();
 
-                // set the parameters for the histogram
-                var histogram = d3.histogram()
-                    .value(statsData.read_length.values()) // I need to give the vector of value
-                    .threshold(statsData.read_length.keys())
-                    .domain(x.domain()) // then the domain of the graphic
-                    .thresholds(x.ticks(70)); // then the numbers of bins
+                    var x = d3.scale.linear()
+                        .domain([0, d3.max(data.keys())])
+                        .range([0, width]);
+                    var binWidth = parseFloat(width / (binArray.length - 1)) - 1;
 
-                // And apply this function to data to get the bins
-                var bins = histogram(statsData);
+                    var y = d3.scale.linear()
+                        .domain([0, d3.max(data.values())])
+                        .range([height, 0]);
 
-                // Y axis: scale and draw:
-                var y = d3.scaleLinear()
-                    .range([height, 0]);
-                y.domain([0, d3.max(bins, function(d) {
-                    return d.length;
-                })]); // d3.hist has to be called before the Y axis obviously
-                svg.append("g")
-                    .call(d3.axisLeft(y));
+                    var xAxis = d3.svg.axis()
+                        .scale(x)
+                        .orient("bottom")
+                        .tickValues(binTicks);
 
-                // append the bar rectangles to the svg element
-                svg.selectAll("rect")
-                    .data(bins)
-                    .enter()
-                    .append("rect")
-                    .attr("x", 1)
-                    .attr("transform", function(d) {
-                        return "translate(" + x(d.x0) + "," + y(d.length) + ")";
-                    })
-                    .attr("width", function(d) {
-                        return x(d.x1) - x(d.x0) - 1;
-                    })
-                    .attr("height", function(d) {
-                        return height - y(d.length);
-                    })
-                    .style("fill", "#69b3a2")
+                    var yAxis = d3.svg.axis()
+                        .scale(y)
+                        .orient("left");
+
+                    var svg = d3.select(div).append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                    var bar = svg.selectAll(".bar")
+                        .data(data)
+                        .enter()
+                        .append("rect")
+                        .attr("class", "bar")
+                        .attr("x", function(d) { return x(d.x); })
+                        .attr("width", binWidth)
+                        .attr("y", function(d) { return y(d.y); })
+                        .attr("height", function(d) { return height - y(d.y); })
+                        .on("mouseover", function(d) {
+                            var barWidth = parseFloat(d3.select(this).attr("width"));
+                            var xPosition = parseFloat(d3.select(this).attr("x")) + (barWidth / 2);
+                            var yPosition = parseFloat(d3.select(this).attr("y")) - 10;
+
+                            svg.append("text")
+                                .attr("id", "tooltip")
+                                .attr("x", xPosition)
+                                .attr("y", yPosition)
+                                .attr("text-anchor", "middle")
+                                .text(d.y);
+                        })
+                        .on("mouseout", function(d) {
+                            d3.select('#tooltip').remove();
+                        });
+
+                    svg.append("g")
+                        .attr("class", "x axis")
+                        .attr("transform", "translate(0," + height + ")")
+                        .call(xAxis);
+
+                    svg.append("g")
+                        .attr("class", "y axis")
+                        //.attr("transform", "translate(0," + height + ")")
+                        .call(yAxis);
+
+                    // Add axis labels
+                    svg.append("text")
+                        .attr("class", "x label")
+                        .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom - 15) + ")")
+                        //.attr("dy", "1em")
+                        .attr("text-anchor", "middle")
+                        .text(xtitle);
+
+                    svg.append("text")
+                        .attr("class", "y label")
+                        .attr("transform", "rotate(-90)")
+                        .attr("y", 0 - margin.left)
+                        .attr("x", 0 - (height / 2))
+                        .attr("dy", "1em")
+                        .attr("text-anchor", "middle")
+                        .text(ytitle);
+
+                    // Add title to chart
+                    svg.append("text")
+                        .attr("class", "title")
+                        .attr("transform", "translate(" + (width / 2) + " ," + (-20) + ")")
+                        //.attr("dy", "1em")
+                        .attr("text-anchor", "middle")
+                        .text(title);
+                };
+
+                createHistogram(statsData["len"], stats1, "Read length distribution", "Length (bp)", "Count")
+                createHistogram(statsData["qual"], stats2, "Read mean quality distribution", "Mean quality score", "Count")
             </script>
         </main>
 
     </div>
 
 
-    <footer class="page-footer">
+    <footer class="mscape-footer">
         <div class="container-fluid text-right text-md-right">
             <hr>
             <div class="row">
