@@ -18,7 +18,7 @@
  * @param {object} data
  */
 const getSampleNames = (data) =>
-    [...Object.keys(data)]
+    [...Object.keys(data)];
 
 /**
  * Calculates total observation counts per taxa for all samples.
@@ -26,8 +26,8 @@ const getSampleNames = (data) =>
  * @param {object} data
  */
 const getSampleCounts = (data) => {
-    const counts = {}
-    const names = getSampleNames(data)
+    const counts = {};
+    const names = getSampleNames(data);
 
     const _getSampleCounts = (sample_name, agg, fragment) => {
         Object.entries(fragment).forEach(([key, val]) => {
@@ -36,14 +36,14 @@ const getSampleCounts = (data) => {
                 rank: val.rank,
                 name: key,
                 ...agg[key]
-            }
+            };
             _getSampleCounts(sample_name, agg, val.children)
         })
-    }
+    };
 
-    names.map(Sample => _getSampleCounts(Sample, counts, data[Sample]))
+    names.map(Sample => _getSampleCounts(Sample, counts, data[Sample]));
     return counts
-}
+};
 
 /**
  * Calculates total observation count.
@@ -51,7 +51,7 @@ const getSampleCounts = (data) => {
  * @param {object} sample_data
  */
 const getTotalCount = (sample_data) =>
-    Object.values(sample_data).reduce((sum, I) => I.count + sum, 0)
+    Object.values(sample_data).reduce((sum, I) => I.count + sum, 0);
 
 /**
  * Creates sankey input links list.
@@ -70,10 +70,10 @@ const getSankeyEdges = (sample_data) => {
                 targetRankIdx: ranks.indexOf(val.rank)
             },
             ..._getSankeyEdges(val.children, key)
-        ], [])
+        ], []);
     return Object.entries(sample_data).map(([k, v]) =>
         _getSankeyEdges(v.children, k)).flat()
-}
+};
 
 /**
  * Creates sankey input node list.
@@ -84,9 +84,9 @@ const getSankeyNodes = (edges) => {
     const unique = new Set(
         edges.reduce((arr, Link) =>
             [Link.source, Link.target, ...arr], [])
-    )
+    );
     return [...unique].map(Item => ({ name: Item }))
-}
+};
 
 /**
  * Creates a sankey graph generator.
@@ -101,7 +101,7 @@ const getSankeyGenerator = (width, height) =>
         .nodeAlign(d3['sankeyCenter'])
         .nodeWidth(30)
         .nodePadding(30)
-        .extent([[0, 5], [width, height - 5]])
+        .extent([[0, 5], [width, height - 5]]);
 
 /**
  * Creates a sankey graph.
@@ -113,17 +113,17 @@ const getSankeyGenerator = (width, height) =>
  * @param {number} total
  */
 const getSankeyGraph = (sample_name, sample_data, generator, cutoff, total) => {
-    const _cutoffVal = total / 100 * cutoff
+    const _cutoffVal = total / 100 * cutoff;
 
-    const _edges = getSankeyEdges(sample_data)
-    const _filteredEdges = _edges.filter(Link => Link.value >= _cutoffVal)
-    const _nodes = getSankeyNodes(_filteredEdges)
+    const _edges = getSankeyEdges(sample_data);
+    const _filteredEdges = _edges.filter(Link => Link.value >= _cutoffVal);
+    const _nodes = getSankeyNodes(_filteredEdges);
 
     return generator({
         nodes: _nodes.map(d => Object.assign({}, d)),
         links: _filteredEdges.map(d => Object.assign({}, d))
     });
-}
+};
 
 /* ----------------------------------------------------------------------------
 | Render chart
@@ -137,7 +137,7 @@ const getSankeyGraph = (sample_name, sample_data, generator, cutoff, total) => {
  * @param {string} symbol
  */
 const renderSelect = (select_id, sample_names, symbol = null) => {
-    const dropdown = d3.select(select_id)
+    const dropdown = d3.select(select_id);
     dropdown
         .selectAll('option')
         .data(sample_names)
@@ -146,9 +146,9 @@ const renderSelect = (select_id, sample_names, symbol = null) => {
         .attr("value", (d) => d)
         .text((d) => {
             return symbol ? d + symbol : d;
-        })
+        });
     return dropdown
-}
+};
 
 /**
  * Renders a sankey node tooltip
@@ -171,7 +171,7 @@ const setTextStyles = (enter, colour = "#555") => {
         .style("text-transform", "lowercase")
         .style("letter-spacing", "0.06em")
         .attr("fill", "#555")
-}
+};
 
 /**
  * Updates a node tooltip on mouse events
@@ -182,17 +182,17 @@ const setTextStyles = (enter, colour = "#555") => {
  * @param {object} counts
  */
 const updateToolTip = (enter, colourScale, total, counts) => {
-    const toolTip = d3.select("#tooltip")
+    const toolTip = d3.select("#tooltip");
     enter.on("mouseover", (event, d) => {
         const toolTipData = [
             `Name: ${d.name}`,
             `Rank: ${counts[d.name].rank}`,
             `Count: ${d.value}`,
             `Percentage: ${(100 / total * d.value).toFixed(2)}%`
-        ]
+        ];
         toolTip
             .select("text")
-            .remove()
+            .remove();
         const toolTipText = toolTip
             .style("top", d.y + "px")
             .style("left", d.x + "px")
@@ -205,7 +205,7 @@ const updateToolTip = (enter, colourScale, total, counts) => {
             .append('text')
             .attr("x", 0)
             .attr("y", 0)
-            .call(enter => setTextStyles(enter))
+            .call(enter => setTextStyles(enter));
         toolTipText
             .selectAll("tspan")
             .data(toolTipData)
@@ -225,7 +225,7 @@ const updateToolTip = (enter, colourScale, total, counts) => {
         .on("mouseout", (d) => {
             return toolTip.style("visibility", "hidden")
         });
-}
+};
 
 /**
  * Updates the sankey plot.
@@ -238,15 +238,15 @@ const updateToolTip = (enter, colourScale, total, counts) => {
  * @param {object} counts
  */
 const updateVisualisation = (svg, graph, depth, colourScale, total, counts) => {
-    const { nodes, links } = graph
+    const { nodes, links } = graph;
 
     const _filteredNodes = nodes.filter(Node =>
         ranks.indexOf(counts[Node.name]?.rank || 0) <= depth
-        && Node.name !== 'Unknown')
+        && Node.name !== 'Unknown');
 
     // Temporary extra jank: Remove the node and link for unknown species
     const _filteredLinks = links.filter(Link =>
-        Link.targetRankIdx <= depth && Link.target.name !== 'Unknown')
+        Link.targetRankIdx <= depth && Link.target.name !== 'Unknown');
 
     const t = svg.transition().duration(750);
 
@@ -255,7 +255,7 @@ const updateVisualisation = (svg, graph, depth, colourScale, total, counts) => {
         .data(_filteredNodes, (d) => d.name)
         .join(
             enter => {
-                const container = enter.append("g")
+                const container = enter.append("g");
 
                 // Add node rect
                 container
@@ -269,12 +269,12 @@ const updateVisualisation = (svg, graph, depth, colourScale, total, counts) => {
                     .attr("pointer-events", "all")
                     .call(enter => enter.transition(t)
                         .attr("height", d => d.y1 - d.y0))
-                    .call(enter => updateToolTip(enter, colourScale, total, counts))
+                    .call(enter => updateToolTip(enter, colourScale, total, counts));
 
                 // Add node accessibility title
                 container
                     .append("title")
-                    .text(d => `${d.name}\n${d.value.toLocaleString()}`)
+                    .text(d => `${d.name}\n${d.value.toLocaleString()}`);
 
                 // Add node label
                 container
@@ -300,11 +300,11 @@ const updateVisualisation = (svg, graph, depth, colourScale, total, counts) => {
                         .attr("x", d => d.x0 + 1)
                         .attr("y", d => d.y0)
                         .attr("height", d => d.y1 - d.y0)
-                        .attr("width", d => d.x1 - d.x0 - 2))
+                        .attr("width", d => d.x1 - d.x0 - 2));
 
                 // Add node accessibility title
                 update.select("title")
-                    .text(d => `${d.name}\n${d.value.toLocaleString()}`)
+                    .text(d => `${d.name}\n${d.value.toLocaleString()}`);
 
                 update.select("text")
                     .attr("x", d => d.x1 + 6)
@@ -323,7 +323,7 @@ const updateVisualisation = (svg, graph, depth, colourScale, total, counts) => {
             exit => {
                 exit.remove()
             }
-        )
+        );
 
     const linkList = svg.select("#links")
         .selectChildren("g")
@@ -331,7 +331,7 @@ const updateVisualisation = (svg, graph, depth, colourScale, total, counts) => {
         .join(
             enter => {
                 const container = enter.append("g")
-                    .style("mix-blend-mode", "multiply")
+                    .style("mix-blend-mode", "multiply");
 
                 container
                     .append("linearGradient")
@@ -357,7 +357,7 @@ const updateVisualisation = (svg, graph, depth, colourScale, total, counts) => {
             update => {
                 update
                     .attr("stroke", d => colourScale(d.target.value))
-                    .style("mix-blend-mode", "multiply")
+                    .style("mix-blend-mode", "multiply");
 
                 update
                     .select("path")
@@ -368,10 +368,10 @@ const updateVisualisation = (svg, graph, depth, colourScale, total, counts) => {
             exit => {
                 exit.remove()
             }
-        )
+        );
 
     return svg
-}
+};
 
 /**
  * Renders the initial plot.
@@ -385,14 +385,14 @@ const updateVisualisation = (svg, graph, depth, colourScale, total, counts) => {
  */
 const renderVisualisation = (svg, graph, depth, colourScale, total, counts) => {
     const nodelist = svg.append("g")
-        .attr("id", "nodes")
+        .attr("id", "nodes");
     const linklist = svg.append("g")
         .attr("id", "links")
-        .attr("fill", "none")
+        .attr("fill", "none");
 
-    updateVisualisation(svg, graph, depth, colourScale, total, counts)
+    updateVisualisation(svg, graph, depth, colourScale, total, counts);
     return svg
-}
+};
 
 /* ----------------------------------------------------------------------------
 | Chart reactivity
@@ -407,13 +407,13 @@ const handlePlotSelectChange = (counts) => {
     const rank = d3.select("#rank-select").property('value');
     const cutoff = d3.select("#cutoff-select").property('value');
     const sample = d3.select("#sample-select").property('value');
-    const sample_data = parsed[sample]
-    const _total = getTotalCount(sample_data)
-    const _graph = getSankeyGraph(sample, parsed[sample], generator, cutoff, _total)
+    const sample_data = parsed[sample];
+    const _total = getTotalCount(sample_data);
+    const _graph = getSankeyGraph(sample, parsed[sample], generator, cutoff, _total);
     const colourScale = d3.scaleQuantize().domain([0, _total]).range(colours);
-    setStateGraph(_graph)
+    setStateGraph(_graph);
     updateVisualisation(svg, _graph, ranks.indexOf(rank), colourScale, _total, counts);
-}
+};
 
 /**
  * Handles zooming on the sankey plot
@@ -423,11 +423,11 @@ const handlePlotSelectChange = (counts) => {
 const handleZoom = (e) => {
     d3.select('svg')
         .selectChildren('g')
-        .attr('transform', e.transform)
-    const fontSize = Math.min(16 / e.transform.k, 12)
+        .attr('transform', e.transform);
+    const fontSize = Math.min(16 / e.transform.k, 12);
     d3.selectAll('#nodes text')
         .style("font-size", `${fontSize}px`)
-}
+};
 
 /* ----------------------------------------------------------------------------
 | Render table
@@ -444,14 +444,14 @@ const renderTableRankSelect = (_id, ranks) => {
         .insert('div', ":first-child")
         .classed("dataTable-rank", true)
         .append('label')
-        .text('Select rank')
+        .text('Select rank');
 
     rankSelect
         .insert('select')
-        .attr('id', _id)
+        .attr('id', _id);
 
     return renderSelect(`#${_id}`, ranks)
-}
+};
 
 /**
  * Renders the initial table
@@ -461,17 +461,17 @@ const renderTableRankSelect = (_id, ranks) => {
  * @param {string} rank
  */
 const renderTable = (counts, samples, rank) => {
-    const table = d3.select('#table')
+    const table = d3.select('#table');
 
-    const headerRows = ['Taxon', 'Rank', 'Total', ...samples]
+    const headerRows = ['Taxon', 'Rank', 'Total', ...samples];
     const thead = table
         .select("thead tr")
         .selectAll("th")
         .data(headerRows)
         .join('th')
-        .text(d => d)
+        .text(d => d);
 
-    const bodyRows = Object.values(counts).filter(Count => Count.rank === rank)
+    const bodyRows = Object.values(counts).filter(Count => Count.rank === rank);
 
     const trows = table
         .select("tbody")
@@ -480,13 +480,13 @@ const renderTable = (counts, samples, rank) => {
         .join('tr')
         .selectAll('td')
         .data((d) => {
-            const sampleCounts = samples.map(Sample => d[Sample] || 0)
-            const total = sampleCounts.reduce((sum, I) => I + sum, 0)
+            const sampleCounts = samples.map(Sample => d[Sample] || 0);
+            const total = sampleCounts.reduce((sum, I) => I + sum, 0);
             return [d.name, d.rank, total, ...sampleCounts]
         })
         .join('td')
         .text((d) => d)
-}
+};
 
 /**
  * Updates the counts table on rank select change
@@ -496,29 +496,29 @@ const renderTable = (counts, samples, rank) => {
  * @param {array} samples
  */
 const handleTableSelectChange = (datatable, counts, samples) => {
-    const table = d3.select('#table')
+    const table = d3.select('#table');
     const rank = d3.select("#table-rank-select").property('value');
 
     datatable.rows().remove(
         [...datatable.data.map(R => R.dataIndex)]
-    )
+    );
 
     const bodyRows = Object.values(counts)
         .filter(Count => Count.rank === rank)
         .map(Row => {
-            const sampleCounts = samples.map(Sample => (Row[Sample] || 0))
-            const total = sampleCounts.reduce((sum, I) => I + sum, 0).toString()
+            const sampleCounts = samples.map(Sample => (Row[Sample] || 0));
+            const total = sampleCounts.reduce((sum, I) => I + sum, 0).toString();
             return [
                 Row.name,
                 Row.rank,
                 total,
                 ...sampleCounts.map(Count => Count.toString())
             ]
-        })
+        });
 
-    datatable.rows().add(bodyRows)
+    datatable.rows().add(bodyRows);
     datatable.refresh();
-}
+};
 
 /* ----------------------------------------------------------------------------
                 | Initialisation
@@ -528,43 +528,43 @@ const svg = d3.select('#sankey-plot')
     .insert('svg')
     .attr("width", width)
     .attr("height", height)
-    .style("background", "#fff")
+    .style("background", "#fff");
 
 // FYI CONSIDER THIS GLOBAL
-const state = {}
+const state = {};
 const setStateGraph = (graph) => {
     state.graph = graph
-}
+};
 
 // Prepare data
-const parsed = parseData(getData())
-const generator = getSankeyGenerator(width, height)
+const parsed = parseData(getData());
+const generator = getSankeyGenerator(width, height);
 
 // Initialise samples
-const names = getSampleNames(parsed)
-const default_sample = names[0]
-const sample_data = parsed[default_sample]
-const sample_counts = getSampleCounts(parsed)
-const sampleSelect = renderSelect('#sample-select', names, 0)
+const names = getSampleNames(parsed);
+const default_sample = names[0];
+const sample_data = parsed[default_sample];
+const sample_counts = getSampleCounts(parsed);
+const sampleSelect = renderSelect('#sample-select', names, 0);
 sampleSelect.property('value', default_sample);
 
 // Initialise ranks
-const default_rank = "family"
-const rankSelect = renderSelect('#rank-select', ranks)
+const default_rank = "family";
+const rankSelect = renderSelect('#rank-select', ranks);
 rankSelect.property('value', default_rank);
 
 // Initialise cutoff
-const default_cutoff = 1
-const cutoffSelect = renderSelect('#cutoff-select', cutoffs, '%')
+const default_cutoff = 1;
+const cutoffSelect = renderSelect('#cutoff-select', cutoffs, '%');
 cutoffSelect.property('value', `${default_cutoff}`);
 
 // Render default sample
-const total = getTotalCount(sample_data)
+const total = getTotalCount(sample_data);
 const graph = getSankeyGraph(
-    default_sample, sample_data, generator, default_cutoff, total)
+    default_sample, sample_data, generator, default_cutoff, total);
 const colourScale = d3.scaleQuantize().domain([0, total]).range(colours);
-renderVisualisation(svg, graph, ranks.indexOf(default_rank), colourScale, total, sample_counts)
-setStateGraph(graph)
+renderVisualisation(svg, graph, ranks.indexOf(default_rank), colourScale, total, sample_counts);
+setStateGraph(graph);
 
 // Initialise select reactivity
 d3.select("#sample-select").on("change", () => handlePlotSelectChange(sample_counts));
@@ -576,7 +576,7 @@ const zoom = d3.zoom().on('zoom', handleZoom);
 svg.call(zoom);
 
 // Initialise tooltip interactivity
-const toolTip = renderToolTop()
+const toolTip = renderToolTop();
 
 // Initialise manual zoom interactivity
 function zoomIn() {
@@ -598,16 +598,16 @@ function resetZoom() {
 }
 
 // Render table
-renderTable(sample_counts, names, default_rank)
+renderTable(sample_counts, names, default_rank);
 const dataTable = new simpleDatatables.DataTable("#table", {
     searchable: true,
     fixedHeight: true,
     columns: [
         { select: 2, sort: "desc" },
     ]
-})
+});
 
 // Initialise chart interactivity
-const tableRankSelect = renderTableRankSelect('table-rank-select', ranks)
+const tableRankSelect = renderTableRankSelect('table-rank-select', ranks);
 tableRankSelect.property('value', default_rank);
 d3.select("#table-rank-select").on("change", () => handleTableSelectChange(dataTable, sample_counts, names));

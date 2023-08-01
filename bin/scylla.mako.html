@@ -223,18 +223,18 @@
         .cd-top {
             position: fixed;
             bottom: 20px;
-            bottom: var(--cd-back-to-top-margin);
+            bottom: const(--cd-back-to-top-margin);
             right: 20px;
-            right: var(--cd-back-to-top-margin);
+            right: const(--cd-back-to-top-margin);
             display: inline-block;
             height: 40px;
-            height: var(--cd-back-to-top-size);
+            height: const(--cd-back-to-top-size);
             width: 40px;
-            width: var(--cd-back-to-top-size);
+            width: const(--cd-back-to-top-size);
             box-shadow: 0 0 10px rgba(0, 0, 0, .05) !important;
             background: url(https://res.cloudinary.com/dxfq3iotg/image/upload/v1571057658/cd-top-arrow.svg) no-repeat center 50%;
             background-color: ${themeColor};
-            background-color: hsla(var(--cd-color-3-h), var(--cd-color-3-s), var(--cd-color-3-l), 0.8)
+            background-color: hsla(const(--cd-color-3-h), const(--cd-color-3-s), const(--cd-color-3-l), 0.8)
         }
         .slidecontainer {
             width: 100%;
@@ -1047,6 +1047,13 @@
                 </thead>
                 <tbody></tbody>
             </table>
+
+            <h3>Read statistics</h3>
+            <div id="stats">
+                <div id="len-plot"></div>
+                <div id="qual-plot"></div>
+            </div>
+
             <script>
                 /* ----------------------------------------------------------------------------
                 | Chart settings
@@ -1070,65 +1077,61 @@
                     JSON.parse(_data);
 
                 const normaliseName = (name) =>
-                    name.split(' ').join('-')
+                    name.split(' ').join('-');
 
+                /* ----------------------------------------------------------------------------
+                | Continues in separate file for mako parsing reasons
+                |---------------------------------------------------------------------------- */
                 ${data_for_report["sankey_js"]}
 
+                /* ----------------------------------------------------------------------------
+                | Stats histogram methods
+                |---------------------------------------------------------------------------- */
 
+                const getStatsData = () => "${data_for_report['read_count_data']['raw_reads']}";
 
-            </script>
+                const parseStatsData = (_data) => JSON.parse(_data);
 
-            <h3>Read statistics</h3>
-            <div id="stats">
-                <div id="len-plot"></div>
-                <div id="qual-plot"></div>
-            </div>
-
-            <script>
-                const getStatsData = () => "${data_for_report['read_count_data']['raw_reads']}"
-
-                const parseData = (_data) => JSON.parse(_data);
-
-                const parsed = parseData(getStatsData())
+                const stats = parseStatsData(getStatsData());
 
                 const createHistogram = function (data, div, title, xtitle, ytitle) {
 
                     // A formatter for counts.
-                    var formatCount = d3.format(",.0f");
-                    var totalWidth = 460;
-                    var totalHeight = 400;
-                    var margin = {top: 10, right: 30, bottom: 30, left: 40},
+                    const formatCount = d3.format(",.0f");
+                    const totalWidth = 460;
+                    const totalHeight = 400;
+                    const margin = {top: 10, right: 30, bottom: 30, left: 40},
                         width = totalWidth - margin.left - margin.right,
                         height = totalHeight - margin.top - margin.bottom;
 
-                    var binArray = data.keys();
-                    var binTicks = data.keys();
+                    const binArray = data.keys();
+                    const binTicks = data.keys();
 
-                    var x = d3.scale.linear()
+                    const x = d3.scale.linear()
                         .domain([0, d3.max(data.keys())])
                         .range([0, width]);
-                    var binWidth = parseFloat(width / (binArray.length - 1)) - 1;
+                    const binWidth = parseFloat(width / (binArray.length - 1)) - 1;
 
-                    var y = d3.scale.linear()
+                    const y = d3.scale.linear()
                         .domain([0, d3.max(data.values())])
                         .range([height, 0]);
 
-                    var xAxis = d3.svg.axis()
+                    const xAxis = d3.svg.axis()
                         .scale(x)
                         .orient("bottom")
                         .tickValues(binTicks);
 
-                    var yAxis = d3.svg.axis()
+                    const yAxis = d3.svg.axis()
                         .scale(y)
                         .orient("left");
 
-                    var svg = d3.select(div).append("svg")
+                    const svg = d3.select(div).append("svg")
                         .attr("width", width + margin.left + margin.right)
                         .attr("height", height + margin.top + margin.bottom)
                         .append("g")
                         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-                    var bar = svg.selectAll(".bar")
+                    svg.selectAll(".bar")
                         .data(data)
                         .enter()
                         .append("rect")
@@ -1178,11 +1181,12 @@
                         //.attr("dy", "1em")
                         .attr("text-anchor", "middle")
                         .text(title);
+
                     return svg;
                 };
 
-                createHistogram(parsed["len"], "#len-plot", "Read length distribution", "Length (bp)", "Count")
-                createHistogram(parsed["qual"], "#qual-plot", "Read mean quality distribution", "Mean quality score", "Count")
+                createHistogram(stats["len"], "#len-plot", "Read length distribution", "Length (bp)", "Count")
+                createHistogram(stats["qual"], "#qual-plot", "Read mean quality distribution", "Mean quality score", "Count")
             </script>
         </main>
 
