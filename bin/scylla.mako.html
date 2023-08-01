@@ -1083,16 +1083,18 @@
                 | Continues in separate file for mako parsing reasons
                 |---------------------------------------------------------------------------- */
                 ${data_for_report["sankey_js"]}
-
+            </script>
+            <script>
                 /* ----------------------------------------------------------------------------
                 | Stats histogram methods
                 |---------------------------------------------------------------------------- */
 
                 const getStatsData = () => "${data_for_report['read_count_data']['raw_reads']}";
 
-                const parseStatsData = (_data) => JSON.parse(_data);
-
-                const stats = parseStatsData(getStatsData());
+                d3.json(getStatsData(), function(stats) {
+                    createHistogram(stats["len"], "#len-plot", "Read length distribution", "Length (bp)", "Count")
+                    createHistogram(stats["qual"], "#qual-plot", "Read mean quality distribution", "Mean quality score", "Count")
+                });
 
                 const createHistogram = function (data, div, title, xtitle, ytitle) {
 
@@ -1184,9 +1186,6 @@
 
                     return svg;
                 };
-
-                createHistogram(stats["len"], "#len-plot", "Read length distribution", "Length (bp)", "Count")
-                createHistogram(stats["qual"], "#qual-plot", "Read mean quality distribution", "Mean quality score", "Count")
             </script>
         </main>
 
