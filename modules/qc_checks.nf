@@ -51,9 +51,9 @@ workflow qc_checks {
     main:
         read_stats(fastq)
         all_stats = read_stats.out.collectFile(name:"all_stats.txt", keepHeader:true, skip: 1)
-        //combine_stats(unique_id, all_stats)
+        combine_stats(unique_id, all_stats)
     emit:
-        all_stats
+        combine_stats.json
 }
 
 workflow {

@@ -12,7 +12,6 @@ from mako.template import Template
 from mako.runtime import Context
 from mako.exceptions import RichTraceback
 from io import StringIO
-import pandas as pd
 import os
 from Bio import SeqIO
 
@@ -92,10 +91,11 @@ def main():
             else:
                 assignments = assignments[:-1] + ", " + contents
 
-    read_counts = ""
     if args.read_counts:
-        with open(read_counts.resolve(), "rt") as counts_handle:
-            read_counts = counts_handle.read().strip().replace('"', '\\"')
+        with open(args.read_counts.resolve(), "rt") as qc_file:
+            read_counts = qc_file.read().strip().replace('"', '\\"')
+    else:
+        read_counts = {}
     data_for_report = {"sankey_data": assignments, "read_count_data": read_counts}
 
     outfile = args.prefix + "_report.html"
