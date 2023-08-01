@@ -12,6 +12,7 @@ from mako.template import Template
 from mako.runtime import Context
 from mako.exceptions import RichTraceback
 from io import StringIO
+import pandas as pd
 import os
 from Bio import SeqIO
 
@@ -91,6 +92,7 @@ def main():
             else:
                 assignments = assignments[:-1] + ", " + contents
 
+    read_counts = {}
     if args.read_counts:
         df = pd.read_csv(
                 args.read_counts, sep="\t",
@@ -98,8 +100,6 @@ def main():
                 dtype={'read_length': int, 'mean_quality': float})
         read_counts["mean_quality"] = list(df["mean_quality"])
         read_counts["read_length"] = list(df["read_length"])
-    else:
-        read_counts = {}
     data_for_report = {"sankey_data": assignments, "read_count_data": read_counts}
 
     outfile = args.prefix + "_report.html"
