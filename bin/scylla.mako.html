@@ -1182,6 +1182,7 @@
                         //.attr("dy", "1em")
                         .attr("text-anchor", "middle")
                         .text(title);
+                    return svg;
                 };
 
                 createHistogram(statsData["len"], #stats1, "Read length distribution", "Length (bp)", "Count")
