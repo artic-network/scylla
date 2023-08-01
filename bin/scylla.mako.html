@@ -1079,14 +1079,19 @@
             </script>
 
             <h3>Read statistics</h3>
-            <div id="stats1"></div>
-            <div id="stats2"></div>
+            <div id="stats">
+                <div id="len-plot"></div>
+                <div id="qual-plot"></div>
+            </div>
 
             <script>
-                const getStatsData = () => "${data_for_report['read_count_data']}"
-                const statsData = parseData(getStatsData())["raw_reads"]
+                const getStatsData = () => "${data_for_report['read_count_data']['raw_reads']}"
 
-                var createHistogram = function(data, div, title, xtitle, ytitle) {
+                const parseData = (_data) => JSON.parse(_data);
+
+                const parsed = parseData(getStatsData())
+
+                const createHistogram = function (data, div, title, xtitle, ytitle) {
 
                     // A formatter for counts.
                     var formatCount = d3.format(",.0f");
@@ -1128,24 +1133,15 @@
                         .enter()
                         .append("rect")
                         .attr("class", "bar")
-                        .attr("x", function(d) { return x(d.x); })
-                        .attr("width", binWidth)
-                        .attr("y", function(d) { return y(d.y); })
-                        .attr("height", function(d) { return height - y(d.y); })
-                        .on("mouseover", function(d) {
-                            var barWidth = parseFloat(d3.select(this).attr("width"));
-                            var xPosition = parseFloat(d3.select(this).attr("x")) + (barWidth / 2);
-                            var yPosition = parseFloat(d3.select(this).attr("y")) - 10;
-
-                            svg.append("text")
-                                .attr("id", "tooltip")
-                                .attr("x", xPosition)
-                                .attr("y", yPosition)
-                                .attr("text-anchor", "middle")
-                                .text(d.y);
+                        .attr("x", function (d) {
+                            return x(d.x);
                         })
-                        .on("mouseout", function(d) {
-                            d3.select('#tooltip').remove();
+                        .attr("width", binWidth)
+                        .attr("y", function (d) {
+                            return y(d.y);
+                        })
+                        .attr("height", function (d) {
+                            return height - y(d.y);
                         });
 
                     svg.append("g")
@@ -1185,8 +1181,8 @@
                     return svg;
                 };
 
-                createHistogram(statsData["len"], #stats1, "Read length distribution", "Length (bp)", "Count")
-                createHistogram(statsData["qual"], #stats2, "Read mean quality distribution", "Mean quality score", "Count")
+                createHistogram(parsed["len"], "#len-plot", "Read length distribution", "Length (bp)", "Count")
+                createHistogram(parsed["qual"], "#qual-plot", "Read mean quality distribution", "Mean quality score", "Count")
             </script>
         </main>
 
