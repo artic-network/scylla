@@ -1101,7 +1101,7 @@
                     .attr("transform",
                         "translate(" + margin.left + "," + margin.top + ")");
 
-                d3.csv("${data_for_report['read_count_data']['raw_reads']}").then( function(data) {
+                d3.csv("${data_for_report['read_count_data']}").then( function(data) {
 
                 // X axis: scale and draw:
                 const x = d3.scaleLinear()

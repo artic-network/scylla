@@ -92,14 +92,10 @@ def main():
             else:
                 assignments = assignments[:-1] + ", " + contents
 
-    read_counts = {}
+    read_counts = ""
     if args.read_counts:
-        df = pd.read_csv(
-                args.read_counts, sep="\t",
-                usecols=['read_length', 'mean_quality'],
-                dtype={'read_length': int, 'mean_quality': float})
-        read_counts["mean_quality"] = list(df["mean_quality"])
-        read_counts["read_length"] = list(df["read_length"])
+        with open(read_counts.resolve(), "rt") as counts_handle:
+            read_counts = counts_handle.read().strip().replace('"', '\\"')
     data_for_report = {"sankey_data": assignments, "read_count_data": read_counts}
 
     outfile = args.prefix + "_report.html"
