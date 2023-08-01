@@ -1092,8 +1092,8 @@
                 const getStatsData = () => "${data_for_report['read_count_data']}";
 
                 d3.json(getStatsData(), function(stats) {
-                    createHistogram(stats["len"], "#len-plot", "Read length distribution", "Length (bp)", "Count")
-                    createHistogram(stats["qual"], "#qual-plot", "Read mean quality distribution", "Mean quality score", "Count")
+                    createHistogram(stats["raw_reads"]["len"], "#len-plot", "Read length distribution", "Length (bp)", "Count")
+                    createHistogram(stats["raw_reads"]["qual"], "#qual-plot", "Read mean quality distribution", "Mean quality score", "Count")
                 });
 
                 const createHistogram = function (data, div, title, xtitle, ytitle) {
