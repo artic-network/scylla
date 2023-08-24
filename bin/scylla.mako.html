@@ -1050,10 +1050,10 @@
                         .scale(y)
                         .orient("left");
 
-                    const svg = d3.select(div).append("svg")
+                    const svg = d3.select(div).insert("svg")
                         .attr("width", width + margin.left + margin.right)
                         .attr("height", height + margin.top + margin.bottom)
-                        .append("g")
+                        .style("background", "#fff")
                         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
                     svg.selectAll(".bar")
@@ -1061,13 +1061,9 @@
                         .enter()
                         .append("rect")
                         .attr("class", "bar")
-                        .attr("x", function (d) {
-                            return x(d.x);
-                        })
+                        .attr("x", d.values())
                         .attr("width", binWidth)
-                        .attr("y", function (d) {
-                            return y(d.y);
-                        })
+                        .attr("y", d.keys())
                         .attr("height", function (d) {
                             return height - y(d.y);
                         });
