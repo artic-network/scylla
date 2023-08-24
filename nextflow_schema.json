@@ -1,0 +1,248 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/snowy-leopard/scylla/report/nextflow_schema.json",
+  "title": "snowy-leopard/scylla",
+  "description": "Metagenomic binning of single reads from both amplicon-targeted and shotgun metagenomics sequencing.",
+  "url": "https://github.com/snowy_leopard/scylla",
+  "type": "object",
+  "definitions": {
+    "input_options": {
+      "title": "Input Options",
+      "type": "object",
+      "fa_icon": "fas fa-terminal",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "properties": {
+        "fastq_dir": {
+          "type": "string",
+          "format": "path",
+          "title": "FASTQ_DIR",
+          "description": "A directory containing fastq for a single sample.",
+          "help_text": "A directory containing at least one fastq file of metagenomic reads corresponding to a single sample.",
+          "demo_data": "test/test_data/barcode01"
+        }
+      },
+      "allOf": [
+        {
+          "required": [
+            "fastq_dir"
+          ]
+        }
+      ]
+    },
+    "sample_options": {
+      "title": "Sample Options",
+      "type": "object",
+      "default": "",
+      "properties": {
+
+        "unique_id": {
+          "type": "string",
+          "title": "Sample ID",
+          "description": "A unique sample id for this run."
+        }
+      },
+      "description": "Parameters that relate to samples such as sample id."
+    },
+    "reference_options": {
+      "title": "Reference Options",
+      "type": "object",
+      "description": "Files will be downloaded as part of the first run of workflow and automatically stored for subsequent runs.",
+      "default": "",
+      "properties": {
+        "database_set": {
+          "type": "string",
+          "default": "PlusPF-8",
+          "title": "Choose a standard Kraken2 database",
+          "description": "Sets the reference, databases and taxonomy datasets that will be used for classifying reads. Choices: ['ncbi_16s_18s','ncbi_16s_18s_28s_ITS', 'SILVA_138_1', 'PlusPF-8', 'PlusPFP-8']. Workflow will require memory available to be slightly higher than the size of the database. PlusPF-8 database requires more than 8Gb.",
+          "enum": [
+            "PlusPF-8",
+            "Viral",
+            "EuPath",
+            "ncbi_16s_18s"
+          ],
+          "help_text": "This setting is overridable by providing an explicit taxonomy, database or reference path in the other reference options."
+        },
+        "database": {
+          "type": "string",
+          "format": "path",
+          "title": "Kraken2 database",
+          "description": "Not required but can be used to specifically override kraken2 database [.tar.gz or Directory].",
+          "help_text": "By default uses database chosen in database_set parameter."
+        },
+        "taxonomy": {
+          "type": "string",
+          "format": "path",
+          "title": "Taxonomy database",
+          "description": "Not required but can be used to specifically override taxonomy database. Change the default to use a different taxonomy file  [.tar.gz or directory].",
+          "help_text": "By default NCBI taxonomy file will be downloaded and used."
+        },
+        "store_dir": {
+          "type": "string",
+          "format": "directory-path",
+          "title": "Store directory name",
+          "description": "Where to store initial download of database.",
+          "default": "store_dir",
+          "help_text": "database set selected will be downloaded as part of the workflow and saved in this location, on subsequent runs it will use this as the database. "
+        },
+        "database_sets": {
+          "type": "object",
+          "hidden": true,
+          "description": "A map containing the available sources and their default resource paths."
+        }
+      }
+    },
+    "kraken2_options": {
+      "title": "Kraken2/Bracken Options",
+      "type": "object",
+      "fa_icon": "fas fa-university",
+      "help_text": "\nKraken2\nIt is possible to enable classification by kraken2, \nand disable alignment which is a faster but coarser method of \nclassification reliant on the presence of a kraken2 database.\n",
+      "properties": {
+        "raise_server": {
+          "type": "boolean",
+          "default": false,
+          "title": "External kraken2 server",
+          "description": "Whether a pre-existing kraken2 server should be used, rather than creating one as part of the workflow",
+          "help_text": "By default the workflow assumes that it is running on a single host computer, and further that it should start its own kraken2 server. It may be desirable to start a kraken2 server outside of the workflow, in which case this option should be enabled. This option may be used in conjuction with the `host` option to specify that the kraken2 server is running on a remote computer. "
+        },
+        "port": {
+          "type": "integer",
+          "default": 8080,
+          "title": "Network port",
+          "description": "Network port for communication between kraken2 server and clients",
+          "help_text": "The workflow uses a server process to handle kraken2 classification requests. This allows the workflow to persist the sequence database in memory throughout the duration of processing. The option specifies the local network port on which the server and clients will communicate."
+        },
+        "host": {
+          "type": "string",
+          "default": "localhost",
+          "title": "Network hostname (or IP address)",
+          "description": "Network hostname (or IP address) for communication between kraken2 server and clients. (See also 'external_kraken2' parameter).",
+          "help_text": "The workflow uses a server process to handle kraken2 classification requests. This allows the workflow to persist the sequence database in memory throughout the duration of processing. The option specifies the local network hostname (or IP address) of the kraken server."
+        },
+        "use_bracken": {
+          "type": "boolean",
+          "default": false,
+          "title": "Re-evaluate abundances using Bracken",
+          "description": "Whether Bracken should be run as part of the workflow.",
+          "help_text": "Bracken can be used to re-evaluate abuncances of taxa, distributing counts to a specified taxonomic level to reduce noise. In some cases this can cause loss of species detection."
+        },
+        "taxonomic_rank": {
+          "type": "string",
+          "default": "S",
+          "title": "Taxonomic rank",
+          "description": "Returns results at the taxonomic rank chosen. Set the level that bracken will estimate abundance at. Default: S (species). Other possible options are K (kingdom level), P (phylum), C (class), O (order), F (family), and G (genus).",
+          "enum": [
+            "S",
+            "G",
+            "k",
+            "F",
+            "O",
+            "C",
+            "P"
+          ]
+        }
+      },
+      "description": "Kraken2 classification options. Only relevant if classifier parameter is set to kraken2"
+    },
+    "output_options": {
+      "title": "Output Options",
+      "type": "object",
+      "description": "Parameters for saving and naming workflow outputs.",
+      "default": "",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "default": "output",
+          "title": "Output folder name",
+          "description": "Directory for output of all user-facing files."
+        }
+      }
+    },
+    "advanced_options": {
+      "title": "Advanced Options",
+      "type": "object",
+      "description": "Advanced options for configuring processes inside the workflow.",
+      "default": "",
+      "properties": {
+        "threads": {
+          "type": "integer",
+          "default": 2,
+          "title": "Maximum number of CPU threads",
+          "description": "Maximum number of CPU threads to use per workflow task.",
+          "help_text": "Several tasks in this workflow benefit from using multiple CPU threads. This option sets the number of CPU threads for all such processes. The total CPU resource used by the workflow is constrained by the executor configuration. See server threads parameter for kraken specific threads."
+        }
+      }
+    },
+    "miscellaneous_options": {
+      "title": "Miscellaneous Options",
+      "type": "object",
+      "fa_icon": "fas fa-file-import",
+      "description": "Everything else.",
+      "help_text": "These options are common to all nf-core pipelines and allow you to customise some of the core preferences for how the pipeline runs.\n\nTypically these options would be set in a Nextflow config file loaded for all pipeline runs, such as `~/.nextflow/config`.",
+      "properties": {
+        "help": {
+          "type": "boolean",
+          "title": "Display help text",
+          "fa_icon": "fas fa-question-circle",
+          "hidden": true
+        },
+        "version": {
+          "type": "boolean",
+          "title": "Display version",
+          "description": "Display version and exit.",
+          "fa_icon": "fas fa-question-circle",
+          "hidden": true
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "#/definitions/input_options"
+    },
+    {
+      "$ref": "#/definitions/sample_options"
+    },
+    {
+      "$ref": "#/definitions/reference_options"
+    },
+    {
+      "$ref": "#/definitions/kraken2_options"
+    },
+    {
+      "$ref": "#/definitions/output_options"
+    },
+    {
+      "$ref": "#/definitions/advanced_options"
+    },
+    {
+      "$ref": "#/definitions/miscellaneous_options"
+    }
+  ],
+  "properties": {
+    "aws_image_prefix": {
+      "type": "string",
+      "title": "AWS image prefix",
+      "hidden": true
+    },
+    "aws_queue": {
+      "type": "string",
+      "title": "AWS queue",
+      "hidden": true
+    },
+    "monochrome_logs": {
+      "type": "boolean"
+    },
+    "validate_params": {
+      "type": "boolean",
+      "default": true
+    },
+    "show_hidden_params": {
+      "type": "boolean"
+    }
+  },
+  "docs": {
+    "intro": "\n## Introduction\n\nScylla allows metagenomic reads to be classified with Kraken2 and for read binning and assembly by taxa:\n\n### Kraken2\n\n[Kraken2](https://github.com/DerrickWood/kraken2) is used with the [Kraken2-server](https://github.com/epi2me-labs/kraken2-server) to offer the fastest method for classification of reads. [Bracken](https://github.com/jenniferlu717/Bracken) is then used to give a good estimate of species level abundance in the sample which can be visualised in the report. The Kraken2 workflow mode can be run in real time. See quickstart below for more details.\n\nThe scylla workflow by default uses the PlusPF database that will be downloaded at the start of an analysis, there are expanded metagenomic database options available with the --source parameter but the workflow is not tied to this database and can also be used with custom databases as required.\n\n",
+    "links": "## Useful links\n\n* [nextflow](https://www.nextflow.io/)\n* [docker](https://www.docker.com/products/docker-desktop)"
+  }
+}
