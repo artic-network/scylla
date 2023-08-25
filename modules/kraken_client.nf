@@ -7,7 +7,8 @@ process kraken2_client {
     label 'error_retry'
 
     conda "epi2melabs::kraken2-server=0.1.3"
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_sha}"
+    containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
 
     input:
         path fastq
@@ -27,7 +28,7 @@ process combine_kraken_outputs {
 
     label 'process_single'
 
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_sha}"
 
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
     
@@ -59,7 +60,7 @@ process determine_bracken_length {
     label "process_low"
 
     conda "anaconda::sed=4.8"
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         path database
@@ -84,9 +85,7 @@ process bracken {
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     conda "bioconda::bracken=2.7"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bracken:2.7--py39hc16433a_0':
-        'biocontainers/bracken:2.7--py39hc16433a_0' }"
+    container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         val unique_id
@@ -114,7 +113,7 @@ process bracken_to_json {
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
     
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_sha}"
 
 
     input:
@@ -138,6 +137,36 @@ process bracken_to_json {
     """
 }
 
+process kraken_to_json {
+
+    label "process_low"
+
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
+
+    conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
+    container "${params.wf.container}@${params.wf.container_sha}"
+
+
+    input:
+        val unique_id
+        path kraken_report
+        path taxonomy_dir
+    output:
+        path "${params.database_set}.kraken.json"
+
+    """
+    awk '{ print \$5 "\t" \$2 }' "${kraken_report}" | tail -n+3 > taxacounts.txt
+    cat "${kraken_report}" | cut -f5 | tail -n+3 > taxa.txt
+    taxonkit lineage --data-dir ${taxonomy_dir}  -R taxa.txt  > lineages.txt
+    aggregate_lineages_bracken.py \\
+            -i "lineages.txt" -b "taxacounts.txt" \\
+            -u "${kraken_report}" \\
+            -p "temp_kraken"
+    file1=`cat *.json`
+    echo "{"'"${params.database_set}"'": "\$file1"}" >> "${params.database_set}.kraken.json"
+    """
+}
+
 
 workflow run_kraken_and_bracken {
     take:
@@ -149,14 +178,22 @@ workflow run_kraken_and_bracken {
         //fastq = Channel.fromPath(input_fastq)
         kraken2_client(fastq)
         combine_kraken_outputs(unique_id, kraken2_client.out.report.collect(), kraken2_client.out.assignments.collect())
-        bracken_length = determine_bracken_length(database)
-        bracken(unique_id, combine_kraken_outputs.output.report, database, bracken_length)
-        bracken_to_json(unique_id, combine_kraken_outputs.output.report, taxonomy, bracken.out.summary)
+        if (params.run_bracken) {
+            bracken_length = determine_bracken_length(database)
+            bracken(unique_id, combine_kraken_outputs.output.report, database, bracken_length)
+            bracken_to_json(unique_id, combine_kraken_outputs.output.report, taxonomy, bracken.out.summary)
+            out_json = bracken_to_json.out
+            out_report = bracken.output.report
+        } else {
+            kraken_to_json(unique_id, combine_kraken_outputs.output.report, taxonomy)
+            out_json = kraken_to_json.out
+            out_report = combine_kraken_outputs.output.report
+        }
     emit:
-        bracken_report = bracken.output.report
+        bracken_report = out_report
         kraken_report = combine_kraken_outputs.output.report
         kraken_assignments = combine_kraken_outputs.output.assignments
-        json = bracken_to_json.out
+        json = out_json
 }
 
 

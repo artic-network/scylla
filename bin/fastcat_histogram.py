@@ -13,8 +13,12 @@ import pandas as pd
 
 def histogram_counts(data, dmin=0, bin_width=100):
     """Histogram bins and counts."""
-    bins = np.arange(dmin, max(data) + bin_width, bin_width)
-    counts, _ = np.histogram(data, bins=bins)
+    if max(data) == min(data):
+        bins = [1,max(data),max(data)+1]
+        counts = [0,len(data),0]
+    else:
+        bins = np.arange(dmin, max(data) + bin_width, bin_width)
+        counts, _ = np.histogram(data, bins=bins)
     return bins.tolist(), counts.tolist()
 
 
