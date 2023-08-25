@@ -8,6 +8,7 @@ process kraken2_client {
 
     conda "epi2melabs::kraken2-server=0.1.3"
     container "${params.wf.container}@${params.wf.container_sha}"
+    containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
 
     input:
         path fastq
@@ -84,9 +85,7 @@ process bracken {
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     conda "bioconda::bracken=2.7"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bracken:2.7--py39hc16433a_0':
-        'biocontainers/bracken:2.7--py39hc16433a_0' }"
+    container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         val unique_id
