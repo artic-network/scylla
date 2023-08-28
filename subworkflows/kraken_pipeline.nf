@@ -90,6 +90,7 @@ workflow kraken_pipeline {
         kraken_report = run_kraken_and_bracken.out.kraken_report
         kraken_assignments = run_kraken_and_bracken.out.kraken_assignments
         report = generate_report.out
+        taxonomy = taxonomy
 }
 
 workflow {

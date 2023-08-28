@@ -7,7 +7,7 @@
 // probably want to count up how many have been found here for run log
 // ALSO this step will currently "fail" with exitcode 2 if the number of human reads found exceeds the number specified
 // in config so could be good dehuman sanity check
-process extract_paired_reads_bracken {
+process extract_paired_reads {
     
     label 'process_high'
 
@@ -23,8 +23,8 @@ process extract_paired_reads_bracken {
         path fastq1
         path fastq2
         path kraken_assignments
-        path kraken_report
         path bracken_report
+        path taxonomy_dir
     output:
         path "reads.*.f*.gz", emit: reads
         path "reads_summary.json", emit: summary
@@ -34,8 +34,8 @@ process extract_paired_reads_bracken {
             -s1 ${fastq1} \
             -s2 ${fastq2} \
             -k ${kraken_assignments} \
-            -r ${kraken_report} \
-            -b ${bracken_report} \
+            -r ${bracken_report} \
+            -t ${taxonomy_dir} \
             -p reads \
             --include_children \
             --max_human ${params.max_human_reads_before_rejection} \
@@ -50,7 +50,7 @@ process extract_paired_reads_bracken {
         """
 }
 
-process extract_reads_bracken {
+process extract_reads {
 
     label 'process_high'
 
@@ -65,8 +65,8 @@ process extract_reads_bracken {
         val unique_id
         path fastq
         path kraken_assignments
-        path kraken_report
         path bracken_report
+        path taxonomy_dir
     output:
         path "reads.*.f*.gz", emit: reads
         path "reads_summary.json", emit: summary
@@ -75,8 +75,8 @@ process extract_reads_bracken {
         extract_kraken_reads.py \
             -s ${fastq} \
             -k ${kraken_assignments} \
-            -r ${kraken_report} \
-            -b ${bracken_report} \
+            -r ${bracken_report} \
+            -t ${taxonomy_dir} \
             -p reads \
             --include_children \
             --max_human ${params.max_human_reads_before_rejection} \
@@ -91,86 +91,6 @@ process extract_reads_bracken {
         """
 }
 
-
-process extract_paired_reads_kraken {
-
-    label 'process_high'
-
-    errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
-
-    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
-
-    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-    container "${params.wf.container}@${params.wf.container_sha}"
-
-    input:
-        val unique_id
-        path fastq1
-        path fastq2
-        path kraken_assignments
-        path kraken_report
-    output:
-        path "reads.*.f*.gz", emit: reads
-        path "reads_summary.json", emit: summary
-    script:
-        """
-        extract_kraken_reads.py \
-            -s1 ${fastq1} \
-            -s2 ${fastq2} \
-            -k ${kraken_assignments} \
-            -r ${kraken_report} \
-            -p reads \
-            --include_children \
-            --max_human ${params.max_human_reads_before_rejection} \
-            --min_count_descendants ${params.assembly_min_reads} \
-            --rank ${params.assembly_rank} \
-            --min_percent ${params.assembly_min_percent}
-
-        for f in \$(ls reads.*.f*)
-          do
-            bgzip --threads $task.cpus \$f
-          done
-        """
-}
-
-process extract_reads_kraken {
-
-    label 'process_high'
-
-    errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
-
-    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
-
-    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-    container "${params.wf.container}@${params.wf.container_sha}"
-
-    input:
-        val unique_id
-        path fastq
-        path kraken_assignments
-        path kraken_report
-    output:
-        path "reads.*.f*.gz", emit: reads
-        path "reads_summary.json", emit: summary
-    script:
-        """
-        extract_kraken_reads.py \
-            -s ${fastq} \
-            -k ${kraken_assignments} \
-            -r ${kraken_report} \
-            -p reads \
-            --include_children \
-            --max_human ${params.max_human_reads_before_rejection} \
-            --min_count_descendants ${params.assembly_min_reads} \
-            --rank ${params.assembly_rank} \
-            --min_percent ${params.assembly_min_percent}
-
-        for f in \$(ls reads.*.f*)
-          do
-            bgzip --threads $task.cpus \$f
-          done
-        """
-}
 
 
 
