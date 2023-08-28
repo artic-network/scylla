@@ -11,13 +11,16 @@ UNKNOWN = 'Unknown'
 
 RANKS = [
     "superkingdom",
+    "clade",
     "kingdom",
     "phylum",
+    "subphylum"
     "class",
     "order",
     "family",
     "genus",
-    "species"
+    "species",
+    "serotype"
 ]
 
 

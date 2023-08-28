@@ -1,4 +1,4 @@
-/* based on code from epi2ome/wf-metagenomics
+/* based on code from epi2ome/wf-metagenomics under the conditions of their license https://github.com/epi2me-labs/wf-metagenomics/blob/master/LICENSE
 
     /**
     * Minified by jsDelivr using Terser v5.9.0.
@@ -549,12 +549,12 @@ const sampleSelect = renderSelect('#sample-select', names, 0);
 sampleSelect.property('value', default_sample);
 
 // Initialise ranks
-const default_rank = "family";
+const default_rank = "species";
 const rankSelect = renderSelect('#rank-select', ranks);
 rankSelect.property('value', default_rank);
 
 // Initialise cutoff
-const default_cutoff = 1;
+const default_cutoff = 0;
 const cutoffSelect = renderSelect('#cutoff-select', cutoffs, '%');
 cutoffSelect.property('value', `${default_cutoff}`);
 
