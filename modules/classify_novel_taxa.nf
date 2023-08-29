@@ -108,9 +108,7 @@ process assemble_megahit {
 process assemble_rnaspades {
 
     label "process_high"
-
-	//----------ENV----------
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "biocontainers/spades:3.15.5--h95f258a_1"
 
     input:
         val unique_id
@@ -131,7 +129,7 @@ process assemble_megahit_paired {
 	label "process_high"
 
 	conda "bioconda::megahit"
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "biocontainers/megahit:1.2.9--h43eeafb_4"
 
     input:
         val unique_id
@@ -151,9 +149,7 @@ process assemble_megahit_paired {
 process assemble_rnaspades_paired {
 
 	label "process_high"
-
-	//----------ENV-----------
-	container "biowilko/scylla@${params.wf.container_sha}"
+    container "biocontainers/spades:3.15.5--h95f258a_1"
 
     input:
         val unique_id
@@ -178,7 +174,7 @@ process gen_assembly_stats {
 	label "process_single"
 
     conda "bioconda::bbmap"
-	container "biowilko/scylla@${params.wf.container_sha}"
+	container "biocontainers/bbmap:39.01--h92535d8_1"
 
     publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { filename -> "${params.assembler}_${filename}" }
 
