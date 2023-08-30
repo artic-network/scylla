@@ -10,7 +10,12 @@ ArrayList get_fq_files_in_dir(Path dir) {
 }
 
 process move_or_compress {
+
+    label "process_low"
+    conda "bioconda::tabix==v1.11"
+    container biocontainers/tabix:v1.9-11-deb_cv1
     cpus 1
+    
     input:
         // don't stage `input` with a literal because we check the file extension
         tuple val(barcode), path(input)
