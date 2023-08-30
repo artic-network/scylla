@@ -553,8 +553,11 @@ const default_rank = "species";
 const rankSelect = renderSelect('#rank-select', ranks);
 rankSelect.property('value', default_rank);
 
+// Initialise rank table
+const default_rank_table = "serotype";
+
 // Initialise cutoff
-const default_cutoff = 0;
+const default_cutoff = 5;
 const cutoffSelect = renderSelect('#cutoff-select', cutoffs, '%');
 cutoffSelect.property('value', `${default_cutoff}`);
 
@@ -598,7 +601,7 @@ function resetZoom() {
 }
 
 // Render table
-renderTable(sample_counts, names, default_rank);
+renderTable(sample_counts, names, default_rank_table);
 const dataTable = new simpleDatatables.DataTable("#table", {
     searchable: true,
     fixedHeight: true,
@@ -609,5 +612,5 @@ const dataTable = new simpleDatatables.DataTable("#table", {
 
 // Initialise chart interactivity
 const tableRankSelect = renderTableRankSelect('table-rank-select', ranks);
-tableRankSelect.property('value', default_rank);
+tableRankSelect.property('value', default_rank_table);
 d3.select("#table-rank-select").on("change", () => handleTableSelectChange(dataTable, sample_counts, names));

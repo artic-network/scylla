@@ -84,10 +84,15 @@ process extract_reads {
             --rank ${params.assembly_rank} \
             --min_percent ${params.assembly_min_percent}
 
-        for f in \$(ls reads.*.f*)
-          do
-            bgzip --threads $task.cpus \$f
-          done
+        PATTERN=(reads.*.f*)
+        if [ -f \${PATTERN[0]} ]; then
+            for f in \$(ls reads.*.f*)
+              do
+                bgzip --threads $task.cpus \$f
+              done
+        else
+            exit 2
+        fi
         """
 }
 

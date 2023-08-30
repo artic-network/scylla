@@ -35,7 +35,7 @@ workflow ingest {
             fastqdir = file("${params.fastq_dir}", type: "dir", checkIfExists:true)
             Channel.fromPath( fastqdir / "*.f*q*", type: "file")
                 .set {input_fastq_ch}
-	    
+
             fastp_single(unique_id, input_fastq_ch)
             fastp_single.out.processed_fastq.collectFile(name: 'processed.fq.gz')
                 .set {processed_fastq}
@@ -43,7 +43,7 @@ workflow ingest {
 
         // get_params_and_versions()
         //clean_metadata(metadata)
-        kraken_pipeline(unique_id, processed_fastq)
+        kraken_pipeline(unique_id, processed_fastq, params.raise_server)
 
         if (params.paired) {
             fastq_1 = fastp_paired.out.processed_fastq_1

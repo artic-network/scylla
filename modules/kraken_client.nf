@@ -1,60 +1,35 @@
 include { qc_checks } from '../modules/qc_checks'
 include { generate_report } from '../modules/generate_report'
 
+kraken_compute = params.kraken_clients == 1 ? 1 : params.kraken_clients - 1
+
 process kraken2_client {
     
     label 'process_low'
     label 'error_retry'
+    maxForks kraken_compute
 
     conda "epi2melabs::kraken2-server=0.1.3"
     container "${params.wf.container}@${params.wf.container_sha}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
 
-    input:
-        path fastq
-    output:
-        path "${fastq.baseName}.kraken_report.txt", emit: report
-        path "${fastq.baseName}.kraken_assignments.tsv", emit: assignments
-    script:
-    """
-    kraken2_client \
-        --port ${params.k2_port} --host-ip ${params.k2_host} \
-        --report "${fastq.baseName}.kraken_report.txt" \
-        --sequence ${fastq} > "${fastq.baseName}.kraken_assignments.tsv"
-    """
-}
-
-process combine_kraken_outputs {
-
-    label 'process_single'
-
-    container "${params.wf.container}@${params.wf.container_sha}"
-
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
-    
+
     input:
         val unique_id
-        path kraken_reports
-        path kraken_assignments
+        path fastq
     output:
         path "${params.database_set}.kraken_report.txt", emit: report
         path "${params.database_set}.kraken_assignments.tsv", emit: assignments
     script:
-    if ( kraken_reports.size() == 1) {
-        """
-        mv ${kraken_reports[0]} "${params.database_set}.kraken_report.txt"
-        mv ${kraken_assignments[0]} "${params.database_set}.kraken_assignments.tsv"
-        """
-    } else {
-        """
-        combine_kreports.py \\
-                -r ${kraken_reports} \\
-                -o "${params.database_set}.kraken_report.txt"
-
-        cat ${kraken_assignments} > "${params.database_set}.kraken_assignments.tsv"
-        """
-    }
+    """
+    kraken2_client \
+        --port ${params.k2_port} --host-ip ${params.k2_host} \
+        --report "${params.database_set}.kraken_report.txt" \
+        --sequence ${fastq} > "${params.database_set}.kraken_assignments.tsv"
+    """
 }
+
 
 process determine_bracken_length {
     label "process_low"
@@ -176,23 +151,22 @@ workflow run_kraken_and_bracken {
         taxonomy
     main:
         //fastq = Channel.fromPath(input_fastq)
-        kraken2_client(fastq)
-        combine_kraken_outputs(unique_id, kraken2_client.out.report.collect(), kraken2_client.out.assignments.collect())
+        kraken2_client(unique_id, fastq)
         if (params.run_bracken) {
             bracken_length = determine_bracken_length(database)
-            bracken(unique_id, combine_kraken_outputs.output.report, database, bracken_length)
-            bracken_to_json(unique_id, combine_kraken_outputs.output.report, taxonomy, bracken.out.summary)
+            bracken(unique_id, kraken2_client.out.report, database, bracken_length)
+            bracken_to_json(unique_id, kraken2_client.out.report, taxonomy, bracken.out.summary)
             out_json = bracken_to_json.out
             out_report = bracken.output.report
         } else {
-            kraken_to_json(unique_id, combine_kraken_outputs.output.report, taxonomy)
+            kraken_to_json(unique_id, kraken2_client.out.report, taxonomy)
             out_json = kraken_to_json.out
-            out_report = combine_kraken_outputs.output.report
+            out_report = kraken2_client.out.report
         }
     emit:
         bracken_report = out_report
-        kraken_report = combine_kraken_outputs.output.report
-        kraken_assignments = combine_kraken_outputs.output.assignments
+        kraken_report = kraken2_client.out.report
+        kraken_assignments = kraken2_client.out.assignments
         json = out_json
 }
 

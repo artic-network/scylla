@@ -6,10 +6,9 @@ include { stop_server } from '../modules/kraken_server'
 include { qc_checks } from '../modules/qc_checks'
 include { generate_report } from '../modules/generate_report'
 
-workflow kraken_pipeline {
+workflow kraken_setup {
     take:
-        unique_id
-        fastq
+        raise_server
     main:
         // Check source param is valid if applicable
         if (!params.database or !params.taxonomy) {
@@ -61,26 +60,49 @@ workflow kraken_pipeline {
             }
         }
 
-        if (params.raise_server) {
+        if (raise_server) {
             start_server(database)
+            server = start_server.out.server
+        } else {
+            server = null
         }
+    emit:
+        database = database
+        taxonomy = taxonomy
+        server = server
+}
 
-        run_kraken_and_bracken(unique_id, fastq, database, taxonomy)
+workflow kraken_end {
+    take:
+        server
+        stop
+    main:
+        stop_server(server, stop)
+}
 
-        if (params.raise_server) {
-            stop_server(start_server.out.server, run_kraken_and_bracken.out.bracken_report.collect())
-        }
+workflow kraken_pipeline {
+    take:
+        unique_id
+        fastq
+        raise_server
+    main:
+        kraken_setup(raise_server)
+
+        run_kraken_and_bracken(unique_id, fastq, kraken_setup.out.database, kraken_setup.out.taxonomy)
+
+        if (raise_server)
+            kraken_end(kraken_setup.out.server, run_kraken_and_bracken.out.bracken_report.collect())
 
         qc_checks(unique_id, fastq)
         if (params.additional_bracken_jsons) {
             Channel.of(file(params.additional_bracken_jsons, type: "file", checkIfExists:true))
                 .concat(run_kraken_and_bracken.out.json)
                 .unique {it.getName()}
-                .collect()
+                .flatten()
                 .set { bracken_jsons }
         } else {
             run_kraken_and_bracken.out.json
-                .collect()
+                .flatten()
                 .set { bracken_jsons }
         }
 
@@ -90,7 +112,9 @@ workflow kraken_pipeline {
         kraken_report = run_kraken_and_bracken.out.kraken_report
         kraken_assignments = run_kraken_and_bracken.out.kraken_assignments
         report = generate_report.out
-        taxonomy = taxonomy
+        taxonomy = kraken_setup.out.taxonomy
+        unique_id = unique_id
+        fastq = fastq
 }
 
 workflow {
