@@ -14,7 +14,7 @@ process move_or_compress {
     label "process_low"
 
     conda "bioconda::tabix==v1.11"
-    container "biocontainers/tabix:v1.9-11-deb_cv1"
+    container "biocontainers/tabix:1.11--hdfd78af_0"
     cpus 1
 
     input:
