@@ -12,6 +12,14 @@
       "fa_icon": "fas fa-terminal",
       "description": "Define where the pipeline should find input data and save output data.",
       "properties": {
+        "run_dir": {
+          "type": "string",
+          "format": "path",
+          "title": "RUN_DIR",
+          "description": "A directory containing a directory of fastq for a each barcode in a run.",
+          "help_text": "A directory containing subdirectories of fastq files for each barcode in a metagenomic run.",
+          "demo_data": "test/test_data/"
+        },
         "fastq_dir": {
           "type": "string",
           "format": "path",
@@ -19,29 +27,26 @@
           "description": "A directory containing fastq for a single sample.",
           "help_text": "A directory containing at least one fastq file of metagenomic reads corresponding to a single sample.",
           "demo_data": "test/test_data/barcode01"
+        },
+        "unique_id": {
+          "type": "string",
+          "title": "The unique ID for this sample or run",
+          "description": "A unique ID for this sample or run."
         }
       },
-      "allOf": [
+      "oneOf": [
+        {
+          "required": [
+            "run_dir",
+            "unique_id"
+          ]
+        },
         {
           "required": [
             "fastq_dir"
           ]
         }
       ]
-    },
-    "sample_options": {
-      "title": "Sample Options",
-      "type": "object",
-      "default": "",
-      "properties": {
-
-        "unique_id": {
-          "type": "string",
-          "title": "Sample ID",
-          "description": "A unique sample id for this run."
-        }
-      },
-      "description": "Parameters that relate to samples such as sample id."
     },
     "reference_options": {
       "title": "Reference Options",
@@ -206,9 +211,6 @@
   "allOf": [
     {
       "$ref": "#/definitions/input_options"
-    },
-    {
-      "$ref": "#/definitions/sample_options"
     },
     {
       "$ref": "#/definitions/reference_options"
