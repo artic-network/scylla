@@ -48,13 +48,13 @@ const getSampleCounts = (data) => {
     const counts = {};
     const names = getSampleNames(data);
 
-    const _getSampleCounts = (sample_name, domain_name, agg, fragment) => {
+    const _getSampleCounts = (sample_name, _domain_name, agg, fragment) => {
         Object.entries(fragment).forEach(([key, val]) => {
-            const updated_domain = val.rank == "superkingdom" ? key : domain_name;
+            const updated_domain = val.rank == "superkingdom" ? key : _domain_name;
             agg[key] = {
                 [sample_name]: val.count,
                 rank: val.rank,
-                domain: updated_domain,
+                domain_name: updated_domain,
                 name: key,
                 ...agg[key]
             };
@@ -71,12 +71,8 @@ const getSampleCounts = (data) => {
  *
  * @param {object} sample_data
  */
-const getTotalCount = (sample_data, domain_name) => {
-    //if (Object.keys(sample_data).includes(domain_name)){
-    //    return sample_data[domain_name].count;
-    //} else {
+const getTotalCount = (sample_data) => {
     return Object.values(sample_data).reduce((sum, I) => I.count + sum, 0);
-    //}
 };
 
 /**
@@ -92,7 +88,7 @@ const getSankeyEdges = (sample_data) => {
                 source: current,
                 target: current === key ? `${key}_${val.rank}` : key,
                 value: val.count,
-                domain: _domain_name,
+                domain_name: _domain_name,
                 targetRank: val.rank,
                 targetRankIdx: ranks.indexOf(val.rank)
             },
@@ -143,7 +139,7 @@ const getSankeyGraph = (sample_name, sample_data, domain_name, generator, cutoff
     const _cutoffVal = total / 100 * cutoff;
 
     const _edges = getSankeyEdges(sample_data);
-    const _filteredEdges = _edges.filter(Link => Link.value >= _cutoffVal).filter( Link => domain_name === "all" || Link.domain === domain_name);
+    const _filteredEdges = _edges.filter(Link => Link.value >= _cutoffVal).filter( Link => domain_name === "all" || Link.domain_name === domain_name);
     const _nodes = getSankeyNodes(_filteredEdges);
 
     return generator({
@@ -213,7 +209,7 @@ const updateToolTip = (enter, colourScale, total, counts) => {
     enter.on("mouseover", (event, d) => {
         const toolTipData = [
             `Name: ${d.name}`,
-            `Domain: ${counts[d.name].domain}`,
+            `Domain: ${counts[d.name].domain_name}`,
             `Rank: ${counts[d.name].rank}`,
             `Count: ${d.value}`,
             `Percentage: ${(100 / total * d.value).toFixed(2)}%`
@@ -265,18 +261,16 @@ const updateToolTip = (enter, colourScale, total, counts) => {
  * @param {number} total
  * @param {object} counts
  */
-const updateVisualisation = (svg, graph, depth, domain_name, colourScale, total, counts) => {
+const updateVisualisation = (svg, graph, depth, colourScale, total, counts) => {
     const { nodes, links } = graph;
 
     const _filteredNodes = nodes.filter(Node =>
         ranks.indexOf(counts[Node.name]?.rank || 0) <= depth
-        //&& (counts[Node.name].domain === domain_name || domain_name === "all")
         && Node.name !== 'Unknown');
 
     // Temporary extra jank: Remove the node and link for unknown species
     const _filteredLinks = links.filter(Link =>
         Link.targetRankIdx <= depth
-        //&& (Link.target.domain === domain_name || domain_name === "all")
         && Link.target.name !== 'Unknown');
 
     const t = svg.transition().duration(750);
@@ -381,7 +375,7 @@ const updateVisualisation = (svg, graph, depth, domain_name, colourScale, total,
                     .append("path")
                     .attr("d", d3.sankeyLinkHorizontal())
                     .attr("stroke", (d) => `url(#${d.source.name}-${normaliseName(d.target.name)}-grad`)
-                    .attr("stroke-opacity", 0.1)
+                    .attr("stroke-opacity", 0.2)
                     .call(enter => enter.transition(t)
                         .attr("stroke-width", d => Math.max(1, d.width)))
             },
@@ -414,14 +408,14 @@ const updateVisualisation = (svg, graph, depth, domain_name, colourScale, total,
  * @param {number} total
  * @param {object} counts
  */
-const renderVisualisation = (svg, graph, depth, domain_name, colourScale, total, counts) => {
+const renderVisualisation = (svg, graph, depth, colourScale, total, counts) => {
     const nodelist = svg.append("g")
         .attr("id", "nodes");
     const linklist = svg.append("g")
         .attr("id", "links")
         .attr("fill", "none");
 
-    updateVisualisation(svg, graph, depth, domain_name, colourScale, total, counts);
+    updateVisualisation(svg, graph, depth, colourScale, total, counts);
     return svg
 };
 
@@ -439,13 +433,12 @@ const handlePlotSelectChange = (counts) => {
     const rank = d3.select("#rank-select").property('value');
     const cutoff = d3.select("#cutoff-select").property('value');
     const sample = d3.select("#sample-select").property('value');
-    //const sample_data = parsed[sample].includes(domain_name) ? parsed[sample][domain_name].children: parsed[sample];
     const sample_data = parsed[sample];
-    const _total = getTotalCount(sample_data, domain_name);
+    const _total = getTotalCount(sample_data);
     const _graph = getSankeyGraph(sample, parsed[sample], domain_name, generator, cutoff, _total);
     const colourScale = d3.scaleQuantize().domain([0, _total]).range(colours);
     setStateGraph(_graph);
-    updateVisualisation(svg, _graph, ranks.indexOf(rank), domain_name, colourScale, _total, counts);
+    updateVisualisation(svg, _graph, ranks.indexOf(rank), colourScale, _total, counts);
 };
 
 /**
@@ -601,11 +594,11 @@ const cutoffSelect = renderSelect('#cutoff-select', cutoffs, '%');
 cutoffSelect.property('value', `${default_cutoff}`);
 
 // Render default sample
-const total = getTotalCount(sample_data, default_domain);
+const total = getTotalCount(sample_data);
 const graph = getSankeyGraph(
     default_sample, sample_data, default_domain, generator, default_cutoff, total);
 const colourScale = d3.scaleQuantize().domain([0, total]).range(colours);
-renderVisualisation(svg, graph, ranks.indexOf(default_rank), default_domain, colourScale, total, sample_counts);
+renderVisualisation(svg, graph, ranks.indexOf(default_rank), colourScale, total, sample_counts);
 setStateGraph(graph);
 
 // Initialise select reactivity
