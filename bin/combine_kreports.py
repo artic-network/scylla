@@ -86,8 +86,8 @@ def write_entry(out_handle, entry):
         "%f\t%i\t%i\t%s\t%s\t%s%s\n"
         % (
             entry["percentage"],
-            entry["count"],
             entry["count_descendants"],
+            entry["count"],
             entry["raw_rank"],
             entry["ncbi"],
             2 * offset * " ",

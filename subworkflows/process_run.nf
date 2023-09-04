@@ -61,7 +61,7 @@ workflow process_run {
             kraken_setup(params.raise_server)
 
         process_barcode(ch_input.barcode_id, ch_input.barcode_fq)
-        process_barcode.out.barcode_id.collectFile(name: "${params.outdir}/${unique_id}/samples.csv", sort:true, newLine:true) { item -> "${item},${params.outdir}/${item}/${item}_report.html"}
+        process_barcode.out.barcode_id.map{ item -> "barcode,filepath,sample_report\n${item},${item}/classifications/${params.database_set}.kraken_report.txt,${item}/${item}_report.html\n" }.collectFile(name: "${params.outdir}/${unique_id}/samples.csv", sort:true, keepHeader:true, skip:1)
 
         if (params.raise_server)
             kraken_end(kraken_setup.out.server, process_barcode.out.barcode_report.collect())
