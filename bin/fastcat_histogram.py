@@ -18,8 +18,8 @@ def histogram_counts(data, dmin=0, bin_width=100):
     else:
         bins = np.arange(dmin, max(data) + bin_width, bin_width)
         counts, _ = np.histogram(data, bins=bins)
-        bins = bins.toList()
-        counts = counts.toList()
+        bins = bins.tolist()
+        counts = counts.tolist()
     return bins, counts
 
 
