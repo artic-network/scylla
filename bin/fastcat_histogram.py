@@ -6,7 +6,6 @@
 import argparse
 import json
 import sys
-
 import numpy as np
 import pandas as pd
 
@@ -19,14 +18,16 @@ def histogram_counts(data, dmin=0, bin_width=100):
     else:
         bins = np.arange(dmin, max(data) + bin_width, bin_width)
         counts, _ = np.histogram(data, bins=bins)
-    return bins.tolist(), counts.tolist()
+        bins = bins.toList()
+        counts = counts.toList()
+    return bins, counts
 
 
 def get_stats(seq_summary):
     """Get Stats Json."""
     stats_json = {
         "total_reads": len(seq_summary)}
-    if len(seq_summary) > 1:
+    if len(seq_summary) >= 1:
         len_data = seq_summary['read_length']
         len_bins, len_counts = histogram_counts(
             len_data, dmin=0, bin_width=50)
