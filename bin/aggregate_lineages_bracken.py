@@ -51,14 +51,11 @@ def update_or_create_count(entry, entries, bracken_counts):
     previous = entries
     previous_rank = None
     for [name, rank] in zip(lineage_split, ranks_split):
-        print(name, rank)
 
         if rank not in RANKS:
             if previous_rank == "species":
                 rank = "subspecies"
-                print("updated", name, rank)
             else:
-                print("ignored", name, rank, previous_rank)
                 continue
 
         current = previous.get(name)
