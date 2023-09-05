@@ -74,7 +74,7 @@ def update_or_create_count(entry, entries, bracken_counts):
 
         current['count'] += count
         previous = current['children']
-        precious_rank = rank
+        previous_rank = rank
 
     return entries
 
