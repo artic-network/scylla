@@ -20,6 +20,7 @@ RANKS = [
     "family",
     "genus",
     "species",
+    "subspecies",
     "serotype"
 ]
 
@@ -48,10 +49,14 @@ def update_or_create_count(entry, entries, bracken_counts):
     count = int(bracken_counts[tax_id])
 
     previous = entries
+    previous_rank = None
     for [name, rank] in zip(lineage_split, ranks_split):
 
         if rank not in RANKS:
-            continue
+            if previous_rank == "species":
+                rank = "subspecies"
+            else:
+                continue
 
         current = previous.get(name)
         if not current:
@@ -66,6 +71,7 @@ def update_or_create_count(entry, entries, bracken_counts):
 
         current['count'] += count
         previous = current['children']
+        precious_rank = rank
 
     return entries
 
