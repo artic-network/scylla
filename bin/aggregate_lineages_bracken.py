@@ -102,8 +102,8 @@ def main(prefix, lineages, bracken, report):
     with open(report) as f:
         report_file = f.readlines()
         for line in report_file:
-            if "unclassified" in line:
-                unclassified_count = line.split()[1]
+            if line.split()[4] == "0" and "unclassified" in line:
+                unclassified_count = line.split()[2]
                 entries = update_or_create_unclassified(
                     entries, unclassified_count)
                 total += int(unclassified_count)
