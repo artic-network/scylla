@@ -197,8 +197,6 @@ process run_virbot {
 
 	label "process_medium"
 
-        // UPLOAD ENV - DELETE WHEN SET!!!
-	conda "/localdisk/home/s2420489/conda/virbot.yml"
 	container "biowilko/scylla@${params.wf.container_sha}"
 
     publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "viral_contigs.fa" : "tax_assignments.tsv" }
@@ -238,8 +236,6 @@ process run_genomad {
 
 	label "process_medium"	
 
-	//UPLOAD ENV
-	conda "/localdisk/home/s2420489/conda/genomad.yml"
 	container "biowilko/scylla@${params.wf.container_sha}"
 
 	input:
