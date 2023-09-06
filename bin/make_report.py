@@ -93,9 +93,10 @@ def main():
 
     if args.read_counts:
         with open(args.read_counts.resolve(), "rt") as qc_file:
-            read_counts = qc_file.read().strip().replace('"', '\\"')
+            reader = csv.DictReader(qc_file, delimiter='\t')
+            read_counts = [{"read_length": row['read_length'], "mean_quality": row['mean_quality']} for row in reader]
     else:
-        read_counts = {}
+        read_counts = []
     data_for_report = {"sankey_data": assignments, "read_count_data": read_counts}
 
     outfile = args.prefix + "_report.html"

@@ -23,13 +23,12 @@
     <script src="https://cdn.jsdelivr.net/gh/rambaut/figtree.js@9880/dist/figtree.umd.js"></script>
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://sharonchoong.github.io/svg-exportJS/svg-export.min.js"></script>
-    <script src="https://unpkg.com/canvg/lib/umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdfkit/js/pdfkit.min.js"></script>
     <script src="https://github.com/devongovett/blob-stream/releases/download/v0.1.3/blob-stream.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/svg-to-pdfkit/source.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega@5.22.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.11.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.25.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.12.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.22.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-dispatch@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-ease@3"></script>
@@ -1000,6 +999,11 @@
                     display:none !important;
                 }
             }
+            .grid-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-gap: 20px;
+            }
 
         </style>
 
@@ -1007,111 +1011,6 @@
         <p class="lead">Results generated through the scylla Nextflow workflow provided by mSCAPE.</p>
 
         <main class="single-sample-sankey">
-            <script>
-                /* ----------------------------------------------------------------------------
-                | Stats histogram methods
-                |---------------------------------------------------------------------------- */
-
-                const getStatsData = () => "${data_for_report['read_count_data']}";
-
-                d3.json(getStatsData(), function(stats) {
-                    createHistogram(stats.raw_reads.len, "#len-plot", "Read length distribution", "Length (bp)", "Count")
-                    createHistogram(stats.raw_reads.qual, "#qual-plot", "Read mean quality distribution", "Mean quality score", "Count")
-                });
-
-                const createHistogram = function (data, div, title, xtitle, ytitle) {
-
-                    // A formatter for counts.
-                    const formatCount = d3.format(",.0f");
-                    const totalWidth = 460;
-                    const totalHeight = 400;
-                    const margin = {top: 10, right: 30, bottom: 30, left: 40},
-                        width = totalWidth - margin.left - margin.right,
-                        height = totalHeight - margin.top - margin.bottom;
-
-                    const binArray = data.keys();
-                    const binTicks = data.keys();
-
-                    const x = d3.scale.linear()
-                        .domain([0, d3.max(data.keys())])
-                        .range([0, width]);
-                    const binWidth = parseFloat(width / (binArray.length - 1)) - 1;
-
-                    const y = d3.scale.linear()
-                        .domain([0, d3.max(data.values())])
-                        .range([height, 0]);
-
-                    const xAxis = d3.svg.axis()
-                        .scale(x)
-                        .orient("bottom")
-                        .tickValues(binTicks);
-
-                    const yAxis = d3.svg.axis()
-                        .scale(y)
-                        .orient("left");
-
-                    const svg = d3.select(div).insert("svg")
-                        .attr("width", width + margin.left + margin.right)
-                        .attr("height", height + margin.top + margin.bottom)
-                        .style("background", "#fff")
-                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-                    svg.selectAll(".bar")
-                        .data(data)
-                        .enter()
-                        .append("rect")
-                        .attr("class", "bar")
-                        .attr("x", d.values())
-                        .attr("width", binWidth)
-                        .attr("y", d.keys())
-                        .attr("height", function (d) {
-                            return height - y(d.y);
-                        });
-
-                    svg.append("g")
-                        .attr("class", "x axis")
-                        .attr("transform", "translate(0," + height + ")")
-                        .call(xAxis);
-
-                    svg.append("g")
-                        .attr("class", "y axis")
-                        //.attr("transform", "translate(0," + height + ")")
-                        .call(yAxis);
-
-                    // Add axis labels
-                    svg.append("text")
-                        .attr("class", "x label")
-                        .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom - 15) + ")")
-                        //.attr("dy", "1em")
-                        .attr("text-anchor", "middle")
-                        .text(xtitle);
-
-                    svg.append("text")
-                        .attr("class", "y label")
-                        .attr("transform", "rotate(-90)")
-                        .attr("y", 0 - margin.left)
-                        .attr("x", 0 - (height / 2))
-                        .attr("dy", "1em")
-                        .attr("text-anchor", "middle")
-                        .text(ytitle);
-
-                    // Add title to chart
-                    svg.append("text")
-                        .attr("class", "title")
-                        .attr("transform", "translate(" + (width / 2) + " ," + (-20) + ")")
-                        //.attr("dy", "1em")
-                        .attr("text-anchor", "middle")
-                        .text(title);
-
-                    return svg;
-                };
-            </script>
-
-            <h3>Read statistics</h3>
-            <div id="stats">
-                <div id="len-plot"></div>
-                <div id="qual-plot"></div>
-            </div>
 
             <h3>Kraken classifications</h3>
             <div id="controls">
@@ -1156,8 +1055,6 @@
                 <tbody></tbody>
             </table>
 
-
-
             <script>
                 /* ----------------------------------------------------------------------------
                 | Chart settings
@@ -1187,6 +1084,65 @@
                 | Continues in separate file for mako parsing reasons
                 |---------------------------------------------------------------------------- */
                 ${data_for_report["sankey_js"]}
+            </script>
+
+            <h3>Read statistics</h3>
+            <div id="stats" class="grid-container">
+                <div id="len-plot" class="grid-child"></div>
+                <div id="qual-plot" class="grid-child"></div>
+            </div>
+
+            <script defer>
+                /* ----------------------------------------------------------------------------
+                | Stats histogram methods
+                |---------------------------------------------------------------------------- */
+
+                const stats_data = ${data_for_report["read_count_data"]};
+
+                const vl_len_histogram = {
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "width": 600,
+                    "height": 500,
+                    "data": {
+                        "values": stats_data
+                    },
+                    "mark": "bar",
+                    "encoding": {
+                        "x": {
+                            "bin": {"maxbins": 40},
+                            "field": "read_length",
+                            "title": "Read length (bp)",
+                        },
+                        "y": {
+                            "aggregate": "count",
+                            "title": "Count",}
+                    }
+                };
+                const vl_qual_histogram = {
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "width": 600,
+                    "height": 500,
+                    "data": {
+                        "values": stats_data
+                    },
+                    "mark": "bar",
+                    "encoding": {
+                        "x": {
+                            "bin": {"maxbins": 41, "extent": [0,41]},
+                            "field": "mean_quality",
+                            "title": "Mean quality",
+                        },
+                        "y": {
+                            "aggregate": "count",
+                            "title": "Count",}
+                    }
+                };
+                vegaEmbed('#len-plot', vl_len_histogram, {renderer: "svg"})
+                    .then(result => console.log(result))
+                    .catch(console.warn);
+                vegaEmbed('#qual-plot', vl_qual_histogram, {renderer: "svg"})
+                    .then(result => console.log(result))
+                    .catch(console.warn);
             </script>
 
         </main>
