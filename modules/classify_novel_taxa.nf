@@ -255,6 +255,8 @@ process run_genomad {
     then
         grep 'Riboviria' genomad/filtered_contigs_summary/filtered_contigs_virus_summary.tsv | \
         awk -F'\t' 'BEGIN{print "contig_id\ttaxonomy"} NR>1{print \$1"\t"\$11}' > tax_assignments.tsv
+    else
+        touch tax_assignments.tsv
     fi
     """
 }
