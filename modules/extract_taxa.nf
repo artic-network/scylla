@@ -11,9 +11,9 @@ process extract_paired_reads {
     
     label 'process_high'
 
-    // errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
 
-    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
     container "biowilko/scylla@${params.wf.container_sha}"   
@@ -26,7 +26,7 @@ process extract_paired_reads {
         path kraken_report
         path bracken_report
     output:
-        path "reads.*.f*.gz", emit: reads
+        path "reads.*.f*", emit: reads
         path "reads_summary.json", emit: summary
     script:
         """
@@ -41,12 +41,7 @@ process extract_paired_reads {
             --max_human ${params.max_human_reads_before_rejection} \
             --min_count_descendants ${params.assembly_min_reads} \
             --rank ${params.assembly_rank} \
-            --min_percent ${params.assembly_min_percent}
-
-        for f in \$(ls reads.*.f*)
-          do
-            bgzip --threads $task.cpus \$f
-          done        
+            --min_percent ${params.assembly_min_percent}      
         """
 }
 
@@ -54,9 +49,9 @@ process extract_reads {
 
     label 'process_high'
 
-    // errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
 
-    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
     container "biowilko/scylla@${params.wf.container_sha}"   
@@ -68,7 +63,7 @@ process extract_reads {
         path kraken_report
         path bracken_report
     output:
-        path "reads.*.f*.gz", emit: reads
+        path "reads.*.f*", emit: reads
         path "reads_summary.json", emit: summary
     script:
         """
@@ -83,12 +78,26 @@ process extract_reads {
             --min_count_descendants ${params.assembly_min_reads} \
             --rank ${params.assembly_rank} \
             --min_percent ${params.assembly_min_percent}
-
-        for f in \$(ls reads.*.f*)
-          do
-            bgzip --threads $task.cpus \$f
-          done
         """
+}
+
+process bgzip_extracted_taxa {
+      
+      label 'process_low'
+  
+      publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
+  
+      conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+      container "biowilko/scylla@${params.wf.container_sha}"   
+  
+      input:
+          path read_file
+      output:
+          path "reads.*.f*.gz"
+      script:
+          """
+          bgzip --threads $task.cpus ${read_file}
+          """
 }
 
 
