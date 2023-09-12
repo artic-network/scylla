@@ -2,7 +2,7 @@ process fastp_paired {
     
     label 'process_medium'
 
-    publishDir "${params.out_dir}/${unique_id}/preprocess/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: 'copy'
 
     container "biowilko/scylla@${params.wf.container_sha}"
 
@@ -43,7 +43,7 @@ process fastp_single {
     
     label 'process_medium'
 
-    publishDir "${params.out_dir}/${unique_id}/preprocess/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: 'copy'
 
     container "biowilko/scylla@${params.wf.container_sha}"
 
@@ -76,7 +76,7 @@ process paired_concatenate {
 
     label 'process_low'
 
-    publishDir "${params.out_dir}/${unique_id}/preprocess/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: 'copy'
 
     container "biowilko/scylla@${params.wf.container_sha}"
 

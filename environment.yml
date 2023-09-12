@@ -1,4 +1,4 @@
-name: scylla_dev
+name: scylla
 channels:
   - bioconda
   - conda-forge
@@ -17,8 +17,17 @@ dependencies:
   - flye
   - megahit
   - pandas
-  - numpy
+  - numpy~=1.23.1
   - taxonkit
   - fastp
   - tabix
   - mako
+  - spades # test installation
+  - rnabloom
+  - bbmap
+  - prodigal # for virbot
+  - hmmer # for virbot
+  - diamond # for virbot
+  - genomad
+  - pip:
+    - git+https://github.com/rmcolq/RNA_virus_detector.git@dev
