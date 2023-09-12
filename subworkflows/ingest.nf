@@ -49,14 +49,20 @@ workflow ingest {
                 fastq_1 = fastp_paired.out.processed_fastq_1
                 fastq_2 = fastp_paired.out.processed_fastq_2
                 extract_paired_reads(unique_id, fastq_1, fastq_2, kraken_pipeline.out.kraken_assignments, kraken_pipeline.out.kraken_report, kraken_pipeline.out.bracken_report)
-                bgzip_extracted_taxa(extract_paired_reads.out.reads)
+                extract_paired_reads.out.reads
+                    .flatten()
+                    .set {extracted_taxa}
+                bgzip_extracted_taxa(extracted_taxa)
 		if (params.classify_novel_viruses) {
 	            classify_novel_taxa_paired(unique_id, fastq_1, fastq_2)
 		}
         } else { 
                 fastq = processed_fastq
                 extract_reads(unique_id, fastq, kraken_pipeline.out.kraken_assignments, kraken_pipeline.out.kraken_report, kraken_pipeline.out.bracken_report)
-                bgzip_extracted_taxa(extract_reads.out.reads)
+                extract_reads.out.reads
+                    .flatten()
+                    .set {extracted_taxa}
+                bgzip_extracted_taxa(extracted_taxa)
 		if (params.classify_novel_viruses) {
 		    classify_novel_taxa(unique_id, fastq)
 		}
