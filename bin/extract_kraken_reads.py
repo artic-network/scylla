@@ -207,12 +207,20 @@ def parse_kraken_assignment_line(line):
     else:
         tax_id = line_vals[2]
 
-    read_id = line_vals[1]
+    read_id = trim_read_id(line_vals[1])
+
     if tax_id == "A":
         tax_id = 81077
     else:
         tax_id = tax_id
     return tax_id, read_id
+
+
+def trim_read_id(read_id):
+    if read_id.endswith("/1") or read_id.endswith("/2"):
+        read_id = read_id[:-2]
+
+    return read_id
 
 
 def extract_taxa(
@@ -234,9 +242,12 @@ def extract_taxa(
 ):
     # open read files
     filetype, zipped = check_read_files(reads1)
-    s_file1 = SeqIO.index(reads1, filetype)
+
     if reads2:
-        s_file2 = SeqIO.index(reads2, filetype)
+        s_file1 = SeqIO.index(reads1, filetype, key_function=trim_read_id)
+        s_file2 = SeqIO.index(reads2, filetype, key_function=trim_read_id)
+    else:
+        s_file1 = SeqIO.index(reads1, filetype)
 
     # get taxids to extract
     bracken_hierarchy = get_bracken_hierarchy(kraken_file, bracken_file, max_human)
