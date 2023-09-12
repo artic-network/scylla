@@ -11,7 +11,7 @@ process extract_paired_reads {
     
     label 'process_high'
 
-    errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
+    // errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
 
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
 
