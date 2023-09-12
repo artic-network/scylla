@@ -52,7 +52,7 @@ workflow ingest {
                 extract_paired_reads.out.reads
                     .flatten()
                     .set {extracted_taxa}
-                bgzip_extracted_taxa(extracted_taxa)
+                bgzip_extracted_taxa(unique_id, extracted_taxa)
 		if (params.classify_novel_viruses) {
 	            classify_novel_taxa_paired(unique_id, fastq_1, fastq_2)
 		}
@@ -62,7 +62,7 @@ workflow ingest {
                 extract_reads.out.reads
                     .flatten()
                     .set {extracted_taxa}
-                bgzip_extracted_taxa(extracted_taxa)
+                bgzip_extracted_taxa(unique_id, extracted_taxa)
 		if (params.classify_novel_viruses) {
 		    classify_novel_taxa(unique_id, fastq)
 		}

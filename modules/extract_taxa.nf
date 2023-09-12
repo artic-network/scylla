@@ -91,6 +91,7 @@ process bgzip_extracted_taxa {
       container "biowilko/scylla@${params.wf.container_sha}"   
   
       input:
+          val unique_id
           path read_file
       output:
           path "reads.*.f*.gz"
