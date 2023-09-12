@@ -91,7 +91,7 @@ process paired_concatenate {
 
     script:
     """
-    concatenate_reads.py --no-interleave --strict \\
+    concatenate_reads.py --no-interleave \\
         ${processed_fastq_1} ${processed_fastq_2} \\
         > ${unique_id}.concatenated.fastq
 
