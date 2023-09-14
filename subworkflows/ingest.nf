@@ -1,7 +1,7 @@
 // workflow to run kraken, check for human, run qc checks and generate html report for a single sample fastq
 include { get_params_and_versions } from '../modules/get_params_and_versions'
 include { kraken_pipeline } from '../subworkflows/kraken_pipeline'
-include { extract_reads; extract_paired_reads } from '../modules/extract_taxa'
+include { extract_reads; extract_paired_reads; bgzip_extracted_taxa } from '../modules/extract_taxa'
 include { fastp_single; fastp_paired; paired_concatenate } from '../modules/preprocess'
 include { classify_novel_taxa; classify_novel_taxa_paired } from '../modules/classify_novel_taxa'
 
@@ -49,12 +49,20 @@ workflow ingest {
                 fastq_1 = fastp_paired.out.processed_fastq_1
                 fastq_2 = fastp_paired.out.processed_fastq_2
                 extract_paired_reads(unique_id, fastq_1, fastq_2, kraken_pipeline.out.kraken_assignments, kraken_pipeline.out.kraken_report, kraken_pipeline.out.bracken_report)
+                extract_paired_reads.out.reads
+                    .flatten()
+                    .set {extracted_taxa}
+                bgzip_extracted_taxa(unique_id, extracted_taxa)
 		if (params.classify_novel_viruses) {
 	            classify_novel_taxa_paired(unique_id, fastq_1, fastq_2)
 		}
         } else { 
                 fastq = processed_fastq
                 extract_reads(unique_id, fastq, kraken_pipeline.out.kraken_assignments, kraken_pipeline.out.kraken_report, kraken_pipeline.out.bracken_report)
+                extract_reads.out.reads
+                    .flatten()
+                    .set {extracted_taxa}
+                bgzip_extracted_taxa(unique_id, extracted_taxa)
 		if (params.classify_novel_viruses) {
 		    classify_novel_taxa(unique_id, fastq)
 		}
