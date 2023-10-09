@@ -1,5 +1,3 @@
-include { qc_checks } from '../modules/qc_checks'
-include { generate_report } from '../modules/generate_report'
 
 kraken_compute = params.kraken_clients == 1 ? 1 : params.kraken_clients - 1
 
