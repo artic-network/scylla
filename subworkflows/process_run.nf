@@ -13,8 +13,10 @@ process move_or_compress {
 
     label "process_low"
 
+    errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
+
     conda "bioconda::tabix==v1.11"
-    container "biocontainers/tabix:1.11--hdfd78af_0"
+    container "${params.wf.container}@${params.wf.container_sha}"
     cpus 1
 
     input:
@@ -29,11 +31,21 @@ process move_or_compress {
         do
             if [[ "\$file" == *.gz ]]
             then
-                cat "\$file" | gunzip | bgzip -@ $task.cpus >> "${barcode}.all.fastq.gz"
+                if [ -f "${barcode}.all.fastq.gz" ]
+                then
+                    cat "\$file" | gunzip | bgzip -@ $task.cpus >> "${barcode}.all.fastq.gz"
+                else
+                    mv "\$file" "${barcode}.all.fastq.gz"
+                fi
             else
                 cat "\$file" | bgzip -@ $task.cpus >> "${barcode}.all.fastq.gz"
             fi
         done
+        if [ ! -f "${barcode}.all.fastq.gz" ]
+        then
+            echo "No fastq files"
+            exit 2
+        fi
         """
 }
 
