@@ -88,14 +88,14 @@ def infer_hierarchy(report_file):
                     ncbi,
                     name,
                 ) = line.strip().split("\t")
-        depth = parse_depth(name)
-        hierarchy = hierarchy[: depth - 1]
-        hierarchy.append(ncbi)
+            depth = parse_depth(name)
+            hierarchy = hierarchy[: depth - 1]
+            hierarchy.append(ncbi)
 
-        if len(hierarchy) > 1:
-            parent = hierarchy[-2]
-            parents[ncbi] = parent
-            children[parent].append(ncbi)
+            if len(hierarchy) > 1:
+                parent = hierarchy[-2]
+                parents[ncbi] = parent
+                children[parent].append(ncbi)
     return parents, children
 
 
