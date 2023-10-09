@@ -68,8 +68,8 @@ process unpackTaxonomy {
 kraken_compute = params.kraken_clients == 1 ? 1 : params.kraken_clients - 1
 
 process kraken_server {
-    errorStrategy 'ignore'
     label "process_long"
+    memory { 8.GB * task.attempt }
     cpus params.threads
     container "${params.wf.container}@${params.wf.container_sha}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
