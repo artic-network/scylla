@@ -26,17 +26,13 @@ process move_or_compress {
         val "${barcode}", emit: barcode_id
         path "${barcode}.all.fastq.gz", emit: barcode_fq
     script:
+        // nb we rezip with bgzip because usually gzipped and this isn't suitable later
         """
         for file in $input
         do
             if [[ "\$file" == *.gz ]]
             then
-                if [ -f "${barcode}.all.fastq.gz" ]
-                then
-                    cat "\$file" | gunzip | bgzip -@ $task.cpus >> "${barcode}.all.fastq.gz"
-                else
-                    mv "\$file" "${barcode}.all.fastq.gz"
-                fi
+                cat "\$file" | gunzip | bgzip -@ $task.cpus >> "${barcode}.all.fastq.gz"
             else
                 cat "\$file" | bgzip -@ $task.cpus >> "${barcode}.all.fastq.gz"
             fi
