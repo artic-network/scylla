@@ -19,7 +19,7 @@
 
 
 
-process unpackDatabase {
+process unpack_atabase {
     label "process_single"
     storeDir "${params.store_dir}/${params.database_set}"
     input:
@@ -42,7 +42,7 @@ process unpackDatabase {
     """
 }
 
-process unpackTaxonomy {
+process unpack_taxonomy {
     label "process_single"
     storeDir "${params.store_dir}/${params.database_set}"
     input:
@@ -143,7 +143,7 @@ workflow {
 
             input_database = file("${params.store_dir}/${params.database_set}/database_dir")
             if (input_database.isEmpty()) {
-                database = unpackDatabase(default_database)
+                database = unpack_atabase(default_database)
             } else {
                 database = input_database
             }

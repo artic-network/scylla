@@ -1,6 +1,6 @@
 include { run_kraken_and_bracken } from '../modules/kraken_client'
-include { unpackDatabase } from '../modules/kraken_server'
-include { unpackTaxonomy } from '../modules/kraken_server'
+include { unpack_database } from '../modules/kraken_server'
+include { unpack_taxonomy } from '../modules/kraken_server'
 include { start_server } from '../modules/kraken_server'
 include { stop_server } from '../modules/kraken_server'
 include { qc_checks } from '../modules/qc_checks'
@@ -34,7 +34,7 @@ workflow kraken_setup {
             }
             input_taxonomy = file("${params.store_dir}/${params.database_set}/taxonomy_dir")
             if (input_taxonomy.isEmpty()) {
-                taxonomy = unpackTaxonomy(default_taxonomy)
+                taxonomy = unpack_taxonomy(default_taxonomy)
             } else {
                 taxonomy = input_taxonomy
             }
@@ -54,7 +54,7 @@ workflow kraken_setup {
 
             input_database = file("${params.store_dir}/${params.database_set}/database_dir")
             if (input_database.isEmpty()) {
-                database = unpackDatabase(default_database)
+                database = unpack_database(default_database)
             } else {
                 database = input_database
             }
