@@ -61,6 +61,8 @@ workflow process_run {
     take:
         unique_id
     main:
+        get_params_and_versions(unique_id)
+
         run_dir = file("${params.run_dir}", type: "dir", checkIfExists:true)
         barcode_input = Channel.fromPath("${run_dir}/*", type: "dir", checkIfExists:true, maxDepth:1).map { [it.baseName, get_fq_files_in_dir(it)]}
         ch_input = move_or_compress(barcode_input)

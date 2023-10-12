@@ -10,6 +10,7 @@ workflow ingest {
         unique_id
         //metadata
     main:
+        get_params_and_versions(unique_id)
 
         if (params.paired) {
             Channel.of(file(params.fastq1, type: "file", checkIfExists:true))
