@@ -19,7 +19,7 @@
 
 
 
-process unpack_atabase {
+process unpack_database {
     label "process_single"
     storeDir "${params.store_dir}/${params.database_set}"
     input:
@@ -44,7 +44,7 @@ process unpack_atabase {
 
 process unpack_taxonomy {
     label "process_single"
-    storeDir "${params.store_dir}/${params.database_set}"
+    storeDir "${params.store_dir}"
     input:
         path taxonomy
     output:
@@ -143,7 +143,7 @@ workflow {
 
             input_database = file("${params.store_dir}/${params.database_set}/database_dir")
             if (input_database.isEmpty()) {
-                database = unpack_atabase(default_database)
+                database = unpack_database(default_database)
             } else {
                 database = input_database
             }
