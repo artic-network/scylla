@@ -12,6 +12,7 @@ dependencies:
   - kraken2
   - kraken2-server # not on mac
   - bracken # needs to be manually installed from git and softlinked if Mac M1
+  - sourmash=4.8.4
   - fastcat
   - biopython
   - flye
