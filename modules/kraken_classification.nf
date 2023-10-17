@@ -88,27 +88,23 @@ workflow kraken_classify {
         run_kraken_and_bracken(fastq_ch, kraken_setup.out.database, kraken_setup.out.taxonomy)
 
         if (raise_server)
-            kraken_end(kraken_setup.out.server, run_kraken_and_bracken.out.bracken_report.collect())
+            kraken_end(kraken_setup.out.server, run_kraken_and_bracken.out.kreport.collect())
 
         if (params.additional_bracken_jsons) {
             Channel.of(file(params.additional_bracken_jsons, type: "file", checkIfExists:true))
-                .map{ it -> [fastq_ch.unique_id, it]}
                 .concat(run_kraken_and_bracken.out.json)
-                .unique {it[1].getName()}
-                .groupTuple()
+                .unique {it.getName()}
+                .flatten()
                 .set { bracken_jsons }
         } else {
             run_kraken_and_bracken.out.json
-                .groupTuple()
+                .flatten()
                 .set { bracken_jsons }
         }
     emit:
         assignments = run_kraken_and_bracken.out.assignments
         kreport = run_kraken_and_bracken.out.kreport
-        json = bracken_jsons
         taxonomy = kraken_setup.out.taxonomy
-
-
 }
 
 workflow {
@@ -131,8 +127,7 @@ workflow {
         exit 1, "One of fastq or fastq_dir need to be provided -- aborting"
     }
 
-    fastq_ch = [unique_id, input_fastq]
-    kraken_classify(fastq_ch, ${params.raise_server})
+    input_fastq.map { it -> [unique_id, it] }.set { fastq_ch }
+    kraken_classify(fastq_ch, "${params.raise_server}")
 }
-
 
