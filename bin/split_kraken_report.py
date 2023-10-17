@@ -26,15 +26,15 @@ def parse_depth(name):
     depth = int(depth / 2)
     return depth
 
-def save_file(prefix, name, lines):
+def save_file(name, lines):
     if len(lines) == 0:
         return
-    outfile = ".".join([prefix, name, "txt"])
+    outfile = ".".join([name, "kreport_split.txt"])
     with open(outfile, "w") as f:
         for line in lines:
             f.write(line)
 
-def parse_report_file(report_file, prefix, split_strings, split_rank):
+def parse_report_file(report_file, split_strings, split_rank):
     depth_dict = {}
     lines = {"remainder":[]}
     key = "remainder"
@@ -95,7 +95,7 @@ def parse_report_file(report_file, prefix, split_strings, split_rank):
             lines[key].append(line)
 
         for key in lines:
-            save_file(prefix, key, lines[key])
+            save_file(key, lines[key])
 
 
 
@@ -108,12 +108,6 @@ def main():
         dest="report_file",
         required=True,
         help="Kraken or Bracken file of taxon relationships and quantities",
-    )
-    parser.add_argument(
-        "-p",
-        dest="prefix",
-        required=False,
-        help="Prefix of outfiles",
     )
     parser.add_argument(
         "--splits",
@@ -131,9 +125,6 @@ def main():
         )
 
     args = parser.parse_args()
-
-    if not args.prefix:
-        args.prefix = ".".join(args.report_file.split(".")[:-1])
 
     rank_dict = {
         "kingdom": "K",
@@ -166,7 +157,7 @@ def main():
     time = now.strftime("%m/%d/%Y, %H:%M:%S")
     sys.stdout.write("PROGRAM START TIME: " + time + "\n")
 
-    parse_report_file(args.report_file, args.prefix, args.splits, args.rank)
+    parse_report_file(args.report_file, args.splits, args.rank)
 
     now = datetime.now()
     time = now.strftime("%m/%d/%Y, %H:%M:%S")

@@ -51,8 +51,8 @@ process sourmash_sketch_dna {
 
 process sourmash_gather {
 
-    label 'process_medium'
     label 'error_retry'
+    memory { 60.GB * task.attempt }
 
     conda "bioconda::sourmash=4.8.4"
     container "quay.io/biocontainers/sourmash:4.8.4--hdfd78af_0"
@@ -66,7 +66,7 @@ process sourmash_gather {
         path "${unique_id}.k${params.sourmash_k}.gather.txt", emit: gather_txt
     script:
     """
-    sourmash gather ${sketch} database_dir/${params.sourmash_db_name}-{viral,archaea,bacteria,protozoa,fungi}-k${params.sourmash_k}.zip --dna --ksize ${params.sourmash_k} \
+    sourmash gather ${sketch} database_dir/${params.sourmash_db_name}-{viral,bacteria}-k${params.sourmash_k}.zip --dna --ksize ${params.sourmash_k} \
                      --threshold-bp ${params.sourmash_threshold_bp} \
                      -o "${unique_id}.k${params.sourmash_k}.gather.csv" > "${unique_id}.k${params.sourmash_k}.gather.txt"
     """
@@ -91,7 +91,7 @@ process sourmash_tax_metagenome {
     script:
     """
     sourmash tax metagenome -g ${gather_csv} \
-        -t lineages_dir/${params.sourmash_db_name}-{viral,archaea,bacteria,protozoa,fungi}.lineages.csv.gz \
+        -t lineages_dir/${params.sourmash_db_name}-{viral,bacteria}.lineages.csv.gz \
         -o "sourmash.k${params.sourmash_k}" \
         --output-format krona csv_summary kreport \
         --rank species

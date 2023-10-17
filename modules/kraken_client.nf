@@ -14,11 +14,10 @@ process kraken2_client {
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     input:
-        val unique_id
-        path fastq
+        tuple val(unique_id), path(fastq)
     output:
-        path "${params.database_set}.kraken_report.txt", emit: report
-        path "${params.database_set}.kraken_assignments.tsv", emit: assignments
+        tuple val(unique_id), path("${params.database_set}.kraken_assignments.tsv"), emit: assignments
+        tuple val(unique_id), path("${params.database_set}.kraken_report.txt"), emit: kreport
     script:
     """
     kraken2_client \
@@ -61,17 +60,16 @@ process bracken {
     container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
-        val unique_id
-        path kraken_report
+        tuple val(unique_id), path(kreport)
         path database
         val bracken_length
     output:
-        path "${params.database_set}.bracken_summary.txt", emit: summary
-        path "${params.database_set}.bracken_report.txt", emit: report
+        tuple val(unique_id), path("${params.database_set}.bracken_summary.txt"), path("${params.database_set}.bracken_report.txt"), emit: all
+        tuple val(unique_id, path("${params.database_set}.bracken_report.txt"), emit: kreport
     """
     bracken \
           -d "${database}" \
-          -i "${kraken_report}" \
+          -i "${kreport}" \
           -r "${bracken_length}" \
           -l "${params.bracken_level}" \
           -o "${params.database_set}.bracken_summary.txt" \
@@ -90,10 +88,8 @@ process bracken_to_json {
 
 
     input:
-        val unique_id
-        path kraken_report
+        tuple(unique_id), path(bracken_summary), path(kreport)
         path taxonomy_dir
-        path bracken_summary
     output:
         path "${params.database_set}.bracken.json"
 
@@ -103,7 +99,7 @@ process bracken_to_json {
     taxonkit lineage --data-dir ${taxonomy_dir}  -R taxa.txt  > lineages.txt
     aggregate_lineages_bracken.py \\
             -i "lineages.txt" -b "taxacounts.txt" \\
-            -u "${kraken_report}" \\
+            -u "${kreport}" \\
             -p "temp_bracken"
     file1=`cat *.json`
     echo "{"'"${params.database_set}"'": "\$file1"}" >> "${params.database_set}.bracken.json"
@@ -121,19 +117,18 @@ process kraken_to_json {
 
 
     input:
-        val unique_id
-        path kraken_report
+        tuple val(unique_id), path(kreport)
         path taxonomy_dir
     output:
-        path "${params.database_set}.kraken.json"
+        tuple val(unique_id), path("${params.database_set}.kraken.json")
 
     """
-    awk '{ print \$5 "\t" \$3 }' "${kraken_report}" | tail -n+3 > taxacounts.txt
-    cat "${kraken_report}" | cut -f5 | tail -n+3 > taxa.txt
+    awk '{ print \$5 "\t" \$3 }' "${kreport}" | tail -n+3 > taxacounts.txt
+    cat "${kreport}" | cut -f5 | tail -n+3 > taxa.txt
     taxonkit lineage --data-dir ${taxonomy_dir}  -R taxa.txt  > lineages.txt
     aggregate_lineages_bracken.py \\
             -i "lineages.txt" -b "taxacounts.txt" \\
-            -u "${kraken_report}" \\
+            -u "${kreport}" \\
             -p "temp_kraken"
     file1=`cat *.json`
     echo "{"'"${params.database_set}"'": "\$file1"}" >> "${params.database_set}.kraken.json"
@@ -143,28 +138,25 @@ process kraken_to_json {
 
 workflow run_kraken_and_bracken {
     take:
-        unique_id
-        fastq
+        fastq_ch
         database
         taxonomy
     main:
-        //fastq = Channel.fromPath(input_fastq)
-        kraken2_client(unique_id, fastq)
+        kraken2_client(fastq_ch)
         if (params.run_bracken) {
             bracken_length = determine_bracken_length(database)
-            bracken(unique_id, kraken2_client.out.report, database, bracken_length)
-            bracken_to_json(unique_id, kraken2_client.out.report, taxonomy, bracken.out.summary)
+            bracken(kraken2_client.out.kreport, database, bracken_length)
+            bracken_to_json(bracken.out.all, taxonomy)
             out_json = bracken_to_json.out
-            out_report = bracken.output.report
+            out_report = bracken.out.kreport
         } else {
-            kraken_to_json(unique_id, kraken2_client.out.report, taxonomy)
+            kraken_to_json(kraken2_client.out.kreport, taxonomy)
             out_json = kraken_to_json.out
-            out_report = kraken2_client.out.report
+            out_report = kraken2_client.out.kreport
         }
     emit:
-        bracken_report = out_report
-        kraken_report = kraken2_client.out.report
-        kraken_assignments = kraken2_client.out.assignments
+        assignments = kraken2_client.out.assignments
+        kreport = out_report
         json = out_json
 }
 

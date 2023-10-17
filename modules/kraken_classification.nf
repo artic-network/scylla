@@ -3,8 +3,6 @@ include { unpack_database } from '../modules/kraken_server'
 include { unpack_taxonomy } from '../modules/kraken_server'
 include { start_server } from '../modules/kraken_server'
 include { stop_server } from '../modules/kraken_server'
-include { qc_checks } from '../modules/qc_checks'
-include { generate_report } from '../modules/generate_report'
 
 workflow kraken_setup {
     take:
@@ -80,41 +78,37 @@ workflow kraken_end {
         stop_server(server, stop)
 }
 
-workflow kraken_pipeline {
+workflow kraken_classify {
     take:
-        unique_id
-        fastq
+        fastq_ch
         raise_server
     main:
         kraken_setup(raise_server)
 
-        run_kraken_and_bracken(unique_id, fastq, kraken_setup.out.database, kraken_setup.out.taxonomy)
+        run_kraken_and_bracken(fastq_ch, kraken_setup.out.database, kraken_setup.out.taxonomy)
 
         if (raise_server)
             kraken_end(kraken_setup.out.server, run_kraken_and_bracken.out.bracken_report.collect())
 
-        qc_checks(unique_id, fastq)
         if (params.additional_bracken_jsons) {
             Channel.of(file(params.additional_bracken_jsons, type: "file", checkIfExists:true))
+                .map{ it -> [fastq_ch.unique_id, it]}
                 .concat(run_kraken_and_bracken.out.json)
-                .unique {it.getName()}
-                .flatten()
+                .unique {it[1].getName()}
+                .groupTuple()
                 .set { bracken_jsons }
         } else {
             run_kraken_and_bracken.out.json
-                .flatten()
+                .groupTuple()
                 .set { bracken_jsons }
         }
-
-        generate_report(unique_id, qc_checks.out, bracken_jsons )
     emit:
-        bracken_report = run_kraken_and_bracken.out.bracken_report
-        kraken_report = run_kraken_and_bracken.out.kraken_report
-        kraken_assignments = run_kraken_and_bracken.out.kraken_assignments
-        report = generate_report.out
+        assignments = run_kraken_and_bracken.out.assignments
+        kreport = run_kraken_and_bracken.out.kreport
+        json = bracken_jsons
         taxonomy = kraken_setup.out.taxonomy
-        unique_id = unique_id
-        fastq = fastq
+
+
 }
 
 workflow {
@@ -137,7 +131,8 @@ workflow {
         exit 1, "One of fastq or fastq_dir need to be provided -- aborting"
     }
 
-    kraken_pipeline(unique_id, input_fastq)
+    fastq_ch = [unique_id, input_fastq]
+    kraken_classify(fastq_ch, ${params.raise_server})
 }
 
 

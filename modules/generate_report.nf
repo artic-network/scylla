@@ -9,9 +9,7 @@ process make_report {
     container "${params.wf.container}@${params.wf.container_sha}"
     
     input:
-        val unique_id
-        path stats
-        path lineages
+        tuple val(unique_id), path(stats), path(lineages)
         path template
     output:
         path "${unique_id}_report.html", emit: report_html
@@ -29,14 +27,12 @@ process make_report {
 
 workflow generate_report {
     take:
-        unique_id
-        stats
-        bracken_jsons
+        report_ch
     main:
         // Acquire report template
         template = file("$baseDir/bin/scylla.mako.html")
 
-        make_report(unique_id, stats, bracken_jsons, template)
+        make_report(report_ch, template)
     emit:
         make_report.out
 }

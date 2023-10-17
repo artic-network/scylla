@@ -12,9 +12,7 @@ process fastp_paired {
         path fastq_2
 
     output:
-        val unique_id
-        path "${unique_id}_1.fastp.fastq.gz", emit: processed_fastq_1
-        path "${unique_id}_2.fastp.fastq.gz", emit: processed_fastq_2
+        tuple val(unique_id), path("${unique_id}_1.fastp.fastq.gz"), path("${unique_id}_2.fastp.fastq.gz"), emit: fastq
         path "${unique_id}.fastp.json"
 
     script:
@@ -52,8 +50,7 @@ process fastp_single {
         path fastq
 
     output:
-        val unique_id
-        path "${unique_id}.fastp.fastq.gz", emit: processed_fastq
+        tuple val(unique_id), path("${unique_id}.fastp.fastq.gz"), emit: fastq
         path "${unique_id}.fastp.json"
 
     script:
@@ -81,13 +78,10 @@ process paired_concatenate {
     container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
-        val unique_id
-        path processed_fastq_1
-        path processed_fastq_2
+        tuple val(unique_id), path(processed_fastq_1), path(processed_fastq_2)
 
     output:
-        val unique_id
-        path "${unique_id}.concatenated.fastq.gz", emit: concatenated_fastq
+        tuple val(unique_id), path("${unique_id}.concatenated.fastq.gz"), emit: concatenated_fastq
 
     script:
     """
@@ -98,4 +92,52 @@ process paired_concatenate {
     
     bgzip --threads $task.cpus -c ${unique_id}.concatenated.fastq > ${unique_id}.concatenated.fastq.gz
     """
+}
+
+workflow preprocess {
+    take:
+        unique_id
+    main:
+        if (params.paired) {
+            Channel.of(file(params.fastq1, type: "file", checkIfExists:true))
+                .set {input_fastq_1_ch}
+
+            Channel.of(file(params.fastq2, type: "file", checkIfExists:true))
+                .set {input_fastq_2_ch}
+
+            fastp_paired(unique_id, input_fastq_1_ch, input_fastq_2_ch)
+            fastp_paired.out.fastq
+                .set { processed_fastq_ch }
+
+            paired_concatenate(fastp_paired.out.fastq)
+
+            paired_concatenate.out.concatenated_fastq
+                .set {combined_fastq_ch}
+        } else if (params.fastq) {
+            Channel.of(file(params.fastq, type: "file", checkIfExists:true))
+                .set {input_fastq_ch}
+
+            fastp_single(unique_id, input_fastq_ch)
+            fastp_single.out.fastq
+                .tap {processed_fastq_ch}
+                .set {combined_fastq_ch}
+        } else if (params.fastq_dir) {
+            fastqdir = file("${params.fastq_dir}", type: "dir", checkIfExists:true)
+            Channel.fromPath( fastqdir / "*.f*q*", type: "file")
+                .set {input_fastq_ch}
+
+            fastp_single(unique_id, input_fastq_ch)
+            fastp_single.out.fastq.collectFile(name: 'processed.fq.gz')
+                .tap {processed_fastq_ch}
+                .set {combined_fastq_ch}
+        }
+    emit:
+        processed_fastq = processed_fastq_ch
+        combined_fastq = combined_fastq_ch
+}
+
+workflow {
+    unique_id = "${params.unique_id}"
+
+    preprocess(unique_id)
 }
