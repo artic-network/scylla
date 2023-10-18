@@ -12,13 +12,13 @@ process split_kreport {
 
     label 'process_single'
 
-    conda 'bioconda::biopython=1.78
+    conda 'bioconda::biopython=1.78'
     container "${params.wf.container}@${params.wf.container_sha}"
 
     input:
         tuple val(unique_id), path(kreport)
     output:
-        tuple val(unique_id), path("*.kreport_splits.txt")
+        tuple val(unique_id), path("*.kreport_split.txt")
     script:
         """
         split_kraken_report.py \
@@ -134,8 +134,6 @@ process check_reads {
 }
 
 
-
-
 workflow extract_taxa {
     take:
         fastq_ch
@@ -143,24 +141,51 @@ workflow extract_taxa {
         kreport_ch
         taxonomy_dir
     main:
+        thresholds = params.extract_thresholds
         split_kreport(kreport_ch)
         split_kreport.out.transpose()
-                        .branch {
-                            x: params.extract_thresholds.containsKey(it[1].simpleName)
-                                return [it[0], it[1], params.extract_thresholds.get(it.simpleName, false).get("min_reads"),params.extract_thresholds.get(it.simpleName, false).get("min_percent")]
-                            y:
-                                return [it[0], it[1], params.extract_thresholds.get("default", false).get("min_reads"),params.extract_thresholds.get("default", false).get("min_percent")]
-                            }
-                            .set(split_kreport_ch)
+            .map { unique_id, kreport -> [unique_id, kreport, kreport.simpleName, thresholds.containsKey(kreport.simpleName)] }
+            .branch { unique_id, kreport, key, status ->
+                valid: status
+                    return tuple( unique_id, kreport, key )
+                invalid: !status
+                    return tuple( unique_id, kreport, "default" )
+                }
+            .set { result }
+        result.valid.concat(result.invalid)
+                    .map { unique_id, kreport, key -> [unique_id, kreport, thresholds.get(key,"false").get("min_reads","false"), thresholds.get(key,"false").get("min_percent","false")] }
+                    .set{ kreport_params_ch }
+
         fastq_ch.join(assignments_ch)
-                .join(split_kreport_ch)
+                .join(kreport_params_ch)
                 .set{ extract_ch }
-        if (params.paired) {
-            reads_ch = extract_paired_reads(ch_extract, taxonomy_dir)
+
+        if ( params.paired ){
+            extract_paired_reads(extract_ch, taxonomy_dir)
+            reads_ch = extract_paired_reads.out.reads
         } else {
-            reads_ch = extract_reads(ch_extract, taxonomy_dir)
+            extract_reads(extract_ch, taxonomy_dir)
+            reads_ch = extract_reads.out.reads
         }
-        check_reads(reads_ch.out.reads)
-    emit:
-        reads = check_reads.out
-        summary = reads_ch.out.summary
+        check_reads(reads_ch)
+
+}
+
+
+workflow {
+    unique_id = "${params.unique_id}"
+    fastq = file(params.fastq, type: "file", checkIfExists:true)
+    assignments = file(params.kraken_assignments, type: "file", checkIfExists:true)
+    kreport = file(params.kraken_report, type: "file", checkIfExists:true)
+    if (unique_id == "null") {
+       unique_id = "${fastq.simpleName}"
+    }
+
+    fastq_ch = Channel.of([unique_id, fastq])
+    assignments_ch = Channel.of([unique_id, assignments])
+    kreport_ch = Channel.of([unique_id, kreport])
+    taxonomy_dir = file(params.taxonomy, type: "dir", checkIfExists:true)
+
+    extract_taxa(fastq_ch, assignments_ch, kreport_ch, taxonomy_dir)
+}
+

@@ -6,9 +6,10 @@ include { generate_report } from '../modules/generate_report'
 workflow classify_and_report {
     take:
         fastq_ch
+        raise_server
     main:
         qc_checks(fastq_ch)
-        kraken_classify(fastq_ch)
+        kraken_classify(fastq_ch, raise_server)
 
         if (params.additional_bracken_jsons) {
             Channel.of(file(params.additional_bracken_jsons, type: "file", checkIfExists:true))
@@ -23,12 +24,13 @@ workflow classify_and_report {
                 .set { classified_jsons }
         }
 
-        qc_ch.join(classified_jsons).set { report_ch }
+        qc_checks.out.join(classified_jsons).set { report_ch }
         generate_report( report_ch )
     emit:
         assignments = kraken_classify.out.assignments
         kreport = kraken_classify.out.kreport
         report = generate_report.out
+        taxonomy = kraken_classify.out.taxonomy
 
 }
 

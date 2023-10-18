@@ -90,20 +90,10 @@ workflow kraken_classify {
         if (raise_server)
             kraken_end(kraken_setup.out.server, run_kraken_and_bracken.out.kreport.collect())
 
-        if (params.additional_bracken_jsons) {
-            Channel.of(file(params.additional_bracken_jsons, type: "file", checkIfExists:true))
-                .concat(run_kraken_and_bracken.out.json)
-                .unique {it.getName()}
-                .flatten()
-                .set { bracken_jsons }
-        } else {
-            run_kraken_and_bracken.out.json
-                .flatten()
-                .set { bracken_jsons }
-        }
     emit:
         assignments = run_kraken_and_bracken.out.assignments
         kreport = run_kraken_and_bracken.out.kreport
+        json = run_kraken_and_bracken.out.json
         taxonomy = kraken_setup.out.taxonomy
 }
 

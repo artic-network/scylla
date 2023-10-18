@@ -1,6 +1,6 @@
 // workflow to run kraken, check for human, run qc checks and generate html report for a single sample fastq
 include { get_params_and_versions } from '../modules/get_params_and_versions'
-include { kraken_setup; kraken_pipeline; kraken_end } from '../subworkflows/kraken_pipeline'
+include { kraken_setup; kraken_classify; kraken_end } from '../modules/kraken_classification'
 include { extract_reads } from '../modules/extract_taxa'
 
 EXTENSIONS = ["fastq", "fastq.gz", "fq", "fq.gz"]
