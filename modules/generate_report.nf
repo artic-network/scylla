@@ -12,7 +12,7 @@ process make_report {
         tuple val(unique_id), path(stats), path(lineages)
         path template
     output:
-        path "${unique_id}_report.html", emit: report_html
+        tuple val(unique_id), path("${unique_id}_report.html")
     script:
         report_name = "${unique_id}"
     """
