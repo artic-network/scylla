@@ -91,7 +91,7 @@ process bracken_to_json {
         tuple val(unique_id), path(bracken_report), path(bracken_summary)
         path taxonomy_dir
     output:
-        path "${params.database_set}.bracken.json"
+        tuple val(unique_id), path("${params.database_set}.bracken.json")
 
     """
     cat "${bracken_summary}" | cut -f2,6 | tail -n+2 > taxacounts.txt
@@ -120,7 +120,7 @@ process kraken_to_json {
         tuple val(unique_id), path(kraken_report)
         path taxonomy_dir
     output:
-       path "${params.database_set}.kraken.json"
+       tuple val(unique_id), path("${params.database_set}.kraken.json")
 
     """
     awk '{ print \$5 "\t" \$3 }' "${kraken_report}" | tail -n+3 > taxacounts.txt

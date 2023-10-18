@@ -127,7 +127,8 @@ workflow preprocess {
                 .set {input_fastq_ch}
 
             fastp_single(unique_id, input_fastq_ch)
-            fastp_single.out.fastq.collectFile()
+            fastp_single.out.fastq.map{ unique_id, fastq -> [unique_id + ".fq.gz", fastq]}
+                            .collectFile()
                             .map{ it -> [it.simpleName, it] }
                             .tap {processed_fastq_ch}
                             .set {combined_fastq_ch}

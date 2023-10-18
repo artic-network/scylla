@@ -282,7 +282,7 @@ def extract_taxa(
     quals = {}
     lens = {}
 
-    num_batches = int(len(lists_to_extract)%200)
+    num_batches = int(len(lists_to_extract)/200) + 1
     sys.stdout.write("Number of taxa to extract: %i\nNumber of file batches: %i\n" %(len(lists_to_extract),num_batches))
     for batch in range(num_batches):
         batch_list = list(lists_to_extract.keys())[batch*200:min((batch+1)*200, len(lists_to_extract))]

@@ -29,7 +29,7 @@ process split_kreport {
 
 process extract_paired_reads {
     
-    label 'process_high'
+    label 'process_low'
 
     errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
 
@@ -63,7 +63,7 @@ process extract_paired_reads {
 
 process extract_reads {
 
-    label 'process_high'
+    label 'process_low'
 
     errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
 
@@ -109,12 +109,12 @@ process check_reads {
     input:
         tuple val(unique_id), path(reads)
     output:
-        tuple val(unique_id), path("reads_*.f*.gz")
+        tuple val(unique_id), path("reads*.f*.gz")
     script:
         """
-        PATTERN=(reads_*.f*)
+        PATTERN=(reads.*.f*)
         if [ -f \${PATTERN[0]} ]; then
-            for f in \$(ls reads_*.f*)
+            for f in \$(ls \${PATTERN[0]})
               do
                 if [ ! -s \$f ]
                   then
@@ -125,7 +125,7 @@ process check_reads {
               done
         fi
 
-        PATTERN=(reads_*.f*.gz)
+        PATTERN=(reads.*.f*.gz)
         if [ ! -f \${PATTERN[0]} ]; then
             echo "Found no output files - maybe there weren't any for this sample"
             exit 2

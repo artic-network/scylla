@@ -12,15 +12,14 @@ workflow classify_and_report {
         kraken_classify(fastq_ch, raise_server)
 
         if (params.additional_bracken_jsons) {
-            Channel.of(file(params.additional_bracken_jsons, type: "file", checkIfExists:true))
-                .map{ it -> [fastq_ch.unique_id, it]}
+            jsons = Channel.of(file(params.additional_bracken_jsons, type: "file", checkIfExists:true))
+            fastq_ch.map{ it -> it[0] }
+                .combine(jsons)
                 .concat(kraken_classify.out.json)
-                .unique {it[1].getName()}
                 .groupTuple()
                 .set { classified_jsons }
         } else {
             kraken_classify.out.json
-                .groupTuple()
                 .set { classified_jsons }
         }
 
