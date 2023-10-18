@@ -89,7 +89,7 @@ def main():
             if not assignments:
                 assignments = contents
             else:
-                assignments = assignments[:-1] + ", " + contents
+                assignments = assignments[:-1] + ", " + contents[1:]
 
     if args.read_counts:
         with open(args.read_counts.resolve(), "rt") as qc_file:
