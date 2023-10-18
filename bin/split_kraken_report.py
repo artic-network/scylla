@@ -1,12 +1,5 @@
 #!/usr/bin/env python
 
-#################
-#
-#   NOTE that the read counts/percentages are taken from the bracken reestimated file, but the reads themselves
-#    are extracted based on kraken classifications because bracken does not provide classifications at the read level
-#
-###############
-
 import sys
 import os
 import gzip

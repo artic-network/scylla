@@ -19,7 +19,7 @@ process unpack_database {
 
     mkdir lineages_dir
     cd lineages_dir
-    for db in viral protozoa
+    for db in viral archaea bacteria protozoa fungi
     do
         curl -JLO "${database}-\$db.lineages.csv.gz"
     done
@@ -38,10 +38,9 @@ process sourmash_sketch_dna {
     container "quay.io/biocontainers/sourmash:4.8.4--hdfd78af_0"
 
     input:
-        val unique_id
-        path fastq
+        tuple val(unique_id), path(fastq)
     output:
-        path "${unique_id}.dna.sig.zip"
+        tuple val(unique_id), path("${unique_id}.dna.sig.zip")
     script:
     """
     sourmash sketch dna ${fastq} -p k=${params.sourmash_k},dna,scaled=1000,abund \
@@ -58,15 +57,14 @@ process sourmash_gather {
     container "quay.io/biocontainers/sourmash:4.8.4--hdfd78af_0"
 
     input:
-        val unique_id
-        path sketch
+        tuple val(unique_id), path(sketch)
         path database
     output:
-        path "${unique_id}.k${params.sourmash_k}.gather.csv", emit: gather_csv
-        path "${unique_id}.k${params.sourmash_k}.gather.txt", emit: gather_txt
+        tuple val(unique_id), path("${unique_id}.k${params.sourmash_k}.gather.csv"), emit: gather_csv
+        tuple val(unique_id), path("${unique_id}.k${params.sourmash_k}.gather.txt"), emit: gather_txt
     script:
     """
-    sourmash gather ${sketch} database_dir/${params.sourmash_db_name}-{viral,bacteria}-k${params.sourmash_k}.zip --dna --ksize ${params.sourmash_k} \
+    sourmash gather ${sketch} database_dir/${params.sourmash_db_name}-{viral,fungi}-k${params.sourmash_k}.zip --dna --ksize ${params.sourmash_k} \
                      --threshold-bp ${params.sourmash_threshold_bp} \
                      -o "${unique_id}.k${params.sourmash_k}.gather.csv" > "${unique_id}.k${params.sourmash_k}.gather.txt"
     """
@@ -82,26 +80,53 @@ process sourmash_tax_metagenome {
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     input:
-        val unique_id
-        path gather_csv
+        tuple val(unique_id), path(gather_csv)
         path lineages
     output:
-        path "sourmash.k${params.sourmash_k}.kreport.txt", emit: kreport
+        tuple val(unique_id), path("sourmash.k${params.sourmash_k}.kreport.txt"), emit: kreport
         path "sourmash.k${params.sourmash_k}.summarized.csv", emit: summary
     script:
     """
     sourmash tax metagenome -g ${gather_csv} \
-        -t lineages_dir/${params.sourmash_db_name}-{viral,bacteria}.lineages.csv.gz \
+        -t lineages_dir/${params.sourmash_db_name}-{viral,fungi}.lineages.csv.gz \
         -o "sourmash.k${params.sourmash_k}" \
         --output-format krona csv_summary kreport \
         --rank species
     """
 }
 
+process sourmash_to_json {
+
+    label "process_low"
+
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
+
+    conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
+    container "${params.wf.container}@${params.wf.container_sha}"
+
+
+    input:
+        tuple val(unique_id), path(kraken_report)
+        path taxonomy_dir
+    output:
+       tuple val(unique_id), path("${params.database_set}.kraken.json")
+
+    """
+    awk '{ print \$5 "\t" \$3 }' "${kraken_report}" | tail -n+3 > taxacounts.txt
+    cat "${kraken_report}" | cut -f5 | tail -n+3 > taxa.txt
+    taxonkit lineage --data-dir ${taxonomy_dir}  -R taxa.txt  > lineages.txt
+    aggregate_lineages_bracken.py \\
+            -i "lineages.txt" -b "taxacounts.txt" \\
+            -u "${kraken_report}" \\
+            -p "temp_kraken"
+    file1=`cat *.json`
+    echo "{"'Sourmash'": "\$file1"}" >> "${params.database_set}.kraken.json"
+    """
+}
+
 workflow sourmash_classify {
     take:
-        unique_id
-        fastq
+        fastq_ch
     main:
         stored_database = file("${params.store_dir}/sourmash/database_dir", type: "dir")
         if (stored_database.isEmpty()) {
@@ -113,11 +138,21 @@ workflow sourmash_classify {
             lineages = file("${params.store_dir}/sourmash/lineages_dir", type: "dir", checkIfExists:true)
         }
 
-        sourmash_sketch_dna(unique_id, fastq)
-        sourmash_gather(unique_id, sourmash_sketch_dna.out, database)
-        sourmash_tax_metagenome(unique_id, sourmash_gather.out.gather_csv, lineages)
+        input_taxonomy = file("${params.store_dir}/${params.database_set}/taxonomy_dir")
+        if (input_taxonomy.isEmpty()) {
+            taxonomy = unpack_taxonomy(default_taxonomy)
+        } else {
+            taxonomy = input_taxonomy
+        }
+
+        sourmash_sketch_dna(fastq_ch)
+        sourmash_gather(sourmash_sketch_dna.out, database)
+        sourmash_tax_metagenome(sourmash_gather.out.gather_csv, lineages)
+        sourmash_to_json(sourmash_tax_metagenome.out.kreport, taxonomy)
+
     emit:
-        genbank = sourmash_tax_metagenome.out.kreport
+        kreport = sourmash_tax_metagenome.out.kreport
+        json = sourmash_to_json.out
 }
 
 workflow {
@@ -140,5 +175,6 @@ workflow {
         exit 1, "One of fastq or fastq_dir need to be provided -- aborting"
     }
 
-    sourmash_classify(unique_id, input_fastq)
+    Channel.of(unique_id).combine(input_fastq).set{ fastq_ch }
+    sourmash_classify(fastq_ch)
 }
