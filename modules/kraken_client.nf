@@ -123,7 +123,7 @@ process kraken_to_json {
        tuple val(unique_id), path("${params.database_set}.kraken.json")
 
     """
-    awk '{ print \$5 "\t" \$3 }' "${kraken_report}" | tail -n+3 > taxacounts.txt
+    cat "${kraken_report}" | cut -f5,3 | tail -n+3 > taxacounts.txt
     cat "${kraken_report}" | cut -f5 | tail -n+3 > taxa.txt
     taxonkit lineage --data-dir ${taxonomy_dir}  -R taxa.txt  > lineages.txt
     aggregate_lineages_bracken.py \\

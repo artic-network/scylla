@@ -6,10 +6,11 @@ include { generate_report } from '../modules/generate_report'
 workflow classify_and_report {
     take:
         fastq_ch
+        concat_fastq_ch
         raise_server
     main:
         qc_checks(fastq_ch)
-        kraken_classify(fastq_ch, raise_server)
+        kraken_classify(concat_fastq_ch, raise_server)
 
         if (params.additional_bracken_jsons) {
             jsons = Channel.of(file(params.additional_bracken_jsons, type: "file", checkIfExists:true))
@@ -53,8 +54,9 @@ workflow {
         exit 1, "One of fastq or fastq_dir need to be provided -- aborting"
     }
 
-    fastq_ch = [unique_id, input_fastq]
-    classify_and_report(fastq_ch)
+    input_fastq.map { it -> [unique_id, it] }.set { fastq_ch }
+    input_fastq.map { it -> [unique_id, it] }.set { concat_fastq_ch }
+    classify_and_report(fastq_ch, concat_fastq_ch, "${params.raise_server}")
 }
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Script to create an aggregated count from lineage data."""
-### taken from epi2ome/wf-metagenomics
+### taken from epi2ome/wf-metagenomics under the conditions of their license https://github.com/epi2me-labs/wf-metagenomics/blob/master/LICENSE and modified for this use case
 
 import argparse
 import json
@@ -94,7 +94,7 @@ def main(prefix, lineages, bracken, report):
         bracken = f.readlines()
     if len(bracken) > 0:
         for i in bracken:
-            bracken_counts[i.split()[0]] = i.split()[1]
+            bracken_counts[i.split()[1]] = i.split()[0]
         with open(lineages) as f:
             infile = f.readlines()
         for line in infile:
