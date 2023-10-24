@@ -31,8 +31,6 @@ process extract_paired_reads {
     
     label 'process_low'
 
-    errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
-
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
@@ -64,8 +62,6 @@ process extract_paired_reads {
 process extract_reads {
 
     label 'process_low'
-
-    errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
 
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
 
@@ -156,8 +152,8 @@ workflow extract_taxa {
                     .map { unique_id, kreport, key -> [unique_id, kreport, thresholds.get(key,"false").get("min_reads","false"), thresholds.get(key,"false").get("min_percent","false")] }
                     .set{ kreport_params_ch }
 
-        fastq_ch.join(assignments_ch)
-                .join(kreport_params_ch)
+        fastq_ch.combine(assignments_ch, by: 0)
+                .combine(kreport_params_ch, by: 0)
                 .set{ extract_ch }
 
         if ( params.paired ){

@@ -24,7 +24,7 @@ workflow classify_and_report {
                 .set { classified_jsons }
         }
 
-        qc_checks.out.join(classified_jsons).set { report_ch }
+        qc_checks.out.combine(classified_jsons, by: 0).set { report_ch }
         generate_report( report_ch )
     emit:
         assignments = kraken_classify.out.assignments

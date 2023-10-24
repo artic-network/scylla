@@ -49,7 +49,7 @@ workflow process_barcode {
     take:
         barcode_ch
     main:
-        classify_and_report(barcode_ch, null)
+        classify_and_report(barcode_ch, barcode_ch, null)
         extract_taxa(barcode_ch, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
     emit:
         report = classify_and_report.out.report
@@ -62,7 +62,7 @@ workflow process_run {
         get_params_and_versions(unique_id)
 
         run_dir = file("${params.run_dir}", type: "dir", checkIfExists:true)
-        barcode_input = Channel.fromPath("${run_dir}/*", type: "dir", checkIfExists:true, maxDepth:1).map { [it.baseName, get_fq_files_in_dir(it)]}
+        barcode_input = Channel.fromPath("${run_dir}/barcode*", type: "dir", checkIfExists:true, maxDepth:1).map { [it.baseName, get_fq_files_in_dir(it)]}
         move_or_compress(barcode_input)
 
         if (params.raise_server)

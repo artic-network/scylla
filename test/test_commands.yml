@@ -1,0 +1,16 @@
+- name: simple_long_read_fastq
+  command: nextflow run main.nf --fastq test/test_data/barcode01/barcode01.fq.gz -profile docker --local
+- name: simple_long_read_fastq_dir
+  command: nextflow run main.nf --fastq_dir test/test_data/barcode01 -profile docker --local
+- name: simple_short_read_fastqs
+  command: nextflow run main.nf --fastq1 test/test_data/illumina/barcode02_1.fq.gz --fastq2 test/test_data/illumina/barcode02_2.fq.gz --paired -profile docker --local
+- name: simple_long_read_run_dir
+  command: nextflow run main.nf --run_dir test/test_data -profile docker --local
+- name: contains_human
+  tags:
+    - should fail                    # is run with pytest using the `--tag` flag.
+  command: nextflow run main.nf --fastq_dir test/test_data/human -profile docker --local --max_human_reads_before_rejection 10 --database_set PlusPF-8
+  exit_code: 2
+  stderr:                            # Options for testing stderr (optional)
+    contains:                        # A list of strings which should be in stderr (optional)
+      - "human reads, max allowed is "

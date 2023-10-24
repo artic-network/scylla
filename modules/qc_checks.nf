@@ -42,7 +42,15 @@ workflow qc_checks {
     take:
         input_ch
     main:
-        read_stats(input_ch)
+        if (params.paired) {
+            input_ch.map{ unique_id, fastq1, fastq2 -> [unique_id, fastq1, unique_id, fastq2] }
+                    .flatten()
+                    .collate( 2 )
+                    .set{ fastq_ch }
+        } else {
+            fastq_ch = input_ch
+        }
+        read_stats(fastq_ch)
         read_stats.out.collectFile(keepHeader:true, skip: 1)
                   .map{ it -> [it.simpleName, it] }
                   .set{ stats_ch }
