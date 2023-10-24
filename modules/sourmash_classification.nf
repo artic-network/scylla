@@ -11,7 +11,7 @@ process unpack_database {
     """
     mkdir database_dir
     cd database_dir
-    for db in viral archaea bacteria protozoa fungi
+    for db in "${params.sourmash_db_includes}"
     do
         curl -JLO "${database}-\$db-k${params.sourmash_k}.zip"
     done
@@ -19,7 +19,7 @@ process unpack_database {
 
     mkdir lineages_dir
     cd lineages_dir
-    for db in viral archaea bacteria protozoa fungi
+    for db in "${params.sourmash_db_includes}"
     do
         curl -JLO "${database}-\$db.lineages.csv.gz"
     done
@@ -58,13 +58,14 @@ process sourmash_gather {
 
     input:
         tuple val(unique_id), path(sketch)
+        val dbs
         path database
     output:
         tuple val(unique_id), path("${unique_id}.k${params.sourmash_k}.gather.csv"), emit: gather_csv
         tuple val(unique_id), path("${unique_id}.k${params.sourmash_k}.gather.txt"), emit: gather_txt
     script:
     """
-    sourmash gather ${sketch} database_dir/${params.sourmash_db_name}-{viral,protozoa}-k${params.sourmash_k}.zip --dna --ksize ${params.sourmash_k} \
+    sourmash gather ${sketch} database_dir/${params.sourmash_db_name}-{${dbs}}-k${params.sourmash_k}.zip --dna --ksize ${params.sourmash_k} \
                      --threshold-bp ${params.sourmash_threshold_bp} \
                      -o "${unique_id}.k${params.sourmash_k}.gather.csv" > "${unique_id}.k${params.sourmash_k}.gather.txt"
     """
@@ -81,6 +82,7 @@ process sourmash_tax_metagenome {
 
     input:
         tuple val(unique_id), path(gather_csv)
+        val dbs
         path lineages
     output:
         tuple val(unique_id), path("sourmash.k${params.sourmash_k}.unformatted.kreport.txt"), emit: kreport
@@ -88,7 +90,7 @@ process sourmash_tax_metagenome {
     script:
     """
     sourmash tax metagenome -g ${gather_csv} \
-        -t lineages_dir/${params.sourmash_db_name}-{viral,protozoa}.lineages.csv.gz \
+        -t lineages_dir/${params.sourmash_db_name}-{${dbs}}.lineages.csv.gz \
         -o "sourmash.k${params.sourmash_k}" \
         --output-format krona csv_summary kreport \
         --rank species
@@ -110,7 +112,7 @@ process sourmash_to_json {
         tuple val(unique_id), path(kraken_report)
         path taxonomy_dir
     output:
-       tuple val(unique_id), path("${params.database_set}.kraken.json")
+       tuple val(unique_id), path("${params.database_set}.kraken.json"), emit: json
        tuple val(unique_id), path("sourmash.k${params.sourmash_k}.kreport.txt"), emit: kreport
 
     """
@@ -154,14 +156,15 @@ workflow sourmash_classify {
             taxonomy = input_taxonomy
         }
 
+        include_dbs = "${params.sourmash_db_includes}".split(' ').join(',')
         sourmash_sketch_dna(fastq_ch)
-        sourmash_gather(sourmash_sketch_dna.out, database)
-        sourmash_tax_metagenome(sourmash_gather.out.gather_csv, lineages)
+        sourmash_gather(sourmash_sketch_dna.out, include_dbs, database)
+        sourmash_tax_metagenome(sourmash_gather.out.gather_csv, include_dbs, lineages)
         sourmash_to_json(sourmash_tax_metagenome.out.kreport, taxonomy)
 
     emit:
-        kreport = sourmash_tax_metagenome.out.kreport
-        json = sourmash_to_json.out
+        kreport = sourmash_to_json.out.kreport
+        json = sourmash_to_json.out.json
 }
 
 workflow {
