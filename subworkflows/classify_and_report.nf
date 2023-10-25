@@ -1,4 +1,5 @@
 include { kraken_classify } from '../modules/kraken_classification'
+include { sourmash_classify } from '../modules/sourmash_classification'
 include { qc_checks } from '../modules/qc_checks'
 include { generate_report } from '../modules/generate_report'
 
@@ -11,6 +12,9 @@ workflow classify_and_report {
     main:
         qc_checks(fastq_ch)
         kraken_classify(concat_fastq_ch, raise_server)
+        if (params.run_sourmash){
+            sourmash_classify(concat_fastq_ch)
+        }
 
         if (params.additional_bracken_jsons) {
             jsons = Channel.of(file(params.additional_bracken_jsons, type: "file", checkIfExists:true))

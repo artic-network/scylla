@@ -51,7 +51,7 @@ process sourmash_sketch_dna {
 process sourmash_gather {
 
     label 'error_retry'
-    memory { 60.GB * task.attempt }
+    label 'process_high_memory'
 
     conda "bioconda::sourmash=4.8.4"
     container "quay.io/biocontainers/sourmash:4.8.4--hdfd78af_0"
