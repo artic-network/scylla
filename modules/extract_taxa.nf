@@ -92,44 +92,63 @@ process extract_reads {
         """
 }
 
-
-process check_reads {
-
-    label 'process_low'
-
-    errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
-
-    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
-
-    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-    container "${params.wf.container}:${params.wf.container_version}"
-
-    input:
-        tuple val(unique_id), path(reads)
-    output:
-        tuple val(unique_id), path("reads*.f*.gz")
-    script:
-        """
-        PATTERN=(reads.*.f*)
-        if [ -f \${PATTERN[0]} ]; then
-            for f in \$(ls \${PATTERN[0]})
-              do
-                if [ ! -s \$f ]
-                  then
-                    rm \$f
-                  else
-                    bgzip --threads $task.cpus \$f
-                fi
-              done
-        fi
-
-        PATTERN=(reads.*.f*.gz)
-        if [ ! -f \${PATTERN[0]} ]; then
-            echo "Found no output files - maybe there weren't any for this sample"
-            exit 2
-        fi
-        """
+process bgzip_extracted_taxa {
+      
+      label 'process_low'
+  
+      publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
+  
+      conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+      container "${params.wf.container}:${params.wf.container_version}"
+  
+      input:
+          val unique_id
+          path read_file
+      output:
+          path "reads.*.f*.gz"
+      script:
+          """
+          bgzip --threads $task.cpus ${read_file}
+          """
 }
+
+// process check_reads {
+
+//     label 'process_low'
+
+//     errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
+
+//     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
+
+//     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+//     container "${params.wf.container}:${params.wf.container_version}"
+
+//     input:
+//         tuple val(unique_id), path(reads)
+//     output:
+//         tuple val(unique_id), path("reads*.f*.gz")
+//     script:
+//         """
+//         PATTERN=(reads.*.f*)
+//         if [ -f \${PATTERN[0]} ]; then
+//             for f in \$(ls \${PATTERN[0]})
+//               do
+//                 if [ ! -s \$f ]
+//                   then
+//                     rm \$f
+//                   else
+//                     bgzip --threads $task.cpus \$f
+//                 fi
+//               done
+//         fi
+
+//         PATTERN=(reads.*.f*.gz)
+//         if [ ! -f \${PATTERN[0]} ]; then
+//             echo "Found no output files - maybe there weren't any for this sample"
+//             exit 2
+//         fi
+//         """
+// }
 
 
 workflow extract_taxa {
@@ -160,12 +179,16 @@ workflow extract_taxa {
 
         if ( params.paired ){
             extract_paired_reads(extract_ch, taxonomy_dir)
-            reads_ch = extract_paired_reads.out.reads
+            extract_paired_reads.out.reads
+                .flatten()
+                .set {extracted_taxa}
         } else {
             extract_reads(extract_ch, taxonomy_dir)
-            reads_ch = extract_reads.out.reads
+            extract_reads.out.reads
+                .flatten()
+                .set {extracted_taxa}            
         }
-        check_reads(reads_ch)
+        bgzip_extracted_taxa(unique_id, extracted_taxa)
 
 }
 
