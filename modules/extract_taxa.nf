@@ -30,7 +30,7 @@ process split_kreport {
 process extract_paired_reads {
     
     label 'process_low'
-    errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
 
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
 
@@ -57,13 +57,18 @@ process extract_paired_reads {
             --min_count_descendants ${min_reads} \
             --rank ${params.extract_rank} \
             --min_percent ${min_percent}
+        PATTERN=(reads.*.f*)
+        if [ ! -f \${PATTERN[0]} ]; then
+            echo "Found no output files - maybe there weren't any for this sample"
+            exit 3
+        fi
         """
 }
 
 process extract_reads {
 
     label 'process_low'
-    errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
 
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
 
@@ -89,6 +94,11 @@ process extract_reads {
             --min_count_descendants ${min_reads} \
             --rank ${params.extract_rank} \
             --min_percent ${min_percent}
+        PATTERN=(reads.*.f*)
+        if [ ! -f \${PATTERN[0]} ]; then
+            echo "Found no output files - maybe there weren't any for this sample"
+            exit 3
+        fi
         """
 }
 
