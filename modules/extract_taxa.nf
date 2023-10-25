@@ -58,7 +58,7 @@ process extract_paired_reads {
             --min_count_descendants ${min_reads} \
             --rank ${params.extract_rank} \
             --min_percent ${min_percent}
-            
+
         PATTERN=(reads.*.f*)
         if [ ! -f \${PATTERN[0]} ]; then
             echo "Found no output files - maybe there weren't any for this sample"
@@ -195,7 +195,7 @@ workflow extract_taxa {
             extract_paired_reads(extract_ch, taxonomy_dir)
             extract_paired_reads.out.reads
                 .flatten()
-                .combine(extract_reads.out.unique_id)
+                .combine(extract_paired_reads.out.unique_id)
                 .set {extracted_taxa}
         } else {
             extract_reads(extract_ch, taxonomy_dir)
