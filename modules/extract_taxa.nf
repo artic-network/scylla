@@ -30,6 +30,7 @@ process split_kreport {
 process extract_paired_reads {
     
     label 'process_low'
+    errorStrategy 'ignore'
 
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
 
@@ -62,6 +63,7 @@ process extract_paired_reads {
 process extract_reads {
 
     label 'process_low'
+    errorStrategy 'ignore'
 
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
 
