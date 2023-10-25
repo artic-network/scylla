@@ -5,7 +5,7 @@ import groovy.json.JsonBuilder
 process get_versions {
 
     conda 'environment.yml'
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
     publishDir "${params.outdir}/${unique_id}/execution", mode: 'copy'
     cpus 1
     input:
@@ -20,7 +20,7 @@ process get_versions {
 
 
 process get_params {
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     publishDir "${params.tracedir}", mode: 'copy'
     cpus 1

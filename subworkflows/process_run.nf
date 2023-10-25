@@ -17,7 +17,7 @@ process move_or_compress {
     errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
 
     conda "bioconda::tabix==v1.11"
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
     cpus 1
 
     input:

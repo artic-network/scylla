@@ -48,7 +48,7 @@ process assemble_flye {
     label "process_high"
 
     conda "bioconda::flye=2.9"
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         val unique_id
@@ -68,7 +68,7 @@ process assemble_rnabloom {
     label "process_high"
 
     conda "bioconda::rnabloom"
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         val unique_id
@@ -89,7 +89,7 @@ process assemble_megahit {
     label "process_high"
 
 	conda "bioconda::megahit"
-	container "${params.wf.container}@${params.wf.container_version}"
+	container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         val unique_id
@@ -196,7 +196,7 @@ process gen_assembly_stats {
 process run_virbot {
 
     label "process_medium"
-	  container "${params.wf.container}@${params.wf.container_version}"
+	  container "${params.wf.container}:${params.wf.container_version}"
 
     publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 
@@ -235,7 +235,7 @@ process run_genomad {
 
     label "process_medium"    
 
-	  container "${params.wf.container}@${params.wf.container_version}"
+	  container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         val unique_id
@@ -267,7 +267,7 @@ process filter_short_contigs {
 
     conda "bioconda::bbmap"
 
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
  
     input:
         val unique_id
@@ -288,7 +288,7 @@ process select_Riboviria {
     label "process_single"
 
 	  conda "bioconda::bbmap"
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "RNA_viral_contigs.fa" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 

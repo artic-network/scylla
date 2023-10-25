@@ -8,7 +8,7 @@ process kraken2_client {
     maxForks kraken_compute
 
     conda "epi2melabs::kraken2-server=0.1.3"
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
 
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
@@ -32,7 +32,7 @@ process determine_bracken_length {
     label "process_low"
 
     conda "anaconda::sed=4.8"
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         path database
@@ -57,7 +57,7 @@ process bracken {
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     conda "bioconda::bracken=2.7"
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         tuple val(unique_id), path(kraken_report)
@@ -84,7 +84,7 @@ process bracken_to_json {
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
     
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
 
     input:
@@ -113,7 +113,7 @@ process kraken_to_json {
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
 
     input:

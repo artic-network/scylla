@@ -71,7 +71,7 @@ process kraken_server {
     label "process_long"
     memory { 8.GB * task.attempt }
     cpus params.threads
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     input:
         path database
@@ -91,7 +91,7 @@ process kraken_server {
 
 process stop_kraken_server {
     label "process_single"
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     // this shouldn't happen, but we'll keep retrying
     // errorStrategy = { task.exitStatus in [8, 14] && task.attempt < 3 ? 'retry' : 'ignore' }

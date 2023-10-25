@@ -4,7 +4,7 @@ process fastp_paired {
 
     publishDir "${params.outdir}/${unique_id}/preprocess/", mode: 'copy'
 
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         val unique_id
@@ -43,7 +43,7 @@ process fastp_single {
 
     publishDir "${params.outdir}/${unique_id}/preprocess/", mode: 'copy'
 
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         val unique_id
@@ -75,7 +75,7 @@ process paired_concatenate {
 
     publishDir "${params.outdir}/${unique_id}/preprocess/", mode: 'copy'
 
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         tuple val(unique_id), path(processed_fastq_1), path(processed_fastq_2)

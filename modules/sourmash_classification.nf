@@ -105,7 +105,7 @@ process sourmash_to_json {
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
-    container "${params.wf.container}@${params.wf.container_version}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
 
     input:
