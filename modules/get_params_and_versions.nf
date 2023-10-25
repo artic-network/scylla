@@ -20,6 +20,8 @@ process get_versions {
 
 
 process get_params {
+    container "${params.wf.container}@${params.wf.container_version}"
+
     publishDir "${params.tracedir}", mode: 'copy'
     cpus 1
     input:

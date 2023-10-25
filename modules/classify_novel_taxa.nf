@@ -47,8 +47,8 @@ process assemble_flye {
 
     label "process_high"
 
-	  conda "bioconda::flye=2.9"
-	  container "${params.wf.container}@${params.wf.container_version}"
+    conda "bioconda::flye=2.9"
+    container "${params.wf.container}@${params.wf.container_version}"
 
     input:
         val unique_id
@@ -67,8 +67,8 @@ process assemble_rnabloom {
 
     label "process_high"
 
-	  conda "bioconda::rnabloom"
-	  container "${params.wf.container}@${params.wf.container_version}"
+    conda "bioconda::rnabloom"
+    container "${params.wf.container}@${params.wf.container_version}"
 
     input:
         val unique_id
