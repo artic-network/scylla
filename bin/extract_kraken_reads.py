@@ -32,6 +32,7 @@ def median(l):
     l = sorted(l)
     return l[i]
 
+
 def load_from_taxonomy(taxonomy_dir):
     taxonomy = os.path.join(taxonomy_dir, "nodes.dmp")
     parents = {}
@@ -45,8 +46,9 @@ def load_from_taxonomy(taxonomy_dir):
                 children[parent_tax_id].append(tax_id)
     except:
         sys.stderr.write(
-            "ERROR: Could not find taxonomy nodes.dmp file in %s" %taxonomy_dir)
-        sys.exit(2)
+            "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
+        )
+        sys.exit(3)
     return parents, children
 
 
@@ -59,6 +61,7 @@ def parse_depth(name):
         depth += 1
     depth = int(depth / 2)
     return depth
+
 
 def infer_hierarchy(report_file):
     parents = {}
@@ -149,7 +152,7 @@ def load_report_file(report_file, max_human=None):
                 "count_descendants": num_clade_root,
                 "raw_rank": raw_rank,
                 "rank": rank,
-                "name": name
+                "name": name,
             }
 
     sys.stdout.write("FOUND %i TAXA IN BRACKEN REPORT\n" % len(entries))
@@ -187,7 +190,7 @@ def get_taxon_id_lists(
         lists_to_extract[taxon] = [taxon]
         if include_parents:
             lookup = taxon
-            while (lookup in parents and lookup != "1") :
+            while lookup in parents and lookup != "1":
                 lookup = parents[lookup]
                 if lookup != "1":
                     lists_to_extract[taxon].append(lookup)
@@ -261,12 +264,7 @@ def trim_read_id(read_id):
 
 
 def extract_taxa(
-    report_entries,
-    lists_to_extract,
-    kraken_assignment_file,
-    reads1,
-    reads2,
-    prefix
+    report_entries, lists_to_extract, kraken_assignment_file, reads1, reads2, prefix
 ):
     # open read files
     filetype, zipped = check_read_files(reads1)
@@ -282,12 +280,16 @@ def extract_taxa(
     quals = {}
     lens = {}
 
-    num_batches = int(len(lists_to_extract)/200) + 1
-    sys.stdout.write("Number of taxa to extract: %i\nNumber of file batches: %i\n" %(len(lists_to_extract),num_batches))
+    num_batches = int(len(lists_to_extract) / 200) + 1
+    sys.stdout.write(
+        "Number of taxa to extract: %i\nNumber of file batches: %i\n"
+        % (len(lists_to_extract), num_batches)
+    )
     for batch in range(num_batches):
-        batch_list = list(lists_to_extract.keys())[batch*200:min((batch+1)*200, len(lists_to_extract))]
-        sys.stdout.write(
-                    "Open %i outfiles for batch %i\n" % (len(batch_list), batch))
+        batch_list = list(lists_to_extract.keys())[
+            batch * 200 : min((batch + 1) * 200, len(lists_to_extract))
+        ]
+        sys.stdout.write("Open %i outfiles for batch %i\n" % (len(batch_list), batch))
 
         outfile_handles = {}
         keys = {}
@@ -306,7 +308,9 @@ def extract_taxa(
                     % (prefix, taxon, filetype, prefix, taxon, filetype)
                 )
             else:
-                outfile_handles[taxon] = open("%s.%s.%s" % (prefix, taxon, filetype), "w")
+                outfile_handles[taxon] = open(
+                    "%s.%s.%s" % (prefix, taxon, filetype), "w"
+                )
                 print("opening %s.%s.%s" % (prefix, taxon, filetype))
             out_counts[taxon] = 0
             quals[taxon] = []
@@ -576,7 +580,7 @@ def main():
         top_n=args.top_n,
         include_parents=args.include_parents,
         include_children=args.include_children,
-        )
+    )
 
     out_counts = extract_taxa(
         report_entries,
@@ -584,7 +588,7 @@ def main():
         args.kraken_assignment_file,
         args.reads1,
         args.reads2,
-        args.prefix
+        args.prefix,
     )
 
     now = datetime.now()
