@@ -41,7 +41,6 @@ process extract_paired_reads {
         tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport), val(min_reads), val(min_percent)
         path taxonomy_dir
     output:
-        val(unique_id), emit: unique_id
         path("reads.*.f*"), emit: reads
         path "reads_summary.json", emit: summary
     script:
@@ -81,7 +80,6 @@ process extract_reads {
         tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport), val(min_reads), val(min_percent)
         path taxonomy_dir
     output:
-        val(unique_id), emit: unique_id
         path("reads.*.f*"), emit: reads
         path "reads_summary.json", emit: summary
     script:
@@ -110,13 +108,13 @@ process bgzip_extracted_taxa {
       
       label 'process_low'
   
-      publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
+      publishDir path: "${params.outdir}/${params.unique_id}/reads_by_taxa", mode: 'copy'
   
       conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
       container "${params.wf.container}:${params.wf.container_version}"
   
       input:
-          tuple path(read_file), val(unique_id)
+          path(read_file)
       output:
           path "reads.*.f*.gz"
       script:
@@ -195,13 +193,11 @@ workflow extract_taxa {
             extract_paired_reads(extract_ch, taxonomy_dir)
             extract_paired_reads.out.reads
                 .flatten()
-                .combine(extract_paired_reads.out.unique_id)
                 .set {extracted_taxa}
         } else {
             extract_reads(extract_ch, taxonomy_dir)
             extract_reads.out.reads
                 .flatten()
-                .combine(extract_reads.out.unique_id)
                 .set {extracted_taxa}            
         }
         bgzip_extracted_taxa(extracted_taxa)
