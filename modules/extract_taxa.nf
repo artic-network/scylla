@@ -41,7 +41,8 @@ process extract_paired_reads {
         tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport), val(min_reads), val(min_percent)
         path taxonomy_dir
     output:
-        tuple val(unique_id), path("reads.*.f*"), emit: reads
+        val(unique_id), emit: unique_id
+        path("reads.*.f*"), emit: reads
         path "reads_summary.json", emit: summary
     script:
         """
@@ -57,6 +58,7 @@ process extract_paired_reads {
             --min_count_descendants ${min_reads} \
             --rank ${params.extract_rank} \
             --min_percent ${min_percent}
+            
         PATTERN=(reads.*.f*)
         if [ ! -f \${PATTERN[0]} ]; then
             echo "Found no output files - maybe there weren't any for this sample"
@@ -79,7 +81,8 @@ process extract_reads {
         tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport), val(min_reads), val(min_percent)
         path taxonomy_dir
     output:
-        tuple val(unique_id), path("reads.*.f*"), emit: reads
+        val(unique_id), emit: unique_id
+        path("reads.*.f*"), emit: reads
         path "reads_summary.json", emit: summary
     script:
         """
@@ -94,6 +97,7 @@ process extract_reads {
             --min_count_descendants ${min_reads} \
             --rank ${params.extract_rank} \
             --min_percent ${min_percent}
+
         PATTERN=(reads.*.f*)
         if [ ! -f \${PATTERN[0]} ]; then
             echo "Found no output files - maybe there weren't any for this sample"
@@ -112,8 +116,7 @@ process bgzip_extracted_taxa {
       container "${params.wf.container}:${params.wf.container_version}"
   
       input:
-          val unique_id
-          path read_file
+          tuple path(read_file), val(unique_id)
       output:
           path "reads.*.f*.gz"
       script:
@@ -192,14 +195,16 @@ workflow extract_taxa {
             extract_paired_reads(extract_ch, taxonomy_dir)
             extract_paired_reads.out.reads
                 .flatten()
+                .combine(extract_reads.out.unique_id)
                 .set {extracted_taxa}
         } else {
             extract_reads(extract_ch, taxonomy_dir)
             extract_reads.out.reads
                 .flatten()
+                .combine(extract_reads.out.unique_id)
                 .set {extracted_taxa}            
         }
-        bgzip_extracted_taxa(unique_id, extracted_taxa)
+        bgzip_extracted_taxa(extracted_taxa)
 
 }
 
