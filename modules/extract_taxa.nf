@@ -153,6 +153,7 @@ process bgzip_extracted_taxa {
 
 workflow extract_taxa {
     take:
+        unique_id
         fastq_ch
         assignments_ch
         kreport_ch
@@ -207,6 +208,6 @@ workflow {
     kreport_ch = Channel.of([unique_id, kreport])
     taxonomy_dir = file(params.taxonomy, type: "dir", checkIfExists:true)
 
-    extract_taxa(fastq_ch, assignments_ch, kreport_ch, taxonomy_dir)
+    extract_taxa(unique_id, fastq_ch, assignments_ch, kreport_ch, taxonomy_dir)
 }
 
