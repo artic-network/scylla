@@ -6,7 +6,7 @@ process get_versions {
 
     conda 'environment.yml'
     container "${params.wf.container}:${params.wf.container_version}"
-    publishDir "${params.outdir}/${unique_id}/execution", mode: 'copy'
+    publishDir "${params.tracedir}", mode: 'copy'
     cpus 1
     input:
         val unique_id
