@@ -23,13 +23,12 @@
     <script src="https://cdn.jsdelivr.net/gh/rambaut/figtree.js@9880/dist/figtree.umd.js"></script>
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://sharonchoong.github.io/svg-exportJS/svg-export.min.js"></script>
-    <script src="https://unpkg.com/canvg/lib/umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdfkit/js/pdfkit.min.js"></script>
     <script src="https://github.com/devongovett/blob-stream/releases/download/v0.1.3/blob-stream.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/svg-to-pdfkit/source.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega@5.22.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.2.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.11.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.25.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.12.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.22.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-dispatch@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-ease@3"></script>
@@ -223,18 +222,18 @@
         .cd-top {
             position: fixed;
             bottom: 20px;
-            bottom: var(--cd-back-to-top-margin);
+            bottom: const(--cd-back-to-top-margin);
             right: 20px;
-            right: var(--cd-back-to-top-margin);
+            right: const(--cd-back-to-top-margin);
             display: inline-block;
             height: 40px;
-            height: var(--cd-back-to-top-size);
+            height: const(--cd-back-to-top-size);
             width: 40px;
-            width: var(--cd-back-to-top-size);
+            width: const(--cd-back-to-top-size);
             box-shadow: 0 0 10px rgba(0, 0, 0, .05) !important;
             background: url(https://res.cloudinary.com/dxfq3iotg/image/upload/v1571057658/cd-top-arrow.svg) no-repeat center 50%;
             background-color: ${themeColor};
-            background-color: hsla(var(--cd-color-3-h), var(--cd-color-3-s), var(--cd-color-3-l), 0.8)
+            background-color: hsla(const(--cd-color-3-h), const(--cd-color-3-s), const(--cd-color-3-l), 0.8)
         }
         .slidecontainer {
             width: 100%;
@@ -1000,6 +999,11 @@
                     display:none !important;
                 }
             }
+            .grid-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-gap: 20px;
+            }
 
         </style>
 
@@ -1014,6 +1018,10 @@
                     <li>
                         <label for="sample-select">Select kraken database</label>
                         <select id="sample-select"></select>
+                    </li>
+                    <li>
+                        <label for="domain-select">Select domain</label>
+                        <select id="domain-select"></select>
                     </li>
                     <li>
                         <label for="rank-select">Select rank</label>
@@ -1034,7 +1042,6 @@
                     </li>
                 </ul>
             </div>
-
             <div id="visualisation">
                 <div id="sankey-plot"></div>
                 <div id="tooltip"></div>
@@ -1047,21 +1054,22 @@
                 </thead>
                 <tbody></tbody>
             </table>
+
             <script>
                 /* ----------------------------------------------------------------------------
                 | Chart settings
                 |---------------------------------------------------------------------------- */
-                const width = 1500
-                const height = 500
-                const color = '#333333'
-                const cutoffs = [0.5, 1, 3, 5]
-                const ranks = ["superkingdom", "kingdom", "phylum", "class", "order", "family", "genus", "species"]
-                const colours = ["#6e40aa", "#6d41ab", "#6d41ad", "#6d42ae", "#6c43af", "#6c43b0", "#6b44b2", "#6b45b3", "#6a46b4", "#6a46b5", "#6a47b7", "#6948b8", "#6849b9", "#684aba", "#674abb", "#674bbd", "#664cbe", "#664dbf", "#654ec0", "#654fc1", "#6450c2", "#6350c3", "#6351c4", "#6252c5", "#6153c6", "#6154c7", "#6055c8", "#5f56c9", "#5f57ca", "#5e58cb", "#5d59cc", "#5c5acd", "#5c5bce", "#5b5ccf", "#5a5dd0", "#595ed1", "#595fd1", "#5860d2", "#5761d3", "#5662d4", "#5663d5", "#5564d5", "#5465d6", "#5366d7", "#5267d7", "#5168d8", "#5169d9", "#506ad9", "#4f6bda", "#4e6cda", "#4d6ddb", "#4c6edb", "#4b70dc", "#4b71dc", "#4a72dd", "#4973dd", "#4874de", "#4775de", "#4676df", "#4577df", "#4479df", "#447adf", "#437be0", "#427ce0", "#417de0", "#407ee0", "#3f80e1", "#3e81e1", "#3d82e1", "#3d83e1", "#3c84e1", "#3b86e1", "#3a87e1", "#3988e1", "#3889e1", "#378ae1", "#378ce1", "#368de1", "#358ee1", "#348fe1", "#3390e1", "#3292e1", "#3293e1", "#3194e0", "#3095e0", "#2f96e0", "#2e98e0", "#2e99df", "#2d9adf", "#2c9bdf", "#2b9cde", "#2b9ede", "#2a9fdd", "#29a0dd", "#29a1dd", "#28a2dc", "#27a4dc", "#26a5db", "#26a6db", "#25a7da", "#25a8d9", "#24aad9", "#23abd8", "#23acd8", "#22add7", "#22aed6", "#21afd5", "#21b1d5", "#20b2d4", "#20b3d3", "#1fb4d2", "#1fb5d2", "#1eb6d1", "#1eb8d0", "#1db9cf", "#1dbace", "#1dbbcd", "#1cbccc", "#1cbdcc", "#1cbecb", "#1bbfca", "#1bc0c9", "#1bc2c8", "#1ac3c7", "#1ac4c6", "#1ac5c5", "#1ac6c4", "#1ac7c2", "#1ac8c1", "#19c9c0", "#19cabf", "#19cbbe", "#19ccbd", "#19cdbc", "#19cebb", "#19cfb9", "#19d0b8", "#19d1b7", "#19d2b6", "#19d3b5", "#1ad4b4", "#1ad5b2", "#1ad5b1", "#1ad6b0", "#1ad7af", "#1bd8ad", "#1bd9ac", "#1bdaab", "#1bdbaa", "#1cdba8", "#1cdca7", "#1cdda6", "#1ddea4", "#1ddfa3", "#1edfa2", "#1ee0a0", "#1fe19f", "#1fe29e", "#20e29d", "#20e39b", "#21e49a", "#22e599", "#22e597", "#23e696", "#24e795", "#24e793", "#25e892", "#26e891", "#27e98f", "#27ea8e", "#28ea8d", "#29eb8c", "#2aeb8a", "#2bec89", "#2cec88", "#2ded87", "#2eed85", "#2fee84", "#30ee83", "#31ef82", "#32ef80", "#33f07f", "#34f07e", "#35f07d", "#37f17c", "#38f17a", "#39f279", "#3af278", "#3bf277", "#3df376", "#3ef375", "#3ff374", "#41f373", "#42f471", "#43f470", "#45f46f", "#46f46e", "#48f56d", "#49f56c", "#4bf56b", "#4cf56a", "#4ef56a", "#4ff669", "#51f668", "#52f667", "#54f666", "#55f665", "#57f664", "#59f664", "#5af663", "#5cf662", "#5ef661", "#5ff761", "#61f760", "#63f75f", "#64f75f", "#66f75e", "#68f75d", "#6af75d", "#6bf65c", "#6df65c", "#6ff65b", "#71f65b", "#73f65a", "#74f65a", "#76f659", "#78f659", "#7af659", "#7cf658", "#7ef658", "#80f558", "#81f558", "#83f557", "#85f557", "#87f557", "#89f557", "#8bf457", "#8df457", "#8ff457", "#91f457", "#93f457", "#94f357", "#96f357", "#98f357", "#9af357", "#9cf257", "#9ef258", "#a0f258", "#a2f258", "#a4f158", "#a6f159", "#a8f159", "#aaf159", "#abf05a", "#adf05a", "#aff05b"]
+                const width = 1500;
+                const height = 500;
+                const color = '#333333';
+                const cutoffs = [0, 0.01, 0.5, 1, 3, 5];
+                const ranks = ["superkingdom", "clade", "kingdom", "phylum", "subphylum", "class", "order", "family", "genus", "species", "subspecies", "serotype"];
+                const colours = ["#6e40aa", "#6d41ab", "#6d41ad", "#6d42ae", "#6c43af", "#6c43b0", "#6b44b2", "#6b45b3", "#6a46b4", "#6a46b5", "#6a47b7", "#6948b8", "#6849b9", "#684aba", "#674abb", "#674bbd", "#664cbe", "#664dbf", "#654ec0", "#654fc1", "#6450c2", "#6350c3", "#6351c4", "#6252c5", "#6153c6", "#6154c7", "#6055c8", "#5f56c9", "#5f57ca", "#5e58cb", "#5d59cc", "#5c5acd", "#5c5bce", "#5b5ccf", "#5a5dd0", "#595ed1", "#595fd1", "#5860d2", "#5761d3", "#5662d4", "#5663d5", "#5564d5", "#5465d6", "#5366d7", "#5267d7", "#5168d8", "#5169d9", "#506ad9", "#4f6bda", "#4e6cda", "#4d6ddb", "#4c6edb", "#4b70dc", "#4b71dc", "#4a72dd", "#4973dd", "#4874de", "#4775de", "#4676df", "#4577df", "#4479df", "#447adf", "#437be0", "#427ce0", "#417de0", "#407ee0", "#3f80e1", "#3e81e1", "#3d82e1", "#3d83e1", "#3c84e1", "#3b86e1", "#3a87e1", "#3988e1", "#3889e1", "#378ae1", "#378ce1", "#368de1", "#358ee1", "#348fe1", "#3390e1", "#3292e1", "#3293e1", "#3194e0", "#3095e0", "#2f96e0", "#2e98e0", "#2e99df", "#2d9adf", "#2c9bdf", "#2b9cde", "#2b9ede", "#2a9fdd", "#29a0dd", "#29a1dd", "#28a2dc", "#27a4dc", "#26a5db", "#26a6db", "#25a7da", "#25a8d9", "#24aad9", "#23abd8", "#23acd8", "#22add7", "#22aed6", "#21afd5", "#21b1d5", "#20b2d4", "#20b3d3", "#1fb4d2", "#1fb5d2", "#1eb6d1", "#1eb8d0", "#1db9cf", "#1dbace", "#1dbbcd", "#1cbccc", "#1cbdcc", "#1cbecb", "#1bbfca", "#1bc0c9", "#1bc2c8", "#1ac3c7", "#1ac4c6", "#1ac5c5", "#1ac6c4", "#1ac7c2", "#1ac8c1", "#19c9c0", "#19cabf", "#19cbbe", "#19ccbd", "#19cdbc", "#19cebb", "#19cfb9", "#19d0b8", "#19d1b7", "#19d2b6", "#19d3b5", "#1ad4b4", "#1ad5b2", "#1ad5b1", "#1ad6b0", "#1ad7af", "#1bd8ad", "#1bd9ac", "#1bdaab", "#1bdbaa", "#1cdba8", "#1cdca7", "#1cdda6", "#1ddea4", "#1ddfa3", "#1edfa2", "#1ee0a0", "#1fe19f", "#1fe29e", "#20e29d", "#20e39b", "#21e49a", "#22e599", "#22e597", "#23e696", "#24e795", "#24e793", "#25e892", "#26e891", "#27e98f", "#27ea8e", "#28ea8d", "#29eb8c", "#2aeb8a", "#2bec89", "#2cec88", "#2ded87", "#2eed85", "#2fee84", "#30ee83", "#31ef82", "#32ef80", "#33f07f", "#34f07e", "#35f07d", "#37f17c", "#38f17a", "#39f279", "#3af278", "#3bf277", "#3df376", "#3ef375", "#3ff374", "#41f373", "#42f471", "#43f470", "#45f46f", "#46f46e", "#48f56d", "#49f56c", "#4bf56b", "#4cf56a", "#4ef56a", "#4ff669", "#51f668", "#52f667", "#54f666", "#55f665", "#57f664", "#59f664", "#5af663", "#5cf662", "#5ef661", "#5ff761", "#61f760", "#63f75f", "#64f75f", "#66f75e", "#68f75d", "#6af75d", "#6bf65c", "#6df65c", "#6ff65b", "#71f65b", "#73f65a", "#74f65a", "#76f659", "#78f659", "#7af659", "#7cf658", "#7ef658", "#80f558", "#81f558", "#83f557", "#85f557", "#87f557", "#89f557", "#8bf457", "#8df457", "#8ff457", "#91f457", "#93f457", "#94f357", "#96f357", "#98f357", "#9af357", "#9cf257", "#9ef258", "#a0f258", "#a2f258", "#a4f158", "#a6f159", "#a8f159", "#aaf159", "#abf05a", "#adf05a", "#aff05b"];
 
                 /* ----------------------------------------------------------------------------
                 | Ingest data
                 |---------------------------------------------------------------------------- */
-                const getData = () => "${data_for_report['sankey_data']}"
+                const getData = () => "${data_for_report['sankey_data']}";
 
                 /* ----------------------------------------------------------------------------
                 | Helper methods
@@ -1070,90 +1078,79 @@
                     JSON.parse(_data);
 
                 const normaliseName = (name) =>
-                    name.split(' ').join('-')
+                    name.split(' ').join('-');
 
+                /* ----------------------------------------------------------------------------
+                | Continues in separate file for mako parsing reasons
+                |---------------------------------------------------------------------------- */
                 ${data_for_report["sankey_js"]}
-
-
-
             </script>
 
             <h3>Read statistics</h3>
-            <div id="stats"></div>
-            <script>
-                const getStatsData = () => "${data_for_report['read_count_data']}"
-                const statsData = parseData(getStatsData())
-                const lenData  = statsData["raw_reads"]["len"]
+            <div id="stats" class="grid-container">
+                <div id="len-plot" class="grid-child"></div>
+                <div id="qual-plot" class="grid-child"></div>
+            </div>
 
-                // set the dimensions and margins of the graph
-                var margin = {
-                        top: 10,
-                        right: 30,
-                        bottom: 30,
-                        left: 40
+            <script defer>
+                /* ----------------------------------------------------------------------------
+                | Stats histogram methods
+                |---------------------------------------------------------------------------- */
+
+                const stats_data = ${data_for_report["read_count_data"]};
+
+                const vl_len_histogram = {
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "width": 600,
+                    "height": 500,
+                    "data": {
+                        "values": stats_data
                     },
-                    width = 460 - margin.left - margin.right,
-                    height = 400 - margin.top - margin.bottom;
-
-                // append the svg object to the body of the page
-                var svg = d3.select("#stats")
-                    .append("svg")
-                    .attr("width", width + margin.left + margin.right)
-                    .attr("height", height + margin.top + margin.bottom)
-                    .append("g")
-                    .attr("transform",
-                        "translate(" + margin.left + "," + margin.top + ")");
-
-                // X axis: scale and draw:
-                var x = d3.scaleLinear()
-                    .domain([0, 1000]) // can use this instead of 1000 to have the max of data: d3.max(data, function(d) { return +d.price })
-                    .range([0, width]);
-                svg.append("g")
-                    .attr("transform", "translate(0," + height + ")")
-                    .call(d3.axisBottom(x));
-
-                // set the parameters for the histogram
-                var histogram = d3.histogram()
-                    .value(lenData.values()) // I need to give the vector of value
-                    .threshold(lenData.keys())
-                    .domain(x.domain()) // then the domain of the graphic
-                    .thresholds(x.ticks(70)); // then the numbers of bins
-
-                // And apply this function to data to get the bins
-                var bins = histogram(statsData);
-
-                // Y axis: scale and draw:
-                var y = d3.scaleLinear()
-                    .range([height, 0]);
-                y.domain([0, d3.max(bins, function(d) {
-                    return d.length;
-                })]); // d3.hist has to be called before the Y axis obviously
-                svg.append("g")
-                    .call(d3.axisLeft(y));
-
-                // append the bar rectangles to the svg element
-                svg.selectAll("rect")
-                    .data(bins)
-                    .enter()
-                    .append("rect")
-                    .attr("x", 1)
-                    .attr("transform", function(d) {
-                        return "translate(" + x(d.x0) + "," + y(d.length) + ")";
-                    })
-                    .attr("width", function(d) {
-                        return x(d.x1) - x(d.x0) - 1;
-                    })
-                    .attr("height", function(d) {
-                        return height - y(d.length);
-                    })
-                    .style("fill", "#69b3a2")
+                    "mark": "bar",
+                    "encoding": {
+                        "x": {
+                            "bin": {"maxbins": 40},
+                            "field": "read_length",
+                            "title": "Read length (bp)",
+                        },
+                        "y": {
+                            "aggregate": "count",
+                            "title": "Count",}
+                    }
+                };
+                const vl_qual_histogram = {
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "width": 600,
+                    "height": 500,
+                    "data": {
+                        "values": stats_data
+                    },
+                    "mark": "bar",
+                    "encoding": {
+                        "x": {
+                            "bin": {"maxbins": 41, "extent": [0,41]},
+                            "field": "mean_quality",
+                            "title": "Mean quality",
+                        },
+                        "y": {
+                            "aggregate": "count",
+                            "title": "Count",}
+                    }
+                };
+                vegaEmbed('#len-plot', vl_len_histogram, {renderer: "svg"})
+                    .then(result => console.log(result))
+                    .catch(console.warn);
+                vegaEmbed('#qual-plot', vl_qual_histogram, {renderer: "svg"})
+                    .then(result => console.log(result))
+                    .catch(console.warn);
             </script>
+
         </main>
 
     </div>
 
 
-    <footer class="page-footer">
+    <footer class="mscape-footer">
         <div class="container-fluid text-right text-md-right">
             <hr>
             <div class="row">

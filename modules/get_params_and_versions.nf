@@ -4,34 +4,35 @@ import groovy.json.JsonBuilder
 
 process get_versions {
 
-    
-    publishDir "${params.outdir}/${unique_id}/execution", mode: 'copy'
+    conda 'environment.yml'
+    container "${params.wf.container}:${params.wf.container_version}"
+    publishDir "${params.tracedir}", mode: 'copy'
     cpus 1
     input:
         val unique_id
     output:
-        path "versions.txt"
+        path "versions_${unique_id}.txt"
     script:
     """
-    kraken2 --version | head -n 1 | sed 's/ version /,/' >> versions.txt
-    fastcat --version | sed 's/^/fastcat,/' >> versions.txt
-    taxonkit version | sed 's/ /,/' >> versions.txt
+    conda list > "versions_${unique_id}.txt"
     """
 }
 
 
 process get_params {
-    publishDir "${params.outdir}/${unique_id}/execution", mode: 'copy'
+    container "${params.wf.container}:${params.wf.container_version}"
+
+    publishDir "${params.tracedir}", mode: 'copy'
     cpus 1
     input:
         val unique_id
     output:
-        path "params.json"
+        path "params_${unique_id}.log"
     script:
         def paramsJSON = new JsonBuilder(params).toPrettyString()
     """
     # Output nextflow params object to JSON
-    echo '$paramsJSON' > params.json
+    echo '$paramsJSON' > "params_${unique_id}.log"
     """
 }
 
@@ -47,5 +48,5 @@ workflow get_params_and_versions {
 }
 
 workflow {
-    get_params_and_versions()
+    get_params_and_versions("${params.unique_id}")
 }

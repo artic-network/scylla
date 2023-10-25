@@ -19,9 +19,8 @@
 
 
 
-process unpackDatabase {
-    label "wfmetagenomics"
-    cpus 1
+process unpack_database {
+    label "process_single"
     storeDir "${params.store_dir}/${params.database_set}"
     input:
         path database
@@ -43,9 +42,9 @@ process unpackDatabase {
     """
 }
 
-process unpackTaxonomy {
-    cpus 1
-    storeDir "${params.store_dir}/${params.database_set}"
+process unpack_taxonomy {
+    label "process_single"
+    storeDir "${params.store_dir}"
     input:
         path taxonomy
     output:
@@ -66,12 +65,13 @@ process unpackTaxonomy {
     """
 }
 
-kraken_compute = params.threads == 1 ? 1 : params.threads - 1
+kraken_compute = params.kraken_clients == 1 ? 1 : params.kraken_clients - 1
 
 process kraken_server {
-    errorStrategy 'ignore'
-    label "scylla"
+    label "process_long"
+    memory { 8.GB * task.attempt }
     cpus params.threads
+    container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     input:
         path database
@@ -81,7 +81,7 @@ process kraken_server {
     """
     # we add one to requests to allow for stop signal
     kraken2_server \
-        --max-requests ${kraken_compute + 1} \
+        --max-requests ${kraken_compute + 1} --thread-pool ${params.server_threads}\
         --port ${params.k2_port} \
         --host-ip ${params.k2_host} \
         --db ./${database}/
@@ -90,7 +90,8 @@ process kraken_server {
 
 
 process stop_kraken_server {
-    label "scylla"
+    label "process_single"
+    container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     // this shouldn't happen, but we'll keep retrying
     // errorStrategy = { task.exitStatus in [8, 14] && task.attempt < 3 ? 'retry' : 'ignore' }
@@ -142,7 +143,7 @@ workflow {
 
             input_database = file("${params.store_dir}/${params.database_set}/database_dir")
             if (input_database.isEmpty()) {
-                database = unpackDatabase(default_database)
+                database = unpack_database(default_database)
             } else {
                 database = input_database
             }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Script to create an aggregated count from lineage data."""
-### taken from epi2ome/wf-metagenomics
+### taken from epi2ome/wf-metagenomics under the conditions of their license https://github.com/epi2me-labs/wf-metagenomics/blob/master/LICENSE and modified for this use case
 
 import argparse
 import json
@@ -11,13 +11,17 @@ UNKNOWN = 'Unknown'
 
 RANKS = [
     "superkingdom",
+    "clade",
     "kingdom",
     "phylum",
+    "subphylum"
     "class",
     "order",
     "family",
     "genus",
-    "species"
+    "species",
+    "subspecies",
+    "serotype"
 ]
 
 
@@ -45,10 +49,14 @@ def update_or_create_count(entry, entries, bracken_counts):
     count = int(bracken_counts[tax_id])
 
     previous = entries
+    previous_rank = None
     for [name, rank] in zip(lineage_split, ranks_split):
 
         if rank not in RANKS:
-            continue
+            if previous_rank == "species":
+                rank = "subspecies"
+            else:
+                continue
 
         current = previous.get(name)
         if not current:
@@ -63,6 +71,7 @@ def update_or_create_count(entry, entries, bracken_counts):
 
         current['count'] += count
         previous = current['children']
+        previous_rank = rank
 
     return entries
 
@@ -85,7 +94,7 @@ def main(prefix, lineages, bracken, report):
         bracken = f.readlines()
     if len(bracken) > 0:
         for i in bracken:
-            bracken_counts[i.split()[0]] = i.split()[1]
+            bracken_counts[i.split()[1]] = i.split()[0]
         with open(lineages) as f:
             infile = f.readlines()
         for line in infile:
@@ -99,8 +108,8 @@ def main(prefix, lineages, bracken, report):
     with open(report) as f:
         report_file = f.readlines()
         for line in report_file:
-            if "unclassified" in line:
-                unclassified_count = line.split()[1]
+            if line.split()[4] == "0" and "unclassified" in line:
+                unclassified_count = line.split()[2]
                 entries = update_or_create_unclassified(
                     entries, unclassified_count)
                 total += int(unclassified_count)

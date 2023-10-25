@@ -48,7 +48,7 @@ process assemble_flye {
     label "process_high"
 
     conda "bioconda::flye=2.9"
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         val unique_id
@@ -68,7 +68,7 @@ process assemble_rnabloom {
     label "process_high"
 
     conda "bioconda::rnabloom"
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         val unique_id
@@ -88,8 +88,8 @@ process assemble_megahit {
     
     label "process_high"
 
-    conda "bioconda::megahit"
-    container "biowilko/scylla@${params.wf.container_sha}"
+	conda "bioconda::megahit"
+	container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         val unique_id
@@ -148,7 +148,7 @@ process assemble_megahit_paired {
 
 process assemble_rnaspades_paired {
 
-    label "process_high"
+	  label "process_high"
     container "biocontainers/spades:3.15.5--h95f258a_1"
 
     input:
@@ -196,8 +196,7 @@ process gen_assembly_stats {
 process run_virbot {
 
     label "process_medium"
-
-    container "biowilko/scylla@${params.wf.container_sha}"
+	  container "${params.wf.container}:${params.wf.container_version}"
 
     publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 
@@ -236,7 +235,7 @@ process run_genomad {
 
     label "process_medium"    
 
-    container "biowilko/scylla@${params.wf.container_sha}"
+	  container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         val unique_id
@@ -267,8 +266,9 @@ process filter_short_contigs {
     label "process_low"
 
     conda "bioconda::bbmap"
-    container "biowilko/scylla@${params.wf.container_sha}"
 
+    container "${params.wf.container}:${params.wf.container_version}"
+ 
     input:
         val unique_id
         path contigs
@@ -287,8 +287,8 @@ process select_Riboviria {
 
     label "process_single"
 
-    conda "bioconda::bbmap"
-    container "biowilko/scylla@${params.wf.container_sha}"
+	  conda "bioconda::bbmap"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "RNA_viral_contigs.fa" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 

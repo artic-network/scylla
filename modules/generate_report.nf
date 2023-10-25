@@ -6,15 +6,13 @@ process make_report {
     publishDir path: "${params.outdir}/${unique_id}/", mode: 'copy'
     
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
-    container "biowilko/scylla@${params.wf.container_sha}"
+    container "${params.wf.container}:${params.wf.container_version}"
     
     input:
-        val unique_id
-        path stats
-        path lineages
+        tuple val(unique_id), path(stats), path(lineages)
         path template
     output:
-        path "${unique_id}_report.html", emit: report_html
+        tuple val(unique_id), path("${unique_id}_report.html")
     script:
         report_name = "${unique_id}"
     """
@@ -29,14 +27,12 @@ process make_report {
 
 workflow generate_report {
     take:
-        unique_id
-        stats
-        bracken_jsons
+        report_ch
     main:
         // Acquire report template
         template = file("$baseDir/bin/scylla.mako.html")
 
-        make_report(unique_id, stats, bracken_jsons, template)
+        make_report(report_ch, template)
     emit:
         make_report.out
 }
