@@ -6,7 +6,7 @@ process make_report {
     publishDir path: "${params.outdir}/${unique_id}/", mode: 'copy'
     
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
-    container "${params.wf.container}@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_version}"
     
     input:
         tuple val(unique_id), path(stats), path(lineages)

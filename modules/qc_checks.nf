@@ -5,7 +5,7 @@ process read_stats {
     label "process_medium"
 
     conda "epi2melabs::kraken2-server=0.1.3"
-    container "${params.wf.container}@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_version}"
 
     input:
         tuple val(unique_id), path(fastq)
@@ -26,7 +26,7 @@ process publish_stats {
     publishDir "${params.outdir}/${unique_id}/qc", mode: 'copy'
 
     conda "conda-forge::pandas=1.2.4 conda-forge::numpy=1.20.3"
-    container "${params.wf.container}@${params.wf.container_sha}"
+    container "${params.wf.container}@${params.wf.container_version}"
 
     input:
         tuple val(unique_id), path(stats)

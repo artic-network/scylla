@@ -1,9 +1,14 @@
-FROM condaforge/mambaforge:latest AS conda
+FROM condaforge/miniforge3:latest
 
 COPY environment.yml .
 
-RUN /opt/conda/bin/mamba env create -f /environment.yml
+RUN sed -i 's/name: scylla/name: base/' environment.yml
 
-ENV PATH=/opt/conda/envs/scylla/bin:$PATH
+RUN mamba env update -f environment.yml
+
+RUN conda clean -afy \
+    && find /opt/conda/ -follow -type f -name '*.a' -delete \
+    && find /opt/conda/ -follow -type f -name '*.pyc' -delete \
+    && find /opt/conda/ -follow -type f -name '*.js.map' -delete
 
 CMD ["/bin/bash"]
