@@ -29,7 +29,7 @@ process split_kreport {
 
 process extract_paired_reads {
     
-    label 'process_single'
+    label 'process_medium'
     errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
 
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
@@ -68,7 +68,7 @@ process extract_paired_reads {
 
 process extract_reads {
 
-    label 'process_single'
+    label 'process_medium'
     errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
 
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
