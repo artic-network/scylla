@@ -338,20 +338,21 @@ def fastq_iterator(
             if trimmed_name not in reads_of_interest:
                 continue
 
-            taxa = read_map[trimmed_name]
+            k2_taxon = read_map[trimmed_name]
 
-            for taxon in taxa:
-                out_counts[taxon] += 1
-                quals[taxon].append(median(record.quali))
-                lens[taxon].append(len(record.seq))
+            taxon = subtaxa_map[k2_taxon]
 
-                try:
-                    out_records[taxon].append(record)
+            out_counts[taxon] += 1
+            quals[taxon].append(median(record.quali))
+            lens[taxon].append(len(record.seq))
 
-                except KeyError:
-                    out_records[taxon] = []
+            try:
+                out_records[taxon].append(record)
 
-                    out_records[taxon].append(record)
+            except KeyError:
+                out_records[taxon] = []
+
+                out_records[taxon].append(record)
 
         for taxon, records in out_records.items():
             with open(f"{prefix}.{taxon}.{filetype}", "w") as f:
@@ -581,7 +582,6 @@ def main():
         target_ranks = [rank_dict[r] for r in args.rank]
     else:
         target_ranks = []
-    print(target_ranks)
 
     parent, children = None, None
     if args.taxonomy:
