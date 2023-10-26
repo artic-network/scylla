@@ -29,7 +29,7 @@ process split_kreport {
 
 process extract_paired_reads {
     
-    label 'process_low'
+    label 'process_single'
     errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
 
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
@@ -68,7 +68,7 @@ process extract_paired_reads {
 
 process extract_reads {
 
-    label 'process_low'
+    label 'process_single'
     errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
 
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
@@ -106,7 +106,7 @@ process extract_reads {
 
 process bgzip_extracted_taxa {
       
-      label 'process_low'
+      label 'process_medium'
   
       publishDir path: "${params.outdir}/${params.unique_id}/reads_by_taxa", mode: 'copy'
   
@@ -114,12 +114,15 @@ process bgzip_extracted_taxa {
       container "${params.wf.container}:${params.wf.container_version}"
   
       input:
-          path(read_file)
+          path(read_files)
       output:
           path "reads.*.f*.gz"
       script:
           """
-          bgzip --threads $task.cpus ${read_file}
+          for f in \$(ls reads.*.f*)
+            do
+            bgzip --threads $task.cpus \$f
+            done
           """
 }
 
@@ -192,12 +195,10 @@ workflow extract_taxa {
         if ( params.paired ){
             extract_paired_reads(extract_ch, taxonomy_dir)
             extract_paired_reads.out.reads
-                .flatten()
                 .set {extracted_taxa}
         } else {
             extract_reads(extract_ch, taxonomy_dir)
             extract_reads.out.reads
-                .flatten()
                 .set {extracted_taxa}            
         }
         bgzip_extracted_taxa(extracted_taxa)
