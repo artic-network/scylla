@@ -564,7 +564,7 @@ def main():
     if args.taxonomy:
         parent, children = load_from_taxonomy(args.taxonomy)
     else:
-        parent, children = infer_hierarchy(report_file)
+        parent, children = infer_hierarchy(args.report_file)
 
     # get taxids to extract
     report_entries = load_report_file(args.report_file, args.max_human)
