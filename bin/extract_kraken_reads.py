@@ -306,23 +306,24 @@ def fastq_iterator(
                 sys.stderr.write("ERROR: read names do not match\n")
                 sys.exit(10)
 
-            k2_taxon = read_map[trimmed_name]
+            k2_taxa = read_map[trimmed_name]
 
-            taxon = subtaxa_map[k2_taxon]
+            for k2_taxon in k2_taxa:
+                taxon = subtaxa_map[k2_taxon]
 
-            out_counts[taxon] += 2
-            quals[taxon].extend([median(record_1.quali), median(record_2.quali)])
-            lens[taxon].extend([len(record_1.seq), len(record_2.seq)])
+                out_counts[taxon] += 2
+                quals[taxon].extend([median(record_1.quali), median(record_2.quali)])
+                lens[taxon].extend([len(record_1.seq), len(record_2.seq)])
 
-            try:
-                out_records[taxon][1].append(record_1)
-                out_records[taxon][2].append(record_2)
+                try:
+                    out_records[taxon][1].append(record_1)
+                    out_records[taxon][2].append(record_2)
 
-            except KeyError:
-                out_records[taxon] = {1: [], 2: []}
+                except KeyError:
+                    out_records[taxon] = {1: [], 2: []}
 
-                out_records[taxon][1].append(record_1)
-                out_records[taxon][2].append(record_2)
+                    out_records[taxon][1].append(record_1)
+                    out_records[taxon][2].append(record_2)
 
         for taxon, records in out_records.items():
             with open(f"{prefix}.{taxon}_1.{filetype}", "w") as f:
@@ -338,21 +339,22 @@ def fastq_iterator(
             if trimmed_name not in reads_of_interest:
                 continue
 
-            k2_taxon = read_map[trimmed_name]
+            k2_taxa = read_map[trimmed_name]
 
-            taxon = subtaxa_map[k2_taxon]
+            for k2_taxon in k2_taxa:
+                taxon = subtaxa_map[k2_taxon]
 
-            out_counts[taxon] += 1
-            quals[taxon].append(median(record.quali))
-            lens[taxon].append(len(record.seq))
+                out_counts[taxon] += 1
+                quals[taxon].append(median(record.quali))
+                lens[taxon].append(len(record.seq))
 
-            try:
-                out_records[taxon].append(record)
+                try:
+                    out_records[taxon].append(record)
 
-            except KeyError:
-                out_records[taxon] = []
+                except KeyError:
+                    out_records[taxon] = []
 
-                out_records[taxon].append(record)
+                    out_records[taxon].append(record)
 
         for taxon, records in out_records.items():
             with open(f"{prefix}.{taxon}.{filetype}", "w") as f:
@@ -390,7 +392,10 @@ def extract_taxa(
             for line in kfile:
                 tax_id, read_id = parse_kraken_assignment_line(line)
                 if tax_id in subtaxa_map.keys():
-                    read_map[read_id] = tax_id
+                    try:
+                        read_map[read_id].append(tax_id)
+                    except KeyError:
+                        read_map[read_id] = [tax_id]
 
     out_counts, quals, lens = fastq_iterator(
         prefix, filetype, read_map, subtaxa_map, reads1, reads2
