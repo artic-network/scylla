@@ -176,7 +176,6 @@ def get_taxon_id_lists(
     lists_to_extract = {}
     for taxon in report_entries:
         entry = report_entries[taxon]
-        print(entry)
         if len(target_ranks) > 0 and entry["rank"] not in target_ranks:
             continue
         if min_count and entry["count"] < min_count:
@@ -306,31 +305,23 @@ def fastq_iterator(
                 sys.stderr.write("ERROR: read names do not match\n")
                 sys.exit(10)
 
-            k2_taxa = read_map[trimmed_name]
+            for k2_taxon in read_map[trimmed_name]:
+                for taxon in subtaxa_map[k2_taxon]:
+                    out_counts[taxon] += 2
+                    quals[taxon].extend(
+                        [median(record_1.quali), median(record_2.quali)]
+                    )
+                    lens[taxon].extend([len(record_1.seq), len(record_2.seq)])
 
-            output_taxa = []
+                    try:
+                        out_records[taxon][1].append(record_1)
+                        out_records[taxon][2].append(record_2)
 
-            for k2_taxon in k2_taxa:
-                taxon = subtaxa_map[k2_taxon]
+                    except KeyError:
+                        out_records[taxon] = {1: [], 2: []}
 
-                if taxon in output_taxa:
-                    continue
-                else:
-                    output_taxa.append(taxon)
-
-                out_counts[taxon] += 2
-                quals[taxon].extend([median(record_1.quali), median(record_2.quali)])
-                lens[taxon].extend([len(record_1.seq), len(record_2.seq)])
-
-                try:
-                    out_records[taxon][1].append(record_1)
-                    out_records[taxon][2].append(record_2)
-
-                except KeyError:
-                    out_records[taxon] = {1: [], 2: []}
-
-                    out_records[taxon][1].append(record_1)
-                    out_records[taxon][2].append(record_2)
+                        out_records[taxon][1].append(record_1)
+                        out_records[taxon][2].append(record_2)
 
         for taxon, records in out_records.items():
             with open(f"{prefix}.{taxon}_1.{filetype}", "w") as f:
@@ -346,27 +337,19 @@ def fastq_iterator(
             if trimmed_name not in reads_of_interest:
                 continue
 
-            k2_taxa = read_map[trimmed_name]
+            for k2_taxon in read_map[trimmed_name]:
+                for taxon in subtaxa_map[k2_taxon]:
+                    out_counts[taxon] += 1
+                    quals[taxon].append(median(record.quali))
+                    lens[taxon].append(len(record.seq))
 
-            output_taxa = []
+                    try:
+                        out_records[taxon].append(record)
 
-            for k2_taxon in k2_taxa:
-                taxon = subtaxa_map[k2_taxon]
+                    except KeyError:
+                        out_records[taxon] = []
 
-                if taxon in output_taxa:
-                    continue
-                else:
-                    output_taxa.append(taxon)
-
-                out_counts[taxon] += 1
-                quals[taxon].append(median(record.quali))
-                lens[taxon].append(len(record.seq))
-
-                try:
-                    out_records[taxon].append(record)
-                except KeyError:
-                    out_records[taxon] = []
-                    out_records[taxon].append(record)
+                        out_records[taxon].append(record)
 
         for taxon, records in out_records.items():
             with open(f"{prefix}.{taxon}.{filetype}", "w") as f:
@@ -382,32 +365,24 @@ def extract_taxa(
     # open read files
     filetype, zipped = check_read_files(reads1)
 
-    with open(
-        "/Users/sam/bio_bulk/extract_taxa_testing/testdata/lists_to_extract", "w"
-    ) as fh:
-        fh.write(str(lists_to_extract))
+    read_map = defaultdict(set)
 
-    read_map = {}
-
-    subtaxa_map = {}
+    subtaxa_map = defaultdict(set)
 
     for taxon, subtaxons in lists_to_extract.items():
         for subtaxa in subtaxons:
-            subtaxa_map[subtaxa] = taxon
+            subtaxa_map[subtaxa].add(taxon)
 
-        sys.stderr.write(
-            "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES for %s\n"
-            % (len(lists_to_extract[taxon]), taxon)
-        )
+        # sys.stderr.write(
+        #    "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES for %s\n"
+        #    % (len(lists_to_extract[taxon]), taxon)
+        # )
 
-        with open(kraken_assignment_file, "r") as kfile:
-            for line in kfile:
-                tax_id, read_id = parse_kraken_assignment_line(line)
-                if tax_id in subtaxa_map.keys():
-                    try:
-                        read_map[read_id].append(tax_id)
-                    except KeyError:
-                        read_map[read_id] = [tax_id]
+    with open(kraken_assignment_file, "r") as kfile:
+        for line in kfile:
+            tax_id, read_id = parse_kraken_assignment_line(line)
+            if tax_id in subtaxa_map.keys():
+                read_map[read_id].add(tax_id)
 
     out_counts, quals, lens = fastq_iterator(
         prefix, filetype, read_map, subtaxa_map, reads1, reads2
