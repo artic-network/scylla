@@ -1,7 +1,8 @@
 // module to make a single sample report during ingest containing kraken summary and qc stats
 process make_report {
     
-    label "process_low"
+    label "process_single"
+    label "process_high_memory"
 
     publishDir path: "${params.outdir}/${unique_id}/", mode: 'copy'
     
