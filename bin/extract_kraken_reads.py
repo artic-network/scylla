@@ -308,8 +308,15 @@ def fastq_iterator(
 
             k2_taxa = read_map[trimmed_name]
 
+            output_taxa = []
+
             for k2_taxon in k2_taxa:
                 taxon = subtaxa_map[k2_taxon]
+
+                if taxon in output_taxa:
+                    continue
+                else:
+                    output_taxa.append(taxon)
 
                 out_counts[taxon] += 2
                 quals[taxon].extend([median(record_1.quali), median(record_2.quali)])
