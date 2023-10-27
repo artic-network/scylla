@@ -57,7 +57,7 @@ process bracken {
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     conda "bioconda::bracken=2.7"
-    container "${params.wf.container}:${params.wf.container_version}"
+    container "biocontainers/bracken:2.9--py39h1f90b4d_0"
 
     input:
         tuple val(unique_id), path(kraken_report)
@@ -85,7 +85,6 @@ process bracken_to_json {
     
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
     container "${params.wf.container}:${params.wf.container_version}"
-
 
     input:
         tuple val(unique_id), path(bracken_report), path(bracken_summary)

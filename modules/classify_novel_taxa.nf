@@ -48,7 +48,7 @@ process assemble_flye {
     label "process_high"
 
     conda "bioconda::flye=2.9"
-    container "${params.wf.container}:${params.wf.container_version}"
+    container "biocontainers/flye:2.9--py39h6935b12_1"
 
     input:
         val unique_id
@@ -89,7 +89,7 @@ process assemble_megahit {
     label "process_high"
 
 	conda "bioconda::megahit"
-	container "${params.wf.container}:${params.wf.container_version}"
+	container "biocontainers/mulled-v2-0f92c152b180c7cd39d9b0e6822f8c89ccb59c99:8ec213d21e5d03f9db54898a2baeaf8ec729b447-0"
 
     input:
         val unique_id
@@ -129,7 +129,7 @@ process assemble_megahit_paired {
     label "process_high"
 
     conda "bioconda::megahit"
-    container "biocontainers/megahit:1.2.9--h43eeafb_4"
+	container "biocontainers/mulled-v2-0f92c152b180c7cd39d9b0e6822f8c89ccb59c99:8ec213d21e5d03f9db54898a2baeaf8ec729b447-0"
 
     input:
         val unique_id
@@ -148,7 +148,8 @@ process assemble_megahit_paired {
 
 process assemble_rnaspades_paired {
 
-	  label "process_high"
+    label "process_high"
+
     container "biocontainers/spades:3.15.5--h95f258a_1"
 
     input:
@@ -196,7 +197,8 @@ process gen_assembly_stats {
 process run_virbot {
 
     label "process_medium"
-	  container "${params.wf.container}:${params.wf.container_version}"
+
+    container "biowilko/virbot:0.1.0"
 
     publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 
@@ -216,8 +218,11 @@ process run_virbot {
 }
 
 process download_genomad_database {
+
     label "process_single"
-    cpus 1
+
+    container "biocontainers/genomad:1.7.1--pyhdfd78af_0"
+
     storeDir "${params.store_dir}/"
     output:
         path "genomad_db"
@@ -235,7 +240,7 @@ process run_genomad {
 
     label "process_medium"    
 
-	  container "${params.wf.container}:${params.wf.container_version}"
+    container "biocontainers/genomad:1.7.1--pyhdfd78af_0"
 
     input:
         val unique_id
@@ -267,7 +272,7 @@ process filter_short_contigs {
 
     conda "bioconda::bbmap"
 
-    container "${params.wf.container}:${params.wf.container_version}"
+    container "biocontainers/bbmap:39.01--h5c4e2a8_0"
  
     input:
         val unique_id
@@ -287,8 +292,9 @@ process select_Riboviria {
 
     label "process_single"
 
-	  conda "bioconda::bbmap"
-    container "${params.wf.container}:${params.wf.container_version}"
+    conda "bioconda::bbmap"
+
+    container "biocontainers/bbmap:39.01--h5c4e2a8_0"
 
     publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { it == "RNA_viral_contigs.fa" ? "viral_contigs.fa" : "tax_assignments.tsv" }
 

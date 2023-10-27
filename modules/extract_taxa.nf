@@ -13,7 +13,7 @@ process split_kreport {
     label 'process_single'
 
     conda 'bioconda::biopython=1.78'
-    container "${params.wf.container}:${params.wf.container_version}"
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
         tuple val(unique_id), path(kreport)
@@ -35,7 +35,7 @@ process extract_paired_reads {
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-    container "${params.wf.container}:${params.wf.container_version}"
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
         tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport), val(min_reads), val(min_percent)
@@ -74,7 +74,7 @@ process extract_reads {
     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-    container "${params.wf.container}:${params.wf.container_version}"
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
         tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport), val(min_reads), val(min_percent)

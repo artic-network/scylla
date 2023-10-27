@@ -35,7 +35,7 @@ process sourmash_sketch_dna {
     label 'error_retry'
 
     conda "bioconda::sourmash=4.8.4"
-    container "quay.io/biocontainers/sourmash:4.8.4--hdfd78af_0"
+    container "biocontainers/sourmash:4.8.4--hdfd78af_0"
 
     input:
         tuple val(unique_id), path(fastq)
@@ -54,7 +54,7 @@ process sourmash_gather {
     label 'process_high_memory'
 
     conda "bioconda::sourmash=4.8.4"
-    container "quay.io/biocontainers/sourmash:4.8.4--hdfd78af_0"
+    container "biocontainers/sourmash:4.8.4--hdfd78af_0"
 
     input:
         tuple val(unique_id), path(sketch)
@@ -77,7 +77,7 @@ process sourmash_tax_metagenome {
     label 'error_retry'
 
     conda "bioconda::sourmash=4.8.4"
-    container "quay.io/biocontainers/sourmash:4.8.4--hdfd78af_0"
+    container "biocontainers/sourmash:4.8.4--hdfd78af_0"
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy', pattern: '*.csv'
 
     input:
