@@ -171,7 +171,6 @@ process bgzip_extracted_taxa {
 
 workflow extract_taxa {
     take:
-        unique_id
         fastq_ch
         assignments_ch
         kreport_ch

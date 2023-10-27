@@ -3,7 +3,7 @@
 - name: simple_long_read_fastq_dir
   command: nextflow run main.nf --fastq_dir test/test_data/barcode01 -profile docker --local
 - name: simple_short_read_fastqs
-  command: nextflow run main.nf --fastq1 test/test_data/illumina/barcode02_1.fq.gz --fastq2 test/test_data/illumina/barcode02_2.fq.gz --paired -profile docker --local
+  command: nextflow run main.nf --fastq1 test/test_data/illumina/barcode02.1.fq.gz --fastq2 test/test_data/illumina/barcode02.2.fq.gz --paired -profile docker --local
 - name: simple_long_read_run_dir
   command: nextflow run main.nf --run_dir test/test_data -profile docker --local
 - name: contains_human
