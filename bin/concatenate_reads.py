@@ -146,13 +146,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if ".gz" in args.fastq1 or ".gzip" in args.fastq1:
-        f1 = gzip.open(args.fastq1, mode="r")
+        f1 = gzip.open(args.fastq1, mode="rt")
     else:
-        f1 = open(args.fastq1, mode="r")
+        f1 = open(args.fastq1, mode="rt")
     if ".gz" in args.fastq2 or ".gzip" in args.fastq2:
-        f2 = gzip.open(args.fastq2, mode="r")
+        f2 = gzip.open(args.fastq2, mode="rt")
     else:
-        f2 = open(args.fastq2, mode="r")
+        f2 = open(args.fastq2, mode="rt")
 
     if args.output_fastq is None:
         f_out = sys.stdout
