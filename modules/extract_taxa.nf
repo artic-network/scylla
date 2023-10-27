@@ -43,7 +43,7 @@ process extract_paired_reads {
         tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport), val(min_reads), val(min_percent)
         path taxonomy_dir
     output:
-        path("reads.*.f*"), emit: reads
+        tuple val(unique_id), path("reads.*.f*"), emit: reads
         path "reads_summary.json", emit: summary
     script:
         """
@@ -84,7 +84,7 @@ process extract_reads {
         tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport), val(min_reads), val(min_percent)
         path taxonomy_dir
     output:
-        path("reads.*.f*"), emit: reads
+        tuple val(unique_id), path("reads.*.f*"), emit: reads
         path "reads_summary.json", emit: summary
     script:
         """
@@ -112,15 +112,15 @@ process bgzip_extracted_taxa {
       
       label 'process_medium'
   
-      publishDir path: "${params.outdir}/${params.unique_id}/reads_by_taxa", mode: 'copy'
+      publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
   
       conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
       container "${params.wf.container}:${params.wf.container_version}"
   
       input:
-          path(read_files)
+          tuple val(unique_id), path(read_files)
       output:
-          path "reads.*.f*.gz"
+          tuple val(unique_id), path("reads.*.f*.gz")
       script:
           """
           for f in \$(ls reads.*.f*)

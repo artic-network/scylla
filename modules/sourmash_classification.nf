@@ -1,4 +1,5 @@
 // This file contains workflow to classify with sourmash
+include { unpack_taxonomy } from '../modules/kraken_server'
 
 process unpack_database {
     label "process_single"
@@ -11,7 +12,7 @@ process unpack_database {
     """
     mkdir database_dir
     cd database_dir
-    for db in "${params.sourmash_db_includes}"
+    for db in ${params.sourmash_db_includes}
     do
         curl -JLO "${database}-\$db-k${params.sourmash_k}.zip"
     done
@@ -19,7 +20,7 @@ process unpack_database {
 
     mkdir lineages_dir
     cd lineages_dir
-    for db in "${params.sourmash_db_includes}"
+    for db in ${params.sourmash_db_includes}
     do
         curl -JLO "${database}-\$db.lineages.csv.gz"
     done
@@ -151,6 +152,7 @@ workflow sourmash_classify {
 
         input_taxonomy = file("${params.store_dir}/${params.database_set}/taxonomy_dir")
         if (input_taxonomy.isEmpty()) {
+            default_taxonomy = file("${params.default_taxonomy}", checkIfExists:true)
             taxonomy = unpack_taxonomy(default_taxonomy)
         } else {
             taxonomy = input_taxonomy
