@@ -348,8 +348,15 @@ def fastq_iterator(
 
             k2_taxa = read_map[trimmed_name]
 
+            output_taxa = []
+
             for k2_taxon in k2_taxa:
                 taxon = subtaxa_map[k2_taxon]
+
+                if taxon in output_taxa:
+                    continue
+                else:
+                    output_taxa.append(taxon)
 
                 out_counts[taxon] += 1
                 quals[taxon].append(median(record.quali))
@@ -357,10 +364,8 @@ def fastq_iterator(
 
                 try:
                     out_records[taxon].append(record)
-
                 except KeyError:
                     out_records[taxon] = []
-
                     out_records[taxon].append(record)
 
         for taxon, records in out_records.items():
