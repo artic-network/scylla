@@ -6,8 +6,12 @@ RUN sed -i 's/name: virbot/name: base/' environment.yml
 
 RUN mamba env update -f environment.yml
 
-RUN curl -O https://github.com/rmcolq/RNA_virus_detector/raw/main/ref.zip \
-    && unzip ref.zip -d /opt/conda/lib/python3.11/site-packages/virbot/data/ref/ \
+RUN git clone https://github.com/rmcolq/RNA_virus_detector.git
+
+ENV PATH=/RNA_virus_detector/:$PATH
+
+RUN wget https://github.com/rmcolq/RNA_virus_detector/raw/main/ref.zip \
+    && unzip ref.zip -d RNA_virus_detector \
     && rm ref.zip
 
 RUN conda clean -afy \

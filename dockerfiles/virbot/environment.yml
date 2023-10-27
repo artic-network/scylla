@@ -9,5 +9,3 @@ dependencies:
   - prodigal # for virbot
   - hmmer # for virbot
   - diamond # for virbot
-  - pip:
-    - git+https://github.com/rmcolq/RNA_virus_detector.git@dev

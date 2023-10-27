@@ -212,7 +212,7 @@ process run_virbot {
 
     script:
     """
-    virbot --input "${contigs}" --output virbot
+    VirBot.py --input "${contigs}" --output virbot
     awk -F',' 'BEGIN {print "contig_id\ttaxonomy"} NR>1{ gsub(/; /, ";", \$4) ; print \$1"\t"\$4 }' virbot/pos_contig_score.csv > pos_contig_score.tsv
     """
 }

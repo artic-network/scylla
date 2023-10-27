@@ -7,7 +7,6 @@ channels:
 dependencies:
   - python<=3.10
   - pysam
-  - nextflow
   - pip
   - kraken2
   - kraken2-server # not on mac
