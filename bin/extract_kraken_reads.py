@@ -290,71 +290,67 @@ def fastq_iterator(
     quals = defaultdict(list)
     lens = defaultdict(list)
 
-    out_records = {}
+    out_records_1 = {}
+    out_records_2 = {}
 
-    fq_1 = pyfastx.Fastq(fastq_1)
-    if fastq_2:
-        fq_2 = pyfastx.Fastq(fastq_2)
+    for record in pyfastx.Fastq(fastq_1, build_index=False):
+        name, seq, qual = record
+        trimmed_name = trim_read_id(name)
+        if trimmed_name not in reads_of_interest:
+            continue
 
-        for record_1, record_2 in zip(fq_1, fq_2):
-            trimmed_name = trim_read_id(record_1.name)
-            if trimmed_name not in reads_of_interest:
-                continue
+        for k2_taxon in read_map[trimmed_name]:
+            for taxon in subtaxa_map[k2_taxon]:
+                out_counts[taxon] += 1
+                quals[taxon].append(median([ord(x) - 33 for x in qual]))
+                lens[taxon].append(len(seq))
 
-            if trimmed_name != trim_read_id(record_2.name):
-                sys.stderr.write("ERROR: read names do not match\n")
-                sys.exit(10)
+                try:
+                    out_records_1[taxon].append(record)
 
-            for k2_taxon in read_map[trimmed_name]:
-                for taxon in subtaxa_map[k2_taxon]:
-                    out_counts[taxon] += 2
-                    quals[taxon].extend(
-                        [median(record_1.quali), median(record_2.quali)]
-                    )
-                    lens[taxon].extend([len(record_1.seq), len(record_2.seq)])
+                except KeyError:
+                    out_records_1[taxon] = []
 
-                    try:
-                        out_records[taxon][1].append(record_1)
-                        out_records[taxon][2].append(record_2)
+                    out_records_1[taxon].append(record)
 
-                    except KeyError:
-                        out_records[taxon] = {1: [], 2: []}
-
-                        out_records[taxon][1].append(record_1)
-                        out_records[taxon][2].append(record_2)
-
-        for taxon, records in out_records.items():
+    for taxon, records in out_records_1.items():
+        if fastq_2:
             with open(f"{prefix}.{taxon}_1.{filetype}", "w") as f:
-                for record in records[1]:
-                    f.write(record.raw)
-            with open(f"{prefix}.{taxon}_2.{filetype}", "w") as f:
-                for record in records[2]:
-                    f.write(record.raw)
+                for record in records:
+                    name, seq, qual = record
+                    f.write(f"@{name}\n{seq}\n+\n{qual}\n")
+        else:
+            with open(f"{prefix}.{taxon}.{filetype}", "w") as f:
+                for record in records:
+                    name, seq, qual = record
+                    f.write(f"@{name}\n{seq}\n+\n{qual}\n")
 
-    else:
-        for record in fq_1:
-            trimmed_name = trim_read_id(record.name)
+    if fastq_2:
+        for record in pyfastx.Fastq(fastq_2, build_index=False):
+            name, seq, qual = record
+            trimmed_name = trim_read_id(name)
             if trimmed_name not in reads_of_interest:
                 continue
 
             for k2_taxon in read_map[trimmed_name]:
                 for taxon in subtaxa_map[k2_taxon]:
                     out_counts[taxon] += 1
-                    quals[taxon].append(median(record.quali))
-                    lens[taxon].append(len(record.seq))
+                    quals[taxon].append(median([ord(x) - 33 for x in qual]))
+                    lens[taxon].append(len(seq))
 
                     try:
-                        out_records[taxon].append(record)
+                        out_records_2[taxon].append(record)
 
                     except KeyError:
-                        out_records[taxon] = []
+                        out_records_2[taxon] = []
 
-                        out_records[taxon].append(record)
+                        out_records_2[taxon].append(record)
 
-        for taxon, records in out_records.items():
-            with open(f"{prefix}.{taxon}.{filetype}", "w") as f:
+        for taxon, records in out_records_2.items():
+            with open(f"{prefix}.{taxon}_2.{filetype}", "w") as f:
                 for record in records:
-                    f.write(record.raw)
+                    name, seq, qual = record
+                    f.write(f"@{name}\n{seq}\n+\n{qual}\n")
 
     return (out_counts, quals, lens)
 
