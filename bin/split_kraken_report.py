@@ -1,13 +1,9 @@
 #!/usr/bin/env python
 
 import sys
-import os
-import gzip
-from Bio import SeqIO
 import argparse
-import json
 from datetime import datetime
-from collections import defaultdict
+
 
 def parse_depth(name):
     parse_name = name.split(" ")
@@ -19,6 +15,7 @@ def parse_depth(name):
     depth = int(depth / 2)
     return depth
 
+
 def save_file(name, lines):
     if len(lines) == 0:
         return
@@ -27,9 +24,10 @@ def save_file(name, lines):
         for line in lines:
             f.write(line)
 
+
 def parse_report_file(report_file, split_strings, split_rank):
     depth_dict = {}
-    lines = {"remainder":[]}
+    lines = {"remainder": []}
     key = "remainder"
     hierarchy = []
     max_depth = -1
@@ -60,7 +58,7 @@ def parse_report_file(report_file, split_strings, split_rank):
                     name,
                 ) = line.strip().split("\t")
             depth = parse_depth(name)
-            hierarchy = hierarchy[: depth]
+            hierarchy = hierarchy[:depth]
             name = name.strip()
             add_hierarchy = False
 
@@ -91,7 +89,6 @@ def parse_report_file(report_file, split_strings, split_rank):
             save_file(key, lines[key])
 
 
-
 # Main method
 def main():
     # Parse arguments
@@ -111,11 +108,11 @@ def main():
         help="List of taxon names to split the file by",
     )
     parser.add_argument(
-            "--rank",
-            dest="rank",
-            required=False,
-            help="The rank to split the file by",
-        )
+        "--rank",
+        dest="rank",
+        required=False,
+        help="The rank to split the file by",
+    )
 
     args = parser.parse_args()
 
@@ -141,9 +138,7 @@ def main():
         args.rank = rank_dict[args.rank]
 
     if not args.splits and not args.rank:
-        args.splits=["Bacteria", "Viruses", "Metazoa"]
-
-
+        args.splits = ["Bacteria", "Viruses", "Metazoa"]
 
     # Start Program
     now = datetime.now()

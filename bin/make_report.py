@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 
-import json
 import csv
-from collections import defaultdict
 from pathlib import Path
 from mako.lookup import TemplateLookup
-import datetime as dt
 from datetime import date
 import argparse
 from mako.template import Template
@@ -13,7 +10,6 @@ from mako.runtime import Context
 from mako.exceptions import RichTraceback
 from io import StringIO
 import os
-from Bio import SeqIO
 
 
 def make_output_report(
@@ -60,7 +56,7 @@ def main():
     parser.add_argument(
         "--assignments",
         help="JSON file(s) of kraken/bracken assignments",
-        nargs='+',
+        nargs="+",
         required=True,
         type=Path,
     )
@@ -93,8 +89,11 @@ def main():
 
     if args.read_counts:
         with open(args.read_counts.resolve(), "rt") as qc_file:
-            reader = csv.DictReader(qc_file, delimiter='\t')
-            read_counts = [{"read_length": row['read_length'], "mean_quality": row['mean_quality']} for row in reader]
+            reader = csv.DictReader(qc_file, delimiter="\t")
+            read_counts = [
+                {"read_length": row["read_length"], "mean_quality": row["mean_quality"]}
+                for row in reader
+            ]
     else:
         read_counts = []
     data_for_report = {"sankey_data": assignments, "read_count_data": read_counts}

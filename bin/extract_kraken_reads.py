@@ -10,11 +10,12 @@
 import sys
 import os
 import gzip
-from Bio import SeqIO
+import pyfastx
 import argparse
 import json
 from datetime import datetime
 from collections import defaultdict
+from pathlib import Path
 
 
 def mean(l):
@@ -155,7 +156,7 @@ def load_report_file(report_file, max_human=None):
                 "name": name,
             }
 
-    sys.stdout.write("FOUND %i TAXA IN BRACKEN REPORT\n" % len(entries))
+    sys.stderr.write("FOUND %i TAXA IN BRACKEN REPORT\n" % len(entries))
     return entries
 
 
@@ -175,7 +176,6 @@ def get_taxon_id_lists(
     lists_to_extract = {}
     for taxon in report_entries:
         entry = report_entries[taxon]
-        print(entry)
         if len(target_ranks) > 0 and entry["rank"] not in target_ranks:
             continue
         if min_count and entry["count"] < min_count:
@@ -202,7 +202,7 @@ def get_taxon_id_lists(
                 if child != taxon:
                     lists_to_extract[taxon].append(child)
                 lookup.extend(children[child])
-    sys.stdout.write("SELECTED %i TAXA TO EXTRACT\n" % len(lists_to_extract))
+    sys.stderr.write("SELECTED %i TAXA TO EXTRACT\n" % len(lists_to_extract))
 
     if top_n and len(lists_to_extract) > top_n:
         X = list(lists_to_extract.keys())
@@ -211,7 +211,7 @@ def get_taxon_id_lists(
         to_delete = ordered[top_n:]
         for taxon in to_delete:
             del lists_to_extract[taxon]
-        sys.stdout.write("REDUCED TO %i TAXA TO EXTRACT\n" % len(lists_to_extract))
+        sys.stderr.write("REDUCED TO %i TAXA TO EXTRACT\n" % len(lists_to_extract))
 
     return lists_to_extract
 
@@ -263,114 +263,130 @@ def trim_read_id(read_id):
     return read_id
 
 
+def fastq_iterator(
+    prefix: str,
+    filetype: str,
+    read_map: dict,
+    subtaxa_map: dict,
+    fastq_1: Path,
+    fastq_2: Path = None,
+) -> tuple[dict, dict, dict]:
+    """Func to iterate over fastq files and extract reads of interest
+
+    Args:
+        prefix (str): Outfile prefix
+        filetype (str): output filetype (only affects naming)
+        read_map (dict): dict of read_id: taxon_list (from kraken report)
+        subtaxa_map (dict): dict of subtaxa: output taxon (from lists_to_extract)
+        fastq_1 (Path): Path to fastq _1 file
+        fastq_2 (Path, optional): Path to fastq _2 file if input is paired data. Defaults to None.
+
+    Returns:
+        tuple[dict, dict, dict]: number of reads written by taxa, quality scores by taxa, sequence length by taxa
+    """
+    reads_of_interest = set(read_map.keys())
+
+    out_counts = defaultdict(int)
+    quals = defaultdict(list)
+    lens = defaultdict(list)
+
+    out_records = {}
+
+    fq_1 = pyfastx.Fastq(fastq_1)
+    if fastq_2:
+        fq_2 = pyfastx.Fastq(fastq_2)
+
+        for record_1, record_2 in zip(fq_1, fq_2):
+            trimmed_name = trim_read_id(record_1.name)
+            if trimmed_name not in reads_of_interest:
+                continue
+
+            if trimmed_name != trim_read_id(record_2.name):
+                sys.stderr.write("ERROR: read names do not match\n")
+                sys.exit(10)
+
+            for k2_taxon in read_map[trimmed_name]:
+                for taxon in subtaxa_map[k2_taxon]:
+                    out_counts[taxon] += 2
+                    quals[taxon].extend(
+                        [median(record_1.quali), median(record_2.quali)]
+                    )
+                    lens[taxon].extend([len(record_1.seq), len(record_2.seq)])
+
+                    try:
+                        out_records[taxon][1].append(record_1)
+                        out_records[taxon][2].append(record_2)
+
+                    except KeyError:
+                        out_records[taxon] = {1: [], 2: []}
+
+                        out_records[taxon][1].append(record_1)
+                        out_records[taxon][2].append(record_2)
+
+        for taxon, records in out_records.items():
+            with open(f"{prefix}.{taxon}_1.{filetype}", "w") as f:
+                for record in records[1]:
+                    f.write(record.raw)
+            with open(f"{prefix}.{taxon}_2.{filetype}", "w") as f:
+                for record in records[2]:
+                    f.write(record.raw)
+
+    else:
+        for record in fq_1:
+            trimmed_name = trim_read_id(record.name)
+            if trimmed_name not in reads_of_interest:
+                continue
+
+            for k2_taxon in read_map[trimmed_name]:
+                for taxon in subtaxa_map[k2_taxon]:
+                    out_counts[taxon] += 1
+                    quals[taxon].append(median(record.quali))
+                    lens[taxon].append(len(record.seq))
+
+                    try:
+                        out_records[taxon].append(record)
+
+                    except KeyError:
+                        out_records[taxon] = []
+
+                        out_records[taxon].append(record)
+
+        for taxon, records in out_records.items():
+            with open(f"{prefix}.{taxon}.{filetype}", "w") as f:
+                for record in records:
+                    f.write(record.raw)
+
+    return (out_counts, quals, lens)
+
+
 def extract_taxa(
     report_entries, lists_to_extract, kraken_assignment_file, reads1, reads2, prefix
 ):
     # open read files
     filetype, zipped = check_read_files(reads1)
 
-    if reads2:
-        s_file1 = SeqIO.index(reads1, filetype, key_function=trim_read_id)
-        s_file2 = SeqIO.index(reads2, filetype, key_function=trim_read_id)
-    else:
-        s_file1 = SeqIO.index(reads1, filetype)
+    read_map = defaultdict(set)
 
-    # open output files
-    out_counts = {}
-    quals = {}
-    lens = {}
+    subtaxa_map = defaultdict(set)
 
-    num_batches = int(len(lists_to_extract) / 200) + 1
-    sys.stdout.write(
-        "Number of taxa to extract: %i\nNumber of file batches: %i\n"
-        % (len(lists_to_extract), num_batches)
+    for taxon, subtaxons in lists_to_extract.items():
+        for subtaxa in subtaxons:
+            subtaxa_map[subtaxa].add(taxon)
+
+        # sys.stderr.write(
+        #    "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES for %s\n"
+        #    % (len(lists_to_extract[taxon]), taxon)
+        # )
+
+    with open(kraken_assignment_file, "r") as kfile:
+        for line in kfile:
+            tax_id, read_id = parse_kraken_assignment_line(line)
+            if tax_id in subtaxa_map.keys():
+                read_map[read_id].add(tax_id)
+
+    out_counts, quals, lens = fastq_iterator(
+        prefix, filetype, read_map, subtaxa_map, reads1, reads2
     )
-    for batch in range(num_batches):
-        batch_list = list(lists_to_extract.keys())[
-            batch * 200 : min((batch + 1) * 200, len(lists_to_extract))
-        ]
-        sys.stdout.write("Open %i outfiles for batch %i\n" % (len(batch_list), batch))
-
-        outfile_handles = {}
-        keys = {}
-        for taxon in batch_list:
-            for key in lists_to_extract[taxon]:
-                if key not in keys:
-                    keys[key] = []
-                keys[key].append(taxon)
-            if reads2:
-                outfile_handles[taxon] = {
-                    1: open("%s.%s_1.%s" % (prefix, taxon, filetype), "w"),
-                    2: open("%s.%s_2.%s" % (prefix, taxon, filetype), "w"),
-                }
-                print(
-                    "opening %s.%s_1.%s and %s.%s_2.%s"
-                    % (prefix, taxon, filetype, prefix, taxon, filetype)
-                )
-            else:
-                outfile_handles[taxon] = open(
-                    "%s.%s.%s" % (prefix, taxon, filetype), "w"
-                )
-                print("opening %s.%s.%s" % (prefix, taxon, filetype))
-            out_counts[taxon] = 0
-            quals[taxon] = []
-            lens[taxon] = []
-            sys.stdout.write(
-                "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES for %s\n"
-                % (len(lists_to_extract[taxon]), taxon)
-            )
-
-        with open(kraken_assignment_file, "r") as kfile:
-            for line in kfile:
-                tax_id, read_id = parse_kraken_assignment_line(line)
-                if tax_id in keys:
-                    if reads2:
-                        if read_id in s_file1 and read_id in s_file2:
-                            read1 = s_file1[read_id]
-                            read2 = s_file2[read_id]
-                        else:
-                            sys.stderr.write(
-                                "ERROR: read id %s not found in read files\n" % read_id
-                            )
-                            sys.exit(1)
-
-                        for taxon in keys[tax_id]:
-                            SeqIO.write(read1, outfile_handles[taxon][1], filetype)
-                            SeqIO.write(read2, outfile_handles[taxon][2], filetype)
-                            out_counts[taxon] += 2
-                            quals[taxon].append(
-                                median(read1.letter_annotations["phred_quality"])
-                            )
-                            quals[taxon].append(
-                                median(read2.letter_annotations["phred_quality"])
-                            )
-                            lens[taxon].append(len(read1))
-                            lens[taxon].append(len(read2))
-
-                    else:
-                        if read_id in s_file1:
-                            read = s_file1[read_id]
-                        else:
-                            sys.stderr.write(
-                                "ERROR: read id %s not found in read file\n" % read_id
-                            )
-                            sys.exit(1)
-
-                        for taxon in keys[tax_id]:
-                            SeqIO.write(read, outfile_handles[taxon], filetype)
-                            out_counts[taxon] += 1
-                            quals[taxon].append(
-                                median(read.letter_annotations["phred_quality"])
-                            )
-                            lens[taxon].append(len(read))
-        if reads2:
-            for handle_dict in outfile_handles:
-                outfile_handles[handle_dict][1].close()
-                outfile_handles[handle_dict][2].close()
-        else:
-            for handle in outfile_handles:
-                if outfile_handles[handle]:
-                    outfile_handles[handle].close()
 
     summary = []
     for taxon in lists_to_extract:
@@ -534,7 +550,7 @@ def main():
     # Start Program
     now = datetime.now()
     time = now.strftime("%m/%d/%Y, %H:%M:%S")
-    sys.stdout.write("PROGRAM START TIME: " + time + "\n")
+    sys.stderr.write("PROGRAM START TIME: " + time + "\n")
 
     rank_dict = {
         "kingdom": "K",
@@ -558,7 +574,6 @@ def main():
         target_ranks = [rank_dict[r] for r in args.rank]
     else:
         target_ranks = []
-    print(target_ranks)
 
     parent, children = None, None
     if args.taxonomy:
@@ -593,12 +608,12 @@ def main():
 
     now = datetime.now()
     time = now.strftime("%m/%d/%Y, %H:%M:%S")
-    sys.stdout.write("PROGRAM END TIME: " + time + "\n")
+    sys.stderr.write("PROGRAM END TIME: " + time + "\n")
 
-    sys.stdout.write("READ COUNTS: \n")
+    sys.stderr.write("READ COUNTS: \n")
 
     for taxon in out_counts:
-        sys.stdout.write("%s: %i\n" % (taxon, out_counts[taxon]))
+        sys.stderr.write("%s: %i\n" % (taxon, out_counts[taxon]))
 
     sys.exit(0)
 

@@ -14,7 +14,7 @@ workflow ingest {
         preprocess(unique_id)
 
         classify_and_report(preprocess.out.processed_fastq, preprocess.out.combined_fastq, params.raise_server)
-        extract_taxa(unique_id, preprocess.out.processed_fastq, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
+        extract_taxa(preprocess.out.processed_fastq, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
 
         if (params.classify_novel_viruses) {
             if (params.paired) {

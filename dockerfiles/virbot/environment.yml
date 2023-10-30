@@ -1,0 +1,11 @@
+name: virbot
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - pandas
+  - prodigal # for virbot
+  - hmmer # for virbot
+  - diamond # for virbot
