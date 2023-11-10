@@ -315,12 +315,12 @@ def fastq_iterator(
 
     for taxon, records in out_records_1.items():
         if fastq_2:
-            with open(f"{prefix}.{taxon}_1.{filetype}", "w") as f:
+            with open(f"{taxon}_1.{filetype}", "w") as f:
                 for record in records:
                     name, seq, qual = record
                     f.write(f"@{name}\n{seq}\n+\n{qual}\n")
         else:
-            with open(f"{prefix}.{taxon}.{filetype}", "w") as f:
+            with open(f"{taxon}.{filetype}", "w") as f:
                 for record in records:
                     name, seq, qual = record
                     f.write(f"@{name}\n{seq}\n+\n{qual}\n")
@@ -347,7 +347,7 @@ def fastq_iterator(
                         out_records_2[taxon].append(record)
 
         for taxon, records in out_records_2.items():
-            with open(f"{prefix}.{taxon}_2.{filetype}", "w") as f:
+            with open(f"{taxon}_2.{filetype}", "w") as f:
                 for record in records:
                     name, seq, qual = record
                     f.write(f"@{name}\n{seq}\n+\n{qual}\n")
@@ -393,8 +393,8 @@ def extract_taxa(
                     "taxon": taxon,
                     "tax_level": report_entries[taxon]["rank"],
                     "filenames": [
-                        "%s.%s_1.%s" % (prefix, taxon, filetype),
-                        "%s.%s_2.%s" % (prefix, taxon, filetype),
+                        "%s_1.%s" % (taxon, filetype),
+                        "%s_2.%s" % (taxon, filetype),
                     ],
                     "qc_metrics": {
                         "num_reads": out_counts[taxon],
@@ -410,7 +410,7 @@ def extract_taxa(
                     "taxon": taxon,
                     "tax_level": report_entries[taxon]["rank"],
                     "filenames": [
-                        "%s.%s.%s" % (prefix, taxon, filetype),
+                        "%s.%s" % (taxon, filetype),
                     ],
                     "qc_metrics": {
                         "num_reads": out_counts[taxon],
