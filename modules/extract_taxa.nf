@@ -130,7 +130,7 @@ process merge_read_summary {
 
     label 'process_single'
 
-    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary_combined.json", mode: 'copy'
+    publishDir path: "${params.outdir}/${params.unique_id}/reads_by_taxa", pattern: "reads_summary_combined.json", mode: 'copy'
 
     container "${params.wf.container}:${params.wf.container_version}"
 
