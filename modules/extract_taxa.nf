@@ -42,7 +42,7 @@ process extract_paired_reads {
         path taxonomy_dir
     output:
         tuple val(unique_id), path("*.fastq"), emit: reads
-        path "${kreport}_summary.json", emit: summary
+        tuple val(unique_id), path("${kreport}_summary.json"), emit: summary
     script:
         """
         extract_kraken_reads.py \
@@ -81,7 +81,7 @@ process extract_reads {
         path taxonomy_dir
     output:
         tuple val(unique_id), path("*.f*q"), emit: reads
-        path "${kreport}_summary.json", emit: summary
+        tuple val(unique_id), path("${kreport}_summary.json"), emit: summary
     script:
         """
         extract_kraken_reads.py \
@@ -130,12 +130,12 @@ process merge_read_summary {
 
     label 'process_single'
 
-    publishDir path: "${params.outdir}/${params.unique_id}/reads_by_taxa", pattern: "reads_summary_combined.json", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary_combined.json", mode: 'copy'
 
     container "${params.wf.container}:${params.wf.container_version}"
 
     input:
-        path reads_summary_ch
+        tuple val(unique_id), path(reads_summary)
 
     output:
         path "reads_summary_combined.json"
@@ -177,14 +177,14 @@ workflow extract_taxa {
             extract_paired_reads.out.reads
                 .set {extracted_taxa}
             extract_paired_reads.out.summary
-                .toList()
+                .groupTuple()
                 .set {reads_summary_ch}
         } else {
             extract_reads(extract_ch, taxonomy_dir)
             extract_reads.out.reads
                 .set {extracted_taxa}
             extract_reads.out.summary
-                .toList()
+                .groupTuple()
                 .set {reads_summary_ch}       
         }
         bgzip_extracted_taxa(extracted_taxa)
