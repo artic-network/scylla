@@ -58,7 +58,7 @@ process extract_paired_reads {
             --rank ${params.extract_rank} \
             --min_percent ${min_percent}
 
-        PATTERN=(*.fastq)
+        PATTERN=(*.f*q)
         if [ ! -f \${PATTERN[0]} ]; then
             echo "Found no output files - maybe there weren't any for this sample"
             exit 3
