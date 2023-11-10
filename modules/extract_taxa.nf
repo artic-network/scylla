@@ -34,8 +34,6 @@ process extract_paired_reads {
 
     errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
 
-    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
-
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
@@ -44,7 +42,7 @@ process extract_paired_reads {
         path taxonomy_dir
     output:
         tuple val(unique_id), path("reads.*.f*"), emit: reads
-        path "reads_summary.json", emit: summary
+        path "${kreport}_summary.json", emit: summary
     script:
         """
         extract_kraken_reads.py \
@@ -53,7 +51,7 @@ process extract_paired_reads {
             -k ${kraken_assignments} \
             -r ${kreport} \
             -t ${taxonomy_dir} \
-            -p reads \
+            -p ${kreport} \
             --include_children \
             --max_human ${params.max_human_reads_before_rejection} \
             --min_count_descendants ${min_reads} \
@@ -75,8 +73,6 @@ process extract_reads {
     
     errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
 
-    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary.json", mode: 'copy'
-
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
@@ -85,7 +81,7 @@ process extract_reads {
         path taxonomy_dir
     output:
         tuple val(unique_id), path("reads.*.f*"), emit: reads
-        path "reads_summary.json", emit: summary
+        path "${kreport}_summary.json", emit: summary
     script:
         """
         extract_kraken_reads.py \
@@ -93,7 +89,7 @@ process extract_reads {
             -k ${kraken_assignments} \
             -r ${kreport} \
             -t ${taxonomy_dir} \
-            -p reads \
+            -p ${kreport} \
             --include_children \
             --max_human ${params.max_human_reads_before_rejection} \
             --min_count_descendants ${min_reads} \
@@ -130,43 +126,24 @@ process bgzip_extracted_taxa {
           """
 }
 
-// process check_reads {
+process merge_read_summary {
 
-//     label 'process_low'
+    label 'process_single'
 
-//     errorStrategy {task.exitStatus == 2 ? 'ignore' : 'terminate'}
+    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary_combined.json", mode: 'copy'
 
-//     publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
+    container "${params.wf.container}:${params.wf.container_version}"
 
-//     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-//     container "${params.wf.container}:${params.wf.container_version}"
+    input:
+        path reads_summary_ch
 
-//     input:
-//         tuple val(unique_id), path(reads)
-//     output:
-//         tuple val(unique_id), path("reads*.f*.gz")
-//     script:
-//         """
-//         PATTERN=(reads.*.f*)
-//         if [ -f \${PATTERN[0]} ]; then
-//             for f in \$(ls \${PATTERN[0]})
-//               do
-//                 if [ ! -s \$f ]
-//                   then
-//                     rm \$f
-//                   else
-//                     bgzip --threads $task.cpus \$f
-//                 fi
-//               done
-//         fi
-
-//         PATTERN=(reads.*.f*.gz)
-//         if [ ! -f \${PATTERN[0]} ]; then
-//             echo "Found no output files - maybe there weren't any for this sample"
-//             exit 2
-//         fi
-//         """
-// }
+    output:
+        path "reads_summary_combined.json"
+    
+    """
+    jq -s '.[0]' *_summary.json > reads_summary_combined.json
+    """
+}
 
 
 workflow extract_taxa {
@@ -199,12 +176,19 @@ workflow extract_taxa {
             extract_paired_reads(extract_ch, taxonomy_dir)
             extract_paired_reads.out.reads
                 .set {extracted_taxa}
+            extract_paired_reads.out.summary
+                .toList()
+                .set {reads_summary_ch}
         } else {
             extract_reads(extract_ch, taxonomy_dir)
             extract_reads.out.reads
-                .set {extracted_taxa}            
+                .set {extracted_taxa}
+            extract_reads.out.summary
+                .toList()
+                .set {reads_summary_ch}       
         }
         bgzip_extracted_taxa(extracted_taxa)
+        merge_read_summary(reads_summary_ch)
 
 }
 
