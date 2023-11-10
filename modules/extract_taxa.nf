@@ -80,7 +80,7 @@ process extract_reads {
         tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport), val(min_reads), val(min_percent)
         path taxonomy_dir
     output:
-        tuple val(unique_id), path("*.fastq"), emit: reads
+        tuple val(unique_id), path("*.f*q"), emit: reads
         path "${kreport}_summary.json", emit: summary
     script:
         """
@@ -96,7 +96,7 @@ process extract_reads {
             --rank ${params.extract_rank} \
             --min_percent ${min_percent}
 
-        PATTERN=(*.fastq)
+        PATTERN=(*.f*q)
         if [ ! -f \${PATTERN[0]} ]; then
             echo "Found no output files - maybe there weren't any for this sample"
             exit 3
@@ -116,10 +116,10 @@ process bgzip_extracted_taxa {
       input:
           tuple val(unique_id), path(read_files)
       output:
-          tuple val(unique_id), path("reads.*.f*.gz")
+          tuple val(unique_id), path("*.f*q.gz")
       script:
           """
-          for f in \$(ls *.fastq)
+          for f in \$(ls *.f*q)
             do
             bgzip --threads $task.cpus \$f
             done
