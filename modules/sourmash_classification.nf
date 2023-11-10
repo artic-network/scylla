@@ -113,18 +113,18 @@ process sourmash_to_json {
         tuple val(unique_id), path(kraken_report)
         path taxonomy_dir
     output:
-       tuple val(unique_id), path("${params.database_set}.kraken.json"), emit: json
+       tuple val(unique_id), path("Sourmash.kraken.json"), emit: json
        tuple val(unique_id), path("sourmash.k${params.sourmash_k}.kreport.txt"), emit: kreport
 
     """
-    reformat_sourmash_kreport.py -r ${kraken_report} -t ${taxonomy_dir} -o "reformatted_kreport.txt"
+    reformat_sourmash_kreport.py -r ${kraken_report} -t ${taxonomy_dir} -o "sourmash.k${params.sourmash_k}.kreport.txt"
 
-    cat "reformatted_kreport.txt" | cut -f5,3 | tail n+2 > taxacounts.txt
-    cat "reformatted_kreport.txt" | cut -f5 | tail n+2 > taxa.txt
+    cat "sourmash.k${params.sourmash_k}.kreport.txt" | cut -f5,3 | tail -n+2 > taxacounts.txt
+    cat "sourmash.k${params.sourmash_k}.kreport.txt" | cut -f5 | tail -n+2 > taxa.txt
     taxonkit lineage --data-dir ${taxonomy_dir}  -R taxa.txt  > lineages.txt
     aggregate_lineages_bracken.py \\
             -i "lineages.txt" -b "taxacounts.txt" \\
-            -u "reformatted_kreport.txt" \\
+            -u "sourmash.k${params.sourmash_k}.kreport.txt" \\
             -p "temp_kraken"
     file1=`cat *.json`
     echo "{"'Sourmash'": "\$file1"}" >> "Sourmash.kraken.json"

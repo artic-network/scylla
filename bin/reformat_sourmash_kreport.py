@@ -23,7 +23,7 @@ def translate_names(taxonomy_dir, taxon_names):
                 if name_type not in ["scientific name", "equivalent name"]:
                     continue
                 taxon_ids[name] = taxon_id
-                if name_type == "scientific name":
+                if name_type == "scientific name" or taxon_id not in name_dict:
                     name_dict[taxon_id] = name
 
     except:
