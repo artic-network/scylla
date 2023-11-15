@@ -1102,8 +1102,8 @@
                 | Stats histogram methods
                 |---------------------------------------------------------------------------- */
 
-                const len_data = ${data_for_report["read_count_data"]["read_length"]};
-                const qual_data = ${data_for_report["read_count_data"]["mean_quality"]};
+                const len_data = ${data_for_report["read_length_data"]};
+                const qual_data = ${data_for_report["read_quality_data"]};
 
                 const vl_len_histogram = {
                     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
