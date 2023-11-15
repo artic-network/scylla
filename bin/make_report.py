@@ -72,6 +72,8 @@ def main():
     parser.add_argument(
         "--template", help="HTML template for report", default="scylla.mako.html"
     )
+    parser.add_argument("--classifier", help="Classifier used", default="Kraken")
+    parser.add_argument("--classification_database", help="Database used for classification", default="PlusPF")
     parser.add_argument("--version", help="Scylla version", default="unknown")
 
     args = parser.parse_args()
@@ -96,7 +98,7 @@ def main():
             ]
     else:
         read_counts = []
-    data_for_report = {"sankey_data": assignments, "read_count_data": read_counts}
+    data_for_report = {"sankey_data": assignments, "read_count_data": read_counts, "classifier": args.classifier, "classification_database": args.classification_database}
 
     outfile = args.prefix + "_report.html"
     make_output_report(outfile, args.template, args.version, sample, data_for_report)
