@@ -1009,6 +1009,11 @@
 
         <h1>Single Sample Report</h1>
         <p class="lead">Results generated through the scylla Nextflow workflow provided by mSCAPE.</p>
+        <p class="description">Reads were classified using ${data_for_report['classifier']} against the
+            ${data_for_report['classification_database']} database. Results should be interpreted with caution: Kraken
+            is documented to be highly sensitive but also has a high false positive rate. It may undercall taxa which
+            are poorly represented in the database such as viruses. For optimal virus classification we recommend using
+            the de novo virus classification module (in development).</p>
 
         <main class="single-sample-sankey">
 

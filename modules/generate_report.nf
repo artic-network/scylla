@@ -16,12 +16,21 @@ process make_report {
         tuple val(unique_id), path("${unique_id}_report.html")
     script:
         report_name = "${unique_id}"
+        if ( params.run_sourmash ){
+            classifier = "Sourmash"
+            classification_database = ${params.sourmash_db_name}
+        } else {
+            classifier = "Kraken"
+            classification_database = ${params.database_set}
+        }
     """
     make_report.py \
         --prefix "${report_name}" \
         --read_counts ${stats} \
         --assignments ${lineages} \
         --version "${workflow.manifest.version}" \
+        --classifier "${classifier}" \
+        --classification_database "${classification_database}" \
         --template "${template}"
     """
 }

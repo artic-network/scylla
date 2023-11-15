@@ -53,6 +53,7 @@ const getSampleCounts = (data) => {
             const updated_domain = val.rank == "superkingdom" ? key : _domain_name;
             agg[key] = {
                 [sample_name]: val.count,
+                taxid: val.taxid,
                 rank: val.rank,
                 domain_name: updated_domain,
                 name: key,
