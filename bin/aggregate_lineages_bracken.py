@@ -121,7 +121,7 @@ def main(prefix, lineages, bracken, report):
     for entry in yield_entries(entries, total):
         [indent, name, taxid, count, perc, rank] = entry
         output_report.write(' '.join(
-            ['-' * (indent + 1), name, taxid, str(count), perc, rank, '\n'])
+            ['-' * (indent + 1), name, str(taxid), str(count), perc, rank, '\n'])
         )
     output_json.write(json.dumps(entries))
 
