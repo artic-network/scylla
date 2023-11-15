@@ -1009,6 +1009,11 @@
 
         <h1>Single Sample Report</h1>
         <p class="lead">Results generated through the scylla Nextflow workflow provided by mSCAPE.</p>
+        <p class="description">Reads were classified using ${data_for_report['classifier']} against the
+            ${data_for_report['classification_database']} database. Results should be interpreted with caution: Kraken
+            is documented to be highly sensitive but also has a high false positive rate. It may undercall taxa which
+            are poorly represented in the database such as viruses. For optimal virus classification we recommend using
+            the de novo virus classification module (in development).</p>
 
         <main class="single-sample-sankey">
 
@@ -1097,25 +1102,29 @@
                 | Stats histogram methods
                 |---------------------------------------------------------------------------- */
 
-                const stats_data = ${data_for_report["read_count_data"]};
+                const len_data = ${data_for_report["read_length_data"]};
+                const qual_data = ${data_for_report["read_quality_data"]};
 
                 const vl_len_histogram = {
                     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
                     "width": 600,
                     "height": 500,
                     "data": {
-                        "values": stats_data
+                        "values": len_data
                     },
                     "mark": "bar",
                     "encoding": {
                         "x": {
-                            "bin": {"maxbins": 40},
-                            "field": "read_length",
+                            "field": "bin_start",
+                            "bin": {"binned": true, "step": ${data_for_report["read_length_step"]}},
                             "title": "Read length (bp)",
                         },
+                        "x2": {"field": "bin_end"},
                         "y": {
-                            "aggregate": "count",
-                            "title": "Count",}
+                            "field": "count",
+                            "type": "quantitative",
+                            "title": "Count"
+                        }
                     }
                 };
                 const vl_qual_histogram = {
@@ -1123,18 +1132,21 @@
                     "width": 600,
                     "height": 500,
                     "data": {
-                        "values": stats_data
+                        "values": qual_data
                     },
                     "mark": "bar",
                     "encoding": {
                         "x": {
-                            "bin": {"maxbins": 41, "extent": [0,41]},
-                            "field": "mean_quality",
-                            "title": "Mean quality",
+                            "field": "bin_start",
+                            "bin": {"binned": true, "step": 2},
+                            "title": "Mean Quality",
                         },
+                        "x2": {"field": "bin_end"},
                         "y": {
-                            "aggregate": "count",
-                            "title": "Count",}
+                            "field": "count",
+                            "type": "quantitative",
+                            "title": "Count"
+                        }
                     }
                 };
                 vegaEmbed('#len-plot', vl_len_histogram, {renderer: "svg"})

@@ -28,10 +28,12 @@ RANKS = [
 def update_or_create_unclassified(entries, unclassified_count):
     """Handle unclassified entries."""
     entries[UNCLASSIFIED] = {
+        'taxid': 0,
         'rank': RANKS[0],
         'count': int(unclassified_count),
         'children': {
             UNKNOWN: {
+                'taxid': 0,
                 'rank': "species",
                 'count': int(unclassified_count),
                 'children': {}
@@ -43,10 +45,10 @@ def update_or_create_unclassified(entries, unclassified_count):
 
 def update_or_create_count(entry, entries, bracken_counts):
     """Increment lineage counts given entries."""
-    tax_id, lineage, ranks = entry.rstrip().split('\t')
+    taxid, lineage, ranks = entry.rstrip().split('\t')
     lineage_split = lineage.split(';')
     ranks_split = ranks.split(';')
-    count = int(bracken_counts[tax_id])
+    count = int(bracken_counts[taxid])
 
     previous = entries
     previous_rank = None
@@ -61,6 +63,7 @@ def update_or_create_count(entry, entries, bracken_counts):
         current = previous.get(name)
         if not current:
             new_entry = {
+                'taxid': taxid,
                 'rank': rank,
                 'count': count,
                 'children': {}
@@ -80,7 +83,7 @@ def yield_entries(entries, total, indent=0):
     """Get entries in printable form."""
     for i, j in entries.items():
         perc = "{:.2%}".format(j['count'] / total)
-        yield (indent, i, j['count'], perc, j['rank'])
+        yield (indent, i, j['taxid'], j['count'], perc, j['rank'])
         for k in yield_entries(j['children'], total, indent + 1):
             yield k
 
@@ -116,9 +119,9 @@ def main(prefix, lineages, bracken, report):
     output_report = open('{}.lineages.txt'.format(prefix), 'w')
     output_json = open('{}.lineages.json'.format(prefix), 'w')
     for entry in yield_entries(entries, total):
-        [indent, name, count, perc, rank] = entry
+        [indent, name, taxid, count, perc, rank] = entry
         output_report.write(' '.join(
-            ['-' * (indent + 1), name, str(count), perc, rank, '\n'])
+            ['-' * (indent + 1), name, str(taxid), str(count), perc, rank, '\n'])
         )
     output_json.write(json.dumps(entries))
 

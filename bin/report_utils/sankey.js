@@ -53,6 +53,7 @@ const getSampleCounts = (data) => {
             const updated_domain = val.rank == "superkingdom" ? key : _domain_name;
             agg[key] = {
                 [sample_name]: val.count,
+                taxid: val.taxid,
                 rank: val.rank,
                 domain_name: updated_domain,
                 name: key,
@@ -209,6 +210,7 @@ const updateToolTip = (enter, colourScale, total, counts) => {
     enter.on("mouseover", (event, d) => {
         const toolTipData = [
             `Name: ${d.name}`,
+            `TaxId: ${counts[d.name].taxid}`,
             `Domain: ${counts[d.name].domain_name}`,
             `Rank: ${counts[d.name].rank}`,
             `Count: ${d.value}`,
@@ -489,7 +491,7 @@ const renderTableRankSelect = (_id, ranks) => {
 const renderTable = (counts, samples, rank) => {
     const table = d3.select('#table');
 
-    const headerRows = ['Taxon', 'Rank', 'Total', ...samples];
+    const headerRows = ['Taxon', 'Taxid', 'Rank', 'Total', ...samples];
     const thead = table
         .select("thead tr")
         .selectAll("th")
@@ -508,7 +510,7 @@ const renderTable = (counts, samples, rank) => {
         .data((d) => {
             const sampleCounts = samples.map(Sample => d[Sample] || 0);
             const total = sampleCounts.reduce((sum, I) => I + sum, 0);
-            return [d.name, d.rank, total, ...sampleCounts]
+            return [d.name, d.taxid, d.rank, total, ...sampleCounts]
         })
         .join('td')
         .text((d) => d)
@@ -536,6 +538,7 @@ const handleTableSelectChange = (datatable, counts, samples) => {
             const total = sampleCounts.reduce((sum, I) => I + sum, 0).toString();
             return [
                 Row.name,
+                Row.taxid,
                 Row.rank,
                 total,
                 ...sampleCounts.map(Count => Count.toString())
