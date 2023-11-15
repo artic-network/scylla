@@ -68,8 +68,8 @@ def summarize_read_counts(read_counts_file, num_bins=42, start=0):
         lens = []
         quals = []
         for row in reader:
-            lens.append(row["read_length"])
-            quals.append(row["mean_quality"])
+            lens.append(int(row["read_length"]))
+            quals.append(float(row["mean_quality"]))
     read_counts = [
         {"read_length": get_binned_data(lens, num_bins, start), "mean_quality": get_binned_data(quals, num_bins, start)}
     ]
