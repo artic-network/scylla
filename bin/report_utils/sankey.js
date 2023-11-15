@@ -210,7 +210,7 @@ const updateToolTip = (enter, colourScale, total, counts) => {
     enter.on("mouseover", (event, d) => {
         const toolTipData = [
             `Name: ${d.name}`,
-            `TaxId: ${d.taxid}`,
+            `TaxId: ${counts[d.name].taxid}`,
             `Domain: ${counts[d.name].domain_name}`,
             `Rank: ${counts[d.name].rank}`,
             `Count: ${d.value}`,
