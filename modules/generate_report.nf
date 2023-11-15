@@ -18,10 +18,10 @@ process make_report {
         report_name = "${unique_id}"
         if ( params.run_sourmash ){
             classifier = "Sourmash"
-            classification_database = ${params.sourmash_db_name}
+            classification_database = "${params.sourmash_db_name}"
         } else {
             classifier = "Kraken"
-            classification_database = ${params.database_set}
+            classification_database = "${params.database_set}"
         }
     """
     make_report.py \
