@@ -51,16 +51,20 @@ def make_output_report(
 
 def get_binned_data(list_vals, num_bins, start=0):
     max_val = max(list_vals) + 1
-    step = int(max_val - start / num_bins) + (max_val - start % num_bins > 0)
+    print (max_val)
+    step = int((max_val - start) / num_bins) + ((max_val - start) % num_bins > 0)
+    if step > 100:
+        step = (int(step/100) + 1) *100
+    print(step)
     binned_data = []
     for i in range(num_bins):
         binned_data.append({'bin_start':start + step*i, 'bin_end': start + step*(i+1), 'count':0})
     for j in list_vals:
         for bin in binned_data:
-            if bin['bin_start'] <= j < bin['bin_start']:
+            if bin['bin_start'] <= j < bin['bin_end']:
                 bin['count'] += 1
-                break
-    return binned_data
+    print(binned_data)
+    return binned_data, step
 
 def summarize_read_counts(read_counts_file, num_bins=42, start=0):
     with open(read_counts_file.resolve(), "rt") as qc_file:
@@ -70,10 +74,9 @@ def summarize_read_counts(read_counts_file, num_bins=42, start=0):
         for row in reader:
             lens.append(int(row["read_length"]))
             quals.append(float(row["mean_quality"]))
-    read_counts = [
-        {"read_length": get_binned_data(lens, num_bins, start), "mean_quality": get_binned_data(quals, num_bins, start)}
-    ]
-    return read_counts
+    len_data, len_step =  get_binned_data(lens, num_bins, start)
+    qual_data, qual_step = get_binned_data(quals, num_bins, start)
+    return  len_data, len_step, qual_data 
 
 
 def main():
@@ -116,10 +119,10 @@ def main():
                 assignments = assignments[:-1] + ", " + contents[1:]
 
     if args.read_counts:
-        read_counts = summarize_read_counts(args.read_counts)
+        read_length_counts, read_length_step, read_quality_counts = summarize_read_counts(args.read_counts)
     else:
-        read_counts = []
-    data_for_report = {"sankey_data": assignments, "read_count_data": read_counts, "classifier": args.classifier, "classification_database": args.classification_database}
+        read_length_counts, read_length_step, read_quality_counts = [], 2, []
+    data_for_report = {"sankey_data": assignments, "read_length_data": read_length_counts, "read_length_step": read_length_step, "read_quality_data": read_quality_counts, "classifier": args.classifier, "classification_database": args.classification_database}
 
     outfile = args.prefix + "_report.html"
     make_output_report(outfile, args.template, args.version, sample, data_for_report)
