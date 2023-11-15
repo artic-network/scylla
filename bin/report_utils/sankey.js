@@ -210,7 +210,7 @@ const updateToolTip = (enter, colourScale, total, counts) => {
     enter.on("mouseover", (event, d) => {
         const toolTipData = [
             `Name: ${d.name}`,
-            `Taxid: ${d.taxid}`,
+            `TaxId: ${d.taxid}`,
             `Domain: ${counts[d.name].domain_name}`,
             `Rank: ${counts[d.name].rank}`,
             `Count: ${d.value}`,
@@ -538,6 +538,7 @@ const handleTableSelectChange = (datatable, counts, samples) => {
             const total = sampleCounts.reduce((sum, I) => I + sum, 0).toString();
             return [
                 Row.name,
+                Row.taxid,
                 Row.rank,
                 total,
                 ...sampleCounts.map(Count => Count.toString())
