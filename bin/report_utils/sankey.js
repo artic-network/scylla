@@ -210,6 +210,7 @@ const updateToolTip = (enter, colourScale, total, counts) => {
     enter.on("mouseover", (event, d) => {
         const toolTipData = [
             `Name: ${d.name}`,
+            `Taxid: ${d.taxid}`,
             `Domain: ${counts[d.name].domain_name}`,
             `Rank: ${counts[d.name].rank}`,
             `Count: ${d.value}`,
@@ -490,7 +491,7 @@ const renderTableRankSelect = (_id, ranks) => {
 const renderTable = (counts, samples, rank) => {
     const table = d3.select('#table');
 
-    const headerRows = ['Taxon', 'Rank', 'Total', ...samples];
+    const headerRows = ['Taxon', 'Taxid', 'Rank', 'Total', ...samples];
     const thead = table
         .select("thead tr")
         .selectAll("th")
@@ -509,7 +510,7 @@ const renderTable = (counts, samples, rank) => {
         .data((d) => {
             const sampleCounts = samples.map(Sample => d[Sample] || 0);
             const total = sampleCounts.reduce((sum, I) => I + sum, 0);
-            return [d.name, d.rank, total, ...sampleCounts]
+            return [d.name, d.taxid, d.rank, total, ...sampleCounts]
         })
         .join('td')
         .text((d) => d)
