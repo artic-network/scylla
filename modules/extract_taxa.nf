@@ -104,6 +104,191 @@ process extract_reads {
         """
 }
 
+process extract_paired_virus_and_unclassified {
+
+    label 'process_single'
+    label 'process_high_memory'
+
+    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
+
+    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+
+    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+
+    input:
+        tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport)
+        path taxonomy_dir
+    output:
+        tuple val(unique_id), path("*.f*q.gz"), emit: reads
+    script:
+        """
+        extract_kraken_reads.py \
+            -s1 ${fastq1} \
+            -s2 ${fastq2} \
+            -k ${kraken_assignments} \
+            -r ${kreport} \
+            -t ${taxonomy_dir} \
+            -p "virus_and_unclassified" \
+            --taxid 10239 \
+            --include_children \
+            --include_unclassified
+        bgzip --threads $task.cpus 10239.f*q
+        """
+}
+
+process extract_virus_and_unclassified {
+
+    label 'process_single'
+    label 'process_high_memory'
+
+    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+
+    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+
+    input:
+        tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport)
+        path taxonomy_dir
+    output:
+        tuple val(unique_id), path("*.f*q"), emit: reads
+    script:
+        """
+        extract_kraken_reads.py \
+            -s ${fastq} \
+            -k ${kraken_assignments} \
+            -r ${kreport} \
+            -t ${taxonomy_dir} \
+            -p "virus_and_unclassified" \
+            --taxid 10239 \
+            --include_children \
+            --include_unclassified
+        bgzip --threads $task.cpus 10239.f*q
+        """
+}
+
+
+process extract_paired_unclassified {
+
+    label 'process_single'
+    label 'process_high_memory'
+
+    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+
+    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+
+    input:
+        tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport)
+        path taxonomy_dir
+    output:
+        tuple val(unique_id), path("*.f*q.gz"), emit: reads
+    script:
+        """
+        extract_kraken_reads.py \
+            -s1 ${fastq1} \
+            -s2 ${fastq2} \
+            -k ${kraken_assignments} \
+            -r ${kreport} \
+            -t ${taxonomy_dir} \
+            -p "unclassified" \
+            --taxid 0 \
+            --include_unclassified
+        bgzip --threads $task.cpus 0.f*q
+        """
+}
+
+process extract_unclassified {
+
+    label 'process_single'
+    label 'process_high_memory'
+
+    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+
+    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+
+    input:
+        tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport)
+        path taxonomy_dir
+    output:
+        tuple val(unique_id), path("*.f*q.gz"), emit: reads
+    script:
+        """
+        extract_kraken_reads.py \
+            -s ${fastq} \
+            -k ${kraken_assignments} \
+            -r ${kreport} \
+            -t ${taxonomy_dir} \
+            -p "unclassified" \
+            --taxid 0 \
+            --include_unclassified
+        bgzip --threads $task.cpus 0.f*q
+        """
+}
+
+
+process extract_paired_non_human {
+
+    label 'process_single'
+    label 'process_high_memory'
+
+    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+
+    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+
+    input:
+        tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport)
+        path taxonomy_dir
+    output:
+        tuple val(unique_id), path("*.f*q.gz"), emit: reads
+    script:
+        """
+        extract_kraken_reads.py \
+            -s1 ${fastq1} \
+            -s2 ${fastq2} \
+            -k ${kraken_assignments} \
+            -r ${kreport} \
+            -t ${taxonomy_dir} \
+            -p "non_human" \
+            --exclude ${params.human_taxid} \
+            --include_children \
+            --include_unclassified
+        bgzip --threads $task.cpus 1.f*q
+        """
+}
+
+process extract_non_human {
+
+    label 'process_single'
+    label 'process_high_memory'
+
+    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+
+    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+
+    input:
+        tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport)
+        path taxonomy_dir
+    output:
+        tuple val(unique_id), path("*.f*q.gz"), emit: reads
+    script:
+        """
+        extract_kraken_reads.py \
+            -s ${fastq} \
+            -k ${kraken_assignments} \
+            -r ${kreport} \
+            -t ${taxonomy_dir} \
+            -p "non_human" \
+            --taxid ${params.taxid_human \
+            --include_children \
+            --include_unclassified
+        bgzip --threads $task.cpus 1.f*q
+        """
+}
+
 process bgzip_extracted_taxa {
       
       label 'process_medium'
