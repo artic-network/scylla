@@ -14,3 +14,5 @@
   stderr:                            # Options for testing stderr (optional)
     contains:                        # A list of strings which should be in stderr (optional)
       - "human reads, max allowed is "
+- name: hcid_checks
+  command: nextflow run main.nf --run_dir test/test_data/hcid_tests/ -profile docker --local
