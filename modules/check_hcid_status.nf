@@ -40,9 +40,15 @@ workflow check_hcid_status {
 
         kreport_ch.join(fastq_ch).set{input_ch}
         check_hcid(input_ch, taxonomy, hcid_defs, hcid_refs)
+
+        empty_file = file("$baseDir/resources/empty_file")
+        kreport_ch.map{unique_id, kreport -> [unique_id, empty_file]}
+            .concat(check_hcid.out.warnings)
+            .collectFile()
+            .map{f -> [f.simpleName, f]}
+            .set{warning_ch}
     emit:
-        check_hcid.out.warnings
-        check_hcid.out.counts
+        warning_ch
 }
 
 workflow {

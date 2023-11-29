@@ -31,7 +31,8 @@ workflow classify_and_report {
 
         check_hcid_status(kraken_classify.out.kreport, concat_fastq_ch, kraken_classify.out.taxonomy)
 
-        qc_checks.out.combine(classified_jsons, by: 0).set { report_ch }
+        qc_checks.out.combine(classified_jsons, by: 0)
+            .join(check_hcid_status.out).set { report_ch }
         generate_report( report_ch )
     emit:
         assignments = kraken_classify.out.assignments
