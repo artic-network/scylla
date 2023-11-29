@@ -104,6 +104,8 @@ def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
             continue
         taxids = set()
         lookup = [d]
+        if "alt_taxon_ids" in hcid_dict:
+            lookup.extend(hcid_dict["alt_taxon_ids"])
         while len(lookup) > 0:
             child = lookup.pop()
             if child in children:
@@ -115,7 +117,9 @@ def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
     entries, counts = parse_report_file(kreport_file, taxid_map)
     for taxid in hcid_dict:
         hcid_dict[taxid]["classified_count"] = counts[taxid]
-        hcid_dict[taxid]["classified_parent_count"]= counts[parents[taxid]]
+        if taxid in parents and parents[taxid] in entries:
+            print(taxid, parents[taxid], parents[taxid] in taxid_map, parents[taxid] in entries)
+            hcid_dict[taxid]["classified_parent_count"]= entries[parents[taxid]]["count_descendants"]
         if counts[taxid] > hcid_dict[taxid]["min_count"]:
             hcid_dict[taxid]["classified_found"] = True
         if counts[parents[taxid]] > hcid_dict[taxid]["min_count"]:
