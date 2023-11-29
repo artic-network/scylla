@@ -256,6 +256,7 @@ def get_exclude_list(
                     lookup.extend(children[child])
     if not include_unclassified and len(exclusions) > 0:
         exclusions.add("0")
+    sys.stderr.write("EXCLUDING [%s]\n" % ",".join(exclude))
     return exclusions
 
 
@@ -399,7 +400,7 @@ def fastq_iterator(
 
 
 def extract_taxa(
-    report_entries, lists_to_extract, exclusions, kraken_assignment_file, reads1, reads2, prefix
+    report_entries, lists_to_extract, exclusions, kraken_assignment_file, reads1, reads2, prefix, include_unclassified
 ):
     # open read files
     filetype, zipped = check_read_files(reads1)
@@ -447,6 +448,7 @@ def extract_taxa(
                         "avg_qual": mean(quals[taxon]),
                         "mean_len": mean(lens[taxon]),
                     },
+                    "includes_unclassified": include_unclassified
                 }
             )
         else:
@@ -463,6 +465,7 @@ def extract_taxa(
                         "avg_qual": mean(quals[taxon]),
                         "mean_len": mean(lens[taxon]),
                     },
+                    "includes_unclassified": include_unclassified
                 }
             )
     with open("%s_summary.json" % prefix, "w") as f:
@@ -693,6 +696,7 @@ def main():
         args.reads1,
         args.reads2,
         args.prefix,
+        args.include_unclassified
     )
 
     now = datetime.now()
