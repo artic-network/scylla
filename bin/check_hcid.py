@@ -222,7 +222,7 @@ def main():
         "-d",
         dest="ref_fasta",
         required=False,
-        default="resources/hcid_refs.fq.gz",
+        default="resources/hcid_refs.fa.gz",
         help="Reference FASTA for each HCID",
     )
 
