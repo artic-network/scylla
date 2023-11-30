@@ -14,7 +14,7 @@
         { "name": "Middle East respiratory syndrome (MERS)", "taxon_id": 1335626, "min_count":1,"required_refs": ["NC_019843.3"],"additional_refs": []},
         { "name": "Mpox (monkeypox) (Clade I only)", "taxon_id": 10244, "min_count":10,"required_refs": ["NC_003310.1"],"additional_refs": []},
         { "name": "Nipah virus infection", "taxon_id": 3052225, "alt_taxon_id": [121791],"min_count":1,"required_refs": ["NC_002728.1"],"additional_refs": []},
-        { "name": "Pneumonic plague (Yersinia pestis)", "taxon_id": 632, "min_count":100,"required_refs": ["NZ_UAVH01000012.1"],"additional_refs": []},
+        { "name": "Pneumonic plague (Yersinia pestis)", "taxon_id": 632, "min_count":100,"required_refs": ["AL590842.1"],"additional_refs": ["AL117189.1","AL117211.1","AL109969.1"]},
         { "name": "Severe acute respiratory syndrome (SARS)", "taxon_id": 2901879, "min_count":1,"required_refs": ["NC_004718.3"],"additional_refs": []},
         { "name": "Severe fever with thrombocytopaenia syndrome (SFTS)", "taxon_id": 1003835, "min_count":1,"required_refs": ["NC_043450.1","NC_043451.1","NC_043452.1"],"additional_refs": []}
 ]
