@@ -128,19 +128,38 @@ def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
 
 def map_to_refs(query, reference):
     counts = defaultdict(int)
+    ranges = defaultdict(list)
     a = mp.Aligner(reference, best_n=1)  # load or build index
     if not a:
         raise Exception("ERROR: failed to load/build index")
 
+    read_count = 0
     for name, seq, qual in mp.fastx_read(query): # read a fasta/q sequence
+        read_count += 1
         for hit in a.map(seq): # traverse alignments
             counts[hit.ctg] += 1
+            ranges[hit.ctg].append([hit.r_st, hit.r_en])
             #print("{}\t{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
             break
-    return counts
+        if read_count % 1000000 == 0:
+            break
+    return counts, ranges
+
+def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
+    if len(ref_ranges) == 0:
+        return 0
+    for name, seq, qual in mp.fastx_read(reference_file):
+        if name == ref:
+            coverages = [0] * len(seq)
+            for r in ref_ranges:
+                for i in range(r[0], r[1]):
+                    coverages[i] += 1
+            zeros = [i for i in coverages if i <= min_coverage]
+            return float(len(seq) - len(zeros))/len(seq)
+    return 0
 
 def check_ref_coverage(hcid_dict, query, reference):
-    counts = map_to_refs(query, reference)
+    counts, ranges = map_to_refs(query, reference)
 
     for taxon in hcid_dict:
         taxon_found = True
@@ -155,7 +174,10 @@ def check_ref_coverage(hcid_dict, query, reference):
             if counts[ref] > 0:
                 hcid_dict[taxon]["mapped_required"] += 1
                 hcid_dict[taxon]["mapped_count"] += counts[ref]
-            hcid_dict[taxon]["mapped_required_details"].append("%s:%s" %(ref,str(counts[ref])))
+            ref_covg = check_pileup(ref, ranges[ref], reference)
+            if ref_covg < 0.5:
+                hcid_dict[taxon]["mapped_found"] = False
+            hcid_dict[taxon]["mapped_required_details"].append("%s:%i:%f" %(ref,counts[ref], ref_covg))
         hcid_dict[taxon]["mapped_required"] = float(hcid_dict[taxon]["mapped_required"])/len(hcid_dict[taxon]["required_refs"])
         hcid_dict[taxon]["mapped_required_details"] = "|".join(hcid_dict[taxon]["mapped_required_details"])
         for ref in hcid_dict[taxon]["additional_refs"]:
@@ -172,8 +194,9 @@ def report_findings(hcid_dict, prefix):
         if hcid_dict[taxid]["mapped_found"] and (hcid_dict[taxid]["classified_found"] or hcid_dict[taxid]["classified_parent_found"]) :
             with open("%s.warning" %taxid, "w") as f_warn:
                 f_warn.write(f"WARNING: Found {hcid_dict[taxid]['classified_count']} classified reads ({hcid_dict[taxid]['mapped_count']} mapped reads) of {hcid_dict[taxid]['name']}\n")
+                f_warn.write(f"Mapping details for required references (ref_accession:mapped_read_count:fraction_ref_covered) {hcid_dict[taxid]['mapped_required_details']}\n")
             found.append(taxid)
-    keys = ["name", "taxon_id", "min_count", "classified_count","mapped_count", "mapped_required", "mapped_required_details", "mapped_additional"]
+    keys = ["name", "taxon_id", "min_count", "classified_count","classified_parent_count", "mapped_count", "mapped_required", "mapped_required_details", "mapped_additional"]
     with open("%s.counts.csv" %prefix,'w') as f_counts:
         w = csv.DictWriter(f_counts,keys)
         w.writeheader()
@@ -233,9 +256,13 @@ def main():
     time = now.strftime("%m/%d/%Y, %H:%M:%S")
     sys.stderr.write("PROGRAM START TIME: " + time + "\n")
 
+    sys.stderr.write("Load HCID information\n")
     hcid_dict = load_hcid_dict(args.hcid_file)
+    sys.stderr.write("Check kraken report for counts\n")
     check_report_for_hcid(hcid_dict, args.taxonomy, args.kreport_file)
+    sys.stderr.write("Check mapped coverage\n")
     check_ref_coverage(hcid_dict, args.reads, args.ref_fasta)
+    sys.stderr.write("Report findings\n")
     report_findings(hcid_dict, args.prefix)
 
     now = datetime.now()
