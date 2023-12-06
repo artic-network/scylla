@@ -18,10 +18,12 @@
 
 process assemble_flye {
     label "process_high"
+    errorStrategy 'ignore'
 
     conda "bioconda::flye=2.9"
     container "biocontainers/flye:2.9--py39h6935b12_1"
 
+    publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "flye/final.contigs.fa", saveAs: "flye_assembled_contigs.fa"
     input:
         tuple val(unique_id), val(taxon), path(fastq)
     output:
@@ -34,10 +36,12 @@ process assemble_flye {
 
 process assemble_rnabloom {
     label "process_high"
+    errorStrategy 'ignore'
 
     // need a working container for rnabloom
     conda "bioconda::rnabloom"
 
+    publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "rnabloom/rnabloom.transcripts.fa", saveAs: "rnabloom_assembled_contigs.fa"
     input:
         tuple val(unique_id), val(taxon), path(fastq)
     output:
@@ -50,10 +54,12 @@ process assemble_rnabloom {
 
 process assemble_megahit {
     label "process_high"
+    errorStrategy 'ignore'
 
 	conda "bioconda::megahit"
 	container "biocontainers/mulled-v2-0f92c152b180c7cd39d9b0e6822f8c89ccb59c99:8ec213d21e5d03f9db54898a2baeaf8ec729b447-0"
 
+    publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "megahit/final.contigs.fa", saveAs: "megahit_assembled_contigs.fa"
     input:
         tuple val(unique_id), val(taxon), path(fastq)
     output:
@@ -67,9 +73,12 @@ process assemble_megahit {
 
 process assemble_rnaspades {
     label "process_high"
+    errorStrategy 'ignore'
 
     conda "bioconda::spades=3.15 conda-forge::pyyaml=6.0.1"
     container "biocontainers/spades:3.15.5--h95f258a_1"
+
+    publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "rnaspades/transcripts.fasta", saveAs: "rnaspades_assembled_contigs.fa"
 
     input:
         tuple val(unique_id), val(taxon), path(fastq)
@@ -83,9 +92,12 @@ process assemble_rnaspades {
 
 process assemble_megahit_paired {
     label "process_high"
+    errorStrategy 'ignore'
 
     conda "bioconda::megahit"
 	container "biocontainers/mulled-v2-0f92c152b180c7cd39d9b0e6822f8c89ccb59c99:8ec213d21e5d03f9db54898a2baeaf8ec729b447-0"
+
+    publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "megahit/final.contigs.fa", saveAs: "megahit_assembled_contigs.fa"
 
     input:
         tuple val(unique_id), val(taxon), path(fastq_1), path(fastq_2)
@@ -100,9 +112,12 @@ process assemble_megahit_paired {
 
 process assemble_rnaspades_paired {
     label "process_high"
+    errorStrategy 'ignore'
 
     conda "bioconda::spades=3.15 conda-forge::pyyaml=6.0.1"
     container "biocontainers/spades:3.15.5--h95f258a_1"
+
+    publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "rnaspades/transcripts.fasta", saveAs: "rnaspades_assembled_contigs.fa"
 
     input:
         tuple val(unique_id), val(taxon), path(fastq_1), path(fastq_2)
@@ -116,11 +131,12 @@ process assemble_rnaspades_paired {
 
 process generate_assembly_stats {
     label "process_single"
+    errorStrategy 'ignore'
 
     conda "bioconda::bbmap"
     container "biocontainers/bbmap:39.01--h92535d8_1"
 
-    //publishDir "${params.outdir}/${unique_id}/discovery", mode: 'copy', saveAs: { filename -> "${params.assembler}_${filename}" }
+    publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "assembly_stats.txt"
     input:
         tuple val(unique_id), val(taxon), path(contigs)
     output:
