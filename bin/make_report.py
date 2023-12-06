@@ -93,6 +93,9 @@ def main():
         "--read_counts", help="JSON file of read_counts", required=False, type=Path
     )
     parser.add_argument(
+        "--warnings", help="text file containing any warnings", required=False, type=Path
+    )
+    parser.add_argument(
         "--sample_id", help="Unique ID of sample", required=False, default="sample"
     )
 
@@ -122,7 +125,13 @@ def main():
         read_length_counts, read_length_step, read_quality_counts = summarize_read_counts(args.read_counts)
     else:
         read_length_counts, read_length_step, read_quality_counts = [], 2, []
-    data_for_report = {"sankey_data": assignments, "read_length_data": read_length_counts, "read_length_step": read_length_step, "read_quality_data": read_quality_counts, "classifier": args.classifier, "classification_database": args.classification_database}
+
+    warnings = ""
+    if args.warnings:
+        with open(args.warnings, "r") as f:
+            warnings = f.read().strip()
+
+    data_for_report = {"sankey_data": assignments, "read_length_data": read_length_counts, "read_length_step": read_length_step, "read_quality_data": read_quality_counts, "classifier": args.classifier, "classification_database": args.classification_database, "warnings": warnings}
 
     outfile = args.prefix + "_report.html"
     make_output_report(outfile, args.template, args.version, sample, data_for_report)

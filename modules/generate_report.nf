@@ -10,7 +10,7 @@ process make_report {
     container "${params.wf.container}:${params.wf.container_version}"
     
     input:
-        tuple val(unique_id), path(stats), path(lineages)
+        tuple val(unique_id), path(stats), path(lineages), path(warnings)
         path template
     output:
         tuple val(unique_id), path("${unique_id}_report.html")
@@ -28,6 +28,7 @@ process make_report {
         --prefix "${report_name}" \
         --read_counts ${stats} \
         --assignments ${lineages} \
+        --warnings ${warnings} \
         --version "${workflow.manifest.version}" \
         --classifier "${classifier}" \
         --classification_database "${classification_database}" \

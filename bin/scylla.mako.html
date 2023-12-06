@@ -1014,6 +1014,7 @@
             is documented to be highly sensitive but also has a high false positive rate. It may undercall taxa which
             are poorly represented in the database such as viruses. For optimal virus classification we recommend using
             the de novo virus classification module (in development).</p>
+        <p class="warnings" style="color: #dc3545">${data_for_report['warnings']}</p>
 
         <main class="single-sample-sankey">
 
@@ -1104,6 +1105,7 @@
 
                 const len_data = ${data_for_report["read_length_data"]};
                 const qual_data = ${data_for_report["read_quality_data"]};
+                const step = ${data_for_report["read_length_step"]};
 
                 const vl_len_histogram = {
                     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
@@ -1116,7 +1118,7 @@
                     "encoding": {
                         "x": {
                             "field": "bin_start",
-                            "bin": {"binned": true, "step": ${data_for_report["read_length_step"]}},
+                            "bin": {"binned": true, "step": step},
                             "title": "Read length (bp)",
                         },
                         "x2": {"field": "bin_end"},
