@@ -52,25 +52,6 @@ def load_from_taxonomy(taxonomy_dir):
         sys.exit(3)
     return parents, children
 
-def filter_to_relevant(parents, children, kraken_assignment_file):
-    relevant = set()
-    with open(kraken_assignment_file,'r') as f:
-        for line in f:
-            tax_id, read_id = parse_kraken_assignment_line(line)
-            parent = tax_id
-            while parent not in relevant and parent in parents:
-                relevant.add(parent)
-                parent = parents[parent]
-    del_keys = set()
-    for key in children:
-        if key not in relevant:
-            del_keys.add(key)
-    for key in del_keys:
-        del children[key]
-    for key in relevant:
-        children[key] = children[key].intersection(relevant)
-    return children
-
 def parse_depth(name):
     parse_name = name.split(" ")
     depth = 0
@@ -121,7 +102,7 @@ def infer_hierarchy(report_file):
     return parents, children
 
 
-def load_report_file(report_file, max_human=None, include_unclassified=False):
+def load_report_file(report_file, max_human=None):
     entries = {}
     # parses a kraken or bracken file
     with open(report_file, "r") as f:
@@ -165,7 +146,7 @@ def load_report_file(report_file, max_human=None, include_unclassified=False):
                     sys.exit(2)
                 continue
 
-            if not include_unclassified and name in ["unclassified", "root"]:
+            if name in ["unclassified", "root"]:
                 continue
 
             entries[ncbi] = {
@@ -177,7 +158,7 @@ def load_report_file(report_file, max_human=None, include_unclassified=False):
                 "name": name,
             }
 
-    sys.stderr.write("FOUND %i TAXA IN BRACKEN REPORT\n" % len(entries))
+    sys.stderr.write("FOUND %i TAXA IN KRAKEN REPORT\n" % len(entries))
     return entries
 
 
@@ -192,8 +173,7 @@ def get_taxon_id_lists(
     min_percent=None,
     top_n=None,
     include_parents=False,
-    include_children=False,
-    include_unclassified=False
+    include_children=False
 ):
     lists_to_extract = defaultdict(set)
     for taxon in report_entries:
@@ -224,8 +204,6 @@ def get_taxon_id_lists(
                 lists_to_extract[taxon].add(child)
                 if child in children:
                     lookup.extend(children[child])
-        if include_unclassified:
-            lists_to_extract[taxon].add("0")
     sys.stderr.write("SELECTED %i TAXA TO EXTRACT\n" % len(lists_to_extract))
 
     if top_n and len(lists_to_extract) > top_n:
@@ -238,26 +216,6 @@ def get_taxon_id_lists(
         sys.stderr.write("REDUCED TO %i TAXA TO EXTRACT\n" % len(lists_to_extract))
 
     return lists_to_extract
-
-def get_exclude_list(
-    children,
-    exclude=[],
-    include_children=False,
-    include_unclassified=False
-):
-    exclusions = set(exclude)
-    if include_children:
-        for taxon in exclude:
-            lookup = [taxon]
-            while len(lookup) > 0:
-                child = lookup.pop()
-                exclusions.add(child)
-                if child in children:
-                    lookup.extend(children[child])
-    if not include_unclassified and len(exclusions) > 0:
-        exclusions.add("0")
-    sys.stderr.write("EXCLUDING [%s]\n" % ",".join(exclude))
-    return exclusions
 
 
 def check_read_files(reads):
@@ -334,9 +292,10 @@ def fastq_iterator(
     quals = defaultdict(list)
     lens = defaultdict(list)
 
-    out_records_1 = {}
-    out_records_2 = {}
+    out_records_1 = defaultdict(list)
+    out_records_2 = defaultdict(list)
 
+    sys.stderr.write("Reading in\n")
     for record in pyfastx.Fastq(fastq_1, build_index=False):
         name, seq, qual = record
         trimmed_name = trim_read_id(name)
@@ -349,14 +308,9 @@ def fastq_iterator(
                 quals[taxon].append(median([ord(x) - 33 for x in qual]))
                 lens[taxon].append(len(seq))
 
-                try:
-                    out_records_1[taxon].append(record)
+                out_records_1[taxon].append(record)
 
-                except KeyError:
-                    out_records_1[taxon] = []
-
-                    out_records_1[taxon].append(record)
-
+    sys.stderr.write("Writing records\n")
     for taxon, records in out_records_1.items():
         if fastq_2:
             with open(f"{taxon}_1.{filetype}", "w") as f:
@@ -368,8 +322,10 @@ def fastq_iterator(
                 for record in records:
                     name, seq, qual = record
                     f.write(f"@{name}\n{seq}\n+\n{qual}\n")
+    del out_records_1
 
     if fastq_2:
+        sys.stderr.write("Reading in second file of pair\n")
         for record in pyfastx.Fastq(fastq_2, build_index=False):
             name, seq, qual = record
             trimmed_name = trim_read_id(name)
@@ -382,14 +338,9 @@ def fastq_iterator(
                     quals[taxon].append(median([ord(x) - 33 for x in qual]))
                     lens[taxon].append(len(seq))
 
-                    try:
-                        out_records_2[taxon].append(record)
+                    out_records_2[taxon].append(record)
 
-                    except KeyError:
-                        out_records_2[taxon] = []
-
-                        out_records_2[taxon].append(record)
-
+        sys.stderr.write("Writing records for second file in pair\n")
         for taxon, records in out_records_2.items():
             with open(f"{taxon}_2.{filetype}", "w") as f:
                 for record in records:
@@ -400,7 +351,7 @@ def fastq_iterator(
 
 
 def extract_taxa(
-    report_entries, lists_to_extract, exclusions, kraken_assignment_file, reads1, reads2, prefix, include_unclassified
+    report_entries, lists_to_extract, kraken_assignment_file, reads1, reads2, prefix
 ):
     # open read files
     filetype, zipped = check_read_files(reads1)
@@ -418,19 +369,19 @@ def extract_taxa(
         #    % (len(lists_to_extract[taxon]), taxon)
         # )
 
+    sys.stderr.write("Collecting read ids\n")
     with open(kraken_assignment_file, "r") as kfile:
         for line in kfile:
             tax_id, read_id = parse_kraken_assignment_line(line)
-            if tax_id in subtaxa_map.keys() or tax_id not in exclusions:
+            if tax_id in subtaxa_map.keys():
                 read_map[read_id].add(tax_id)
-            if len(exclusions) > 0:
-                subtaxa_map[tax_id].add("1")
-                lists_to_extract["1"].add(tax_id)
 
+    sys.stderr.write("Iterating through read file\n")
     out_counts, quals, lens = fastq_iterator(
         prefix, filetype, read_map, subtaxa_map, reads1, reads2
     )
 
+    sys.stderr.write("Write summary\n")
     summary = []
     for taxon in lists_to_extract:
         if reads2:
@@ -448,7 +399,7 @@ def extract_taxa(
                         "avg_qual": mean(quals[taxon]),
                         "mean_len": mean(lens[taxon]),
                     },
-                    "includes_unclassified": include_unclassified
+                    "includes_unclassified": False
                 }
             )
         else:
@@ -465,7 +416,7 @@ def extract_taxa(
                         "avg_qual": mean(quals[taxon]),
                         "mean_len": mean(lens[taxon]),
                     },
-                    "includes_unclassified": include_unclassified
+                    "includes_unclassified": False
                 }
             )
     with open("%s_summary.json" % prefix, "w") as f:
@@ -582,21 +533,6 @@ def main():
         default=False,
         help="Include reads classified more specifically than the specified taxids",
     )
-    parser.add_argument(
-        "--include_unclassified",
-        dest="include_unclassified",
-        required=False,
-        action="store_true",
-        default=False,
-        help="Include unclassified in output files",
-    )
-    parser.add_argument(
-        "--exclude",
-        dest="exclude",
-        nargs="*",
-        default=[],
-        help="List of taxonomy ID[s] or names to exclude (space-delimited) from outputs",
-    )
     parser.set_defaults(append=False)
 
     args = parser.parse_args()
@@ -604,12 +540,6 @@ def main():
     if not args.report_file:
         sys.stderr.write(
             "ERROR: require at least one report file from bracken or kraken\n"
-        )
-        sys.exit(1)
-
-    if len(args.exclude) > 0 and (len(args.taxid) > 0 or args.rank or args.min_count or args.min_percent or args.min_count_descendants):
-        sys.stderr.write(
-            "ERROR: does not support exclusions at the same time as inclusion criteria\n"
         )
         sys.exit(1)
 
@@ -641,62 +571,40 @@ def main():
     else:
         target_ranks = []
 
-    non_trivial_taxid = [t for t in args.taxid if t!="1"]
-    if args.include_children and len(target_ranks) == 0 and len(non_trivial_taxid) == 0 and len(args.exclude) == 0:
-        sys.stderr.write(
-            "ERROR: does not support include_children without target ranks or taxid or exclude specified\n"
-        )
-        sys.exit(1)
-
     sys.stderr.write("Loading hierarchy\n")
     parent, children = None, None
     if args.taxonomy:
         parent, children = load_from_taxonomy(args.taxonomy)
-        children = filter_to_relevant(parent, children, args.kraken_assignment_file)
     else:
         parent, children = infer_hierarchy(args.report_file)
 
     # get taxids to extract
     sys.stderr.write("Loading kreport\n")
-    report_entries = load_report_file(args.report_file, args.max_human, args.include_unclassified)
+    report_entries = load_report_file(args.report_file, args.max_human)
 
-    if len(args.exclude) > 0:
-        sys.stderr.write("Checking for exclusions\n")
-        exclusions = get_exclude_list(
-            children,
-            exclude=args.exclude,
-            include_children=args.include_children,
-            include_unclassified=args.include_unclassified
-        )
-        lists_to_extract = defaultdict(set)
-    else:
-        sys.stderr.write("Checking for lists to extract\n")
-        lists_to_extract = get_taxon_id_lists(
-            report_entries,
-            parent,
-            children,
-            names=args.taxid,
-            target_ranks=target_ranks,
-            min_count=args.min_count,
-            min_count_descendants=args.min_count_descendants,
-            min_percent=args.min_percent,
-            top_n=args.top_n,
-            include_parents=args.include_parents,
-            include_children=args.include_children,
-            include_unclassified=args.include_unclassified
-        )
-        exclusions = set()
+    sys.stderr.write("Checking for lists to extract\n")
+    lists_to_extract = get_taxon_id_lists(
+        report_entries,
+        parent,
+        children,
+        names=args.taxid,
+        target_ranks=target_ranks,
+        min_count=args.min_count,
+        min_count_descendants=args.min_count_descendants,
+        min_percent=args.min_percent,
+        top_n=args.top_n,
+        include_parents=args.include_parents,
+        include_children=args.include_children
+    )
 
     sys.stderr.write("Performing extractions\n")
     out_counts = extract_taxa(
         report_entries,
         lists_to_extract,
-        exclusions,
         args.kraken_assignment_file,
         args.reads1,
         args.reads2,
-        args.prefix,
-        args.include_unclassified
+        args.prefix
     )
 
     now = datetime.now()
