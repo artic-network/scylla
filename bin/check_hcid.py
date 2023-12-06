@@ -8,8 +8,6 @@ from datetime import datetime
 from collections import defaultdict
 import mappy as mp
 import argparse
-from Bio import SeqIO
-import glob
 
 
 def load_from_taxonomy(taxonomy_dir):
@@ -29,6 +27,7 @@ def load_from_taxonomy(taxonomy_dir):
         )
         sys.exit(3)
     return parents, children
+
 
 def parse_report_file(report_file, taxid_map):
     entries = {}
@@ -78,9 +77,10 @@ def parse_report_file(report_file, taxid_map):
                 "rank": rank,
                 "name": name,
             }
-            counts[taxid_map[ncbi]]+=num_direct
+            counts[taxid_map[ncbi]] += num_direct
 
     return entries, counts
+
 
 def load_hcid_dict(hcid_file):
     hcid_dict = {}
@@ -94,6 +94,7 @@ def load_hcid_dict(hcid_file):
                 hcid_dict[d["taxon_id"]]["classified_found"] = False
                 hcid_dict[d["taxon_id"]]["classified_parent_found"] = False
     return hcid_dict
+
 
 def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
     parents, children = load_from_taxonomy(taxonomy_dir)
@@ -118,8 +119,15 @@ def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
     for taxid in hcid_dict:
         hcid_dict[taxid]["classified_count"] = counts[taxid]
         if taxid in parents and parents[taxid] in entries:
-            print(taxid, parents[taxid], parents[taxid] in taxid_map, parents[taxid] in entries)
-            hcid_dict[taxid]["classified_parent_count"]= entries[parents[taxid]]["count_descendants"]
+            print(
+                taxid,
+                parents[taxid],
+                parents[taxid] in taxid_map,
+                parents[taxid] in entries,
+            )
+            hcid_dict[taxid]["classified_parent_count"] = entries[parents[taxid]][
+                "count_descendants"
+            ]
         if counts[taxid] > hcid_dict[taxid]["min_count"]:
             hcid_dict[taxid]["classified_found"] = True
         if counts[parents[taxid]] > hcid_dict[taxid]["min_count"]:
@@ -134,16 +142,17 @@ def map_to_refs(query, reference):
         raise Exception("ERROR: failed to load/build index")
 
     read_count = 0
-    for name, seq, qual in mp.fastx_read(query): # read a fasta/q sequence
+    for name, seq, qual in mp.fastx_read(query):  # read a fasta/q sequence
         read_count += 1
-        for hit in a.map(seq): # traverse alignments
+        for hit in a.map(seq):  # traverse alignments
             counts[hit.ctg] += 1
             ranges[hit.ctg].append([hit.r_st, hit.r_en])
-            #print("{}\t{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
+            # print("{}\t{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
             break
         if read_count % 1000000 == 0:
             break
     return counts, ranges
+
 
 def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
     if len(ref_ranges) == 0:
@@ -155,8 +164,9 @@ def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
                 for i in range(r[0], r[1]):
                     coverages[i] += 1
             zeros = [i for i in coverages if i <= min_coverage]
-            return float(len(seq) - len(zeros))/len(seq)
+            return float(len(seq) - len(zeros)) / len(seq)
     return 0
+
 
 def check_ref_coverage(hcid_dict, query, reference):
     counts, ranges = map_to_refs(query, reference)
@@ -177,32 +187,58 @@ def check_ref_coverage(hcid_dict, query, reference):
             ref_covg = check_pileup(ref, ranges[ref], reference)
             if ref_covg < 0.5:
                 hcid_dict[taxon]["mapped_found"] = False
-            hcid_dict[taxon]["mapped_required_details"].append("%s:%i:%f" %(ref,counts[ref], ref_covg))
-        hcid_dict[taxon]["mapped_required"] = float(hcid_dict[taxon]["mapped_required"])/len(hcid_dict[taxon]["required_refs"])
-        hcid_dict[taxon]["mapped_required_details"] = "|".join(hcid_dict[taxon]["mapped_required_details"])
+            hcid_dict[taxon]["mapped_required_details"].append(
+                "%s:%i:%f" % (ref, counts[ref], ref_covg)
+            )
+        hcid_dict[taxon]["mapped_required"] = float(
+            hcid_dict[taxon]["mapped_required"]
+        ) / len(hcid_dict[taxon]["required_refs"])
+        hcid_dict[taxon]["mapped_required_details"] = "|".join(
+            hcid_dict[taxon]["mapped_required_details"]
+        )
         for ref in hcid_dict[taxon]["additional_refs"]:
             if counts[ref] > 0:
                 hcid_dict[taxon]["mapped_additional"] += 1
                 hcid_dict[taxon]["mapped_count"] += counts[ref]
-        if len(hcid_dict[taxon]["additional_refs"])>0:
-            hcid_dict[taxon]["mapped_additional"] = float(hcid_dict[taxon]["mapped_additional"])/len(hcid_dict[taxon]["additional_refs"])
+        if len(hcid_dict[taxon]["additional_refs"]) > 0:
+            hcid_dict[taxon]["mapped_additional"] = float(
+                hcid_dict[taxon]["mapped_additional"]
+            ) / len(hcid_dict[taxon]["additional_refs"])
 
 
 def report_findings(hcid_dict, prefix):
     found = []
     for taxid in hcid_dict:
-        if hcid_dict[taxid]["mapped_found"] and (hcid_dict[taxid]["classified_found"] or hcid_dict[taxid]["classified_parent_found"]) :
-            with open("%s.warning" %taxid, "w") as f_warn:
-                f_warn.write(f"WARNING: Found {hcid_dict[taxid]['classified_count']} classified reads ({hcid_dict[taxid]['mapped_count']} mapped reads) of {hcid_dict[taxid]['name']}\n")
-                f_warn.write(f"Mapping details for required references (ref_accession:mapped_read_count:fraction_ref_covered) {hcid_dict[taxid]['mapped_required_details']}\n")
+        if hcid_dict[taxid]["mapped_found"] and (
+            hcid_dict[taxid]["classified_found"]
+            or hcid_dict[taxid]["classified_parent_found"]
+        ):
+            with open("%s.warning" % taxid, "w") as f_warn:
+                f_warn.write(
+                    f"WARNING: Found {hcid_dict[taxid]['classified_count']} classified reads ({hcid_dict[taxid]['mapped_count']} mapped reads) of {hcid_dict[taxid]['name']}\n"
+                )
+                f_warn.write(
+                    f"Mapping details for required references (ref_accession:mapped_read_count:fraction_ref_covered) {hcid_dict[taxid]['mapped_required_details']}\n"
+                )
             found.append(taxid)
-    keys = ["name", "taxon_id", "min_count", "classified_count","classified_parent_count", "mapped_count", "mapped_required", "mapped_required_details", "mapped_additional"]
-    with open("%s.counts.csv" %prefix,'w') as f_counts:
-        w = csv.DictWriter(f_counts,keys)
+    keys = [
+        "name",
+        "taxon_id",
+        "min_count",
+        "classified_count",
+        "classified_parent_count",
+        "mapped_count",
+        "mapped_required",
+        "mapped_required_details",
+        "mapped_additional",
+    ]
+    with open("%s.counts.csv" % prefix, "w") as f_counts:
+        w = csv.DictWriter(f_counts, keys)
         w.writeheader()
         for taxid in hcid_dict:
             w.writerow({key: hcid_dict[taxid][key] for key in keys})
     return found
+
 
 # Main method
 def main():
