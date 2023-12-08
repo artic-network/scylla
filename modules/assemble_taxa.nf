@@ -94,7 +94,7 @@ process assemble_megahit_paired {
     label "process_high"
     errorStrategy 'ignore'
 
-    conda "bioconda::megahit conda-forge::bzip2 conda-forge::libcxx<14"
+    conda "bioconda::megahit conda-forge::bzip2 conda-forge::libcxx=8.0"
 	container "biocontainers/mulled-v2-0f92c152b180c7cd39d9b0e6822f8c89ccb59c99:8ec213d21e5d03f9db54898a2baeaf8ec729b447-0"
 
     publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "megahit/final.contigs.fa", saveAs: {filename -> "megahit_assembled_contigs.fa"}
