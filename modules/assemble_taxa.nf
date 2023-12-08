@@ -56,7 +56,7 @@ process assemble_megahit {
     label "process_high"
     errorStrategy 'ignore'
 
-	conda "bioconda::megahit"
+	conda "bioconda::megahit conda-forge::bzip2 conda-forge::libcxx=8.0"
 	container "biocontainers/mulled-v2-0f92c152b180c7cd39d9b0e6822f8c89ccb59c99:8ec213d21e5d03f9db54898a2baeaf8ec729b447-0"
 
     publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "megahit/final.contigs.fa", saveAs: {filename -> "megahit_assembled_contigs.fa"}
@@ -75,7 +75,7 @@ process assemble_rnaspades {
     label "process_high"
     errorStrategy 'ignore'
 
-    conda "bioconda::spades=3.15 conda-forge::pyyaml=6.0.1"
+    conda "bioconda::spades=3.15 conda-forge::pyyaml==3.12"
     container "biocontainers/spades:3.15.5--h95f258a_1"
 
     publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "rnaspades/soft_filtered_transcripts.fasta", saveAs: {filename -> "rnaspades_assembled_contigs.fa"}
@@ -94,7 +94,7 @@ process assemble_megahit_paired {
     label "process_high"
     errorStrategy 'ignore'
 
-    conda "bioconda::megahit"
+    conda "bioconda::megahit conda-forge::bzip2 conda-forge::libcxx<14"
 	container "biocontainers/mulled-v2-0f92c152b180c7cd39d9b0e6822f8c89ccb59c99:8ec213d21e5d03f9db54898a2baeaf8ec729b447-0"
 
     publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "megahit/final.contigs.fa", saveAs: {filename -> "megahit_assembled_contigs.fa"}
@@ -114,7 +114,7 @@ process assemble_rnaspades_paired {
     label "process_high"
     errorStrategy 'ignore'
 
-    conda "bioconda::spades=3.15 conda-forge::pyyaml=6.0.1"
+    conda "bioconda::spades=3.15 conda-forge::pyyaml==3.12"
     container "biocontainers/spades:3.15.5--h95f258a_1"
 
     publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "rnaspades/soft_filtered_transcripts.fasta", saveAs: {filename -> "rnaspades_assembled_contigs.fa"}
