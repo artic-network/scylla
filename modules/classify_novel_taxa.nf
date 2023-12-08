@@ -26,7 +26,8 @@ process run_virbot {
     label "process_medium"
     errorStrategy 'ignore'
 
-    container "biowilko/virbot:0.1.0"
+    container "biowilko/virbot:1.0.0"
+    conda "bioconda:virbot:1.0.0"
     publishDir "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "discovered_contigs.fa" : "tax_assignments.tsv" }
 
     input:
@@ -134,8 +135,7 @@ workflow classify_novel_taxa {
             run_virbot(assemble_taxa.out.contigs)
         } else if ( params.classifier == 'genomad' ) {
             if (! params.genomad_db) {
-                download_genomad_database()
-                download_genomad_database.out.set {genomad_db_ch}
+                genomad_db_ch = download_genomad_database()
             } else {
                 Channel.of(file(${params.genomad_db}, type: "dir", checkIfExists:true))
                     .set {genomad_db_ch}
