@@ -39,7 +39,7 @@ process assemble_rnabloom {
     errorStrategy 'ignore'
 
     conda "bioconda::rnabloom"
-    container "biocontainers/rnaboom:2.0.1--hdfd78af_1"
+    container "docker.io/jdelling7igfl/rnabloom:2.0.1"
 
     publishDir path: "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', pattern: "rnabloom/rnabloom.transcripts.fa", saveAs: {filename -> "rnabloom_assembled_contigs.fa"}
     input:
