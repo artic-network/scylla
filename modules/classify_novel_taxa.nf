@@ -45,6 +45,7 @@ process run_virbot {
 process download_genomad_database {
     label "process_single"
 
+    conda "bioconda::genomad=1.7.4"
     container "biocontainers/genomad:1.7.1--pyhdfd78af_0"
 
     storeDir "${params.store_dir}/"
@@ -52,12 +53,7 @@ process download_genomad_database {
         path "genomad_db"
     script:
     """
-    if [ -d "${params.store_dir}/genomad_db" ]
-    then
-        echo "Database already downloaded"
-    else
-        genomad download-database .
-    fi
+    genomad download-database .
     """
 }
 
@@ -65,6 +61,7 @@ process run_genomad {
     label "process_medium"
     errorStrategy 'ignore'
 
+    conda "bioconda::genomad=1.7.4"
     container "biocontainers/genomad:1.7.1--pyhdfd78af_0"
 
     input:
