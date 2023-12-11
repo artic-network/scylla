@@ -70,7 +70,7 @@ def load_from_taxonomy(taxonomy_dir, taxids, include_unclassified):
                 for line in f:
                     fields = line.split("\t|\t")
                     taxid, name, name_type = fields[0], fields[1], fields[3]
-                    if taxid in taxids and (name_type == "scientific name" or entries[taxid]["name"] == None):
+                    if taxid in taxids and ("scientific name" in name_type or entries[taxid]["name"] == None):
                         entries[taxid]["name"] = name
 
         except:
@@ -159,7 +159,7 @@ def trim_read_id(read_id):
 def fastq_iterator(
     prefix: str,
     filetype: str,
-    taxids: list,
+    entries: dict,
     read_map: dict,
     fastq_1: Path,
     fastq_2: Path = None,
@@ -183,17 +183,23 @@ def fastq_iterator(
     out_counts = defaultdict(int)
     quals = defaultdict(list)
     lens = defaultdict(list)
+    names = defaultdict(list)
 
     sys.stderr.write("Open file handles\n")
     out_handles_1 = {}
     out_handles_2 = {}
 
-    for taxon in taxids:
+    print(entries)
+    for taxon, entry in entries.items():
+        taxon_name = entry["name"].lower()
         if fastq_2:
-            out_handles_1[taxon] = open(f"{taxon}_1.{filetype}", "w")
-            out_handles_2[taxon] = open(f"{taxon}_2.{filetype}", "w")
+            out_handles_1[taxon] = open(f"{taxon_name}_1.{filetype}", "w")
+            out_handles_2[taxon] = open(f"{taxon_name}_2.{filetype}", "w")
+            names[taxon].append(f"{taxon_name}_1.{filetype}")
+            names[taxon].append(f"{taxon_name}_2.{filetype}")
         else:
-            out_handles_1[taxon] = open(f"{taxon}.{filetype}", "w")
+            out_handles_1[taxon] = open(f"{taxon_name}.{filetype}", "w")
+            names[taxon].append(f"{taxon_name}.{filetype}")
 
     sys.stderr.write("Iterating through read file\n")
     count = 0
@@ -231,7 +237,7 @@ def fastq_iterator(
     for taxon in out_handles_2:
         out_handles_2[taxon].close()
 
-    return (out_counts, quals, lens)
+    return (out_counts, quals, lens, names)
 
 
 def fastq_iterator_inverse(
@@ -262,6 +268,7 @@ def fastq_iterator_inverse(
     out_counts = defaultdict(int)
     quals = defaultdict(list)
     lens = defaultdict(list)
+    names = defaultdict(list)
 
     sys.stderr.write("Open file handles\n")
     out_handles_1 = {}
@@ -270,8 +277,11 @@ def fastq_iterator_inverse(
     if fastq_2:
         out_handles_1["all"] = open(f"{prefix}_1.{filetype}", "w")
         out_handles_2["all"] = open(f"{prefix}_2.{filetype}", "w")
+        names["all"].append(f"{prefix}_1.{filetype}")
+        names["all"].append(f"{prefix}_2.{filetype}")
     else:
         out_handles_1["all"] = open(f"{prefix}.{filetype}", "w")
+        names["all"].append(f"{prefix}.{filetype}")
 
     sys.stderr.write("Iterating through read file\n")
     count = 0
@@ -307,7 +317,7 @@ def fastq_iterator_inverse(
     for taxon in out_handles_2:
         out_handles_2[taxon].close()
 
-    return (out_counts, quals, lens)
+    return (out_counts, quals, lens, names)
 
 
 def extract_reads(
@@ -317,27 +327,21 @@ def extract_reads(
     filetype, zipped = check_read_files(reads1)
 
     if exclude:
-        out_counts, quals, lens = fastq_iterator_inverse(
+        out_counts, quals, lens, names = fastq_iterator_inverse(
             prefix, filetype, taxids, read_map, reads1, reads2
         )
     else:
-        out_counts, quals, lens = fastq_iterator(
-            prefix, filetype, taxids, read_map, reads1, reads2
+        out_counts, quals, lens, names = fastq_iterator(
+            prefix, filetype, entries, read_map, reads1, reads2
         )
 
     sys.stderr.write("Write summary\n")
     summary = []
-    for taxon in taxids:
+    for taxon in names:
         if reads2:
             summary.append(
                 {
-                    "human_readable": entries[taxon]["name"],
-                    "taxon": taxon,
-                    "tax_level": entries[taxon]["rank"],
-                    "filenames": [
-                        "%s_1.%s" % (taxon, filetype),
-                        "%s_2.%s" % (taxon, filetype),
-                    ],
+                    "filenames": names[taxon],
                     "qc_metrics": {
                         "num_reads": out_counts[taxon],
                         "avg_qual": mean(quals[taxon]),
@@ -349,12 +353,7 @@ def extract_reads(
         else:
             summary.append(
                 {
-                    "human_readable": entries[taxon]["name"],
-                    "taxon": taxon,
-                    "tax_level": entries[taxon]["rank"],
-                    "filenames": [
-                        "%s.%s" % (taxon, filetype),
-                    ],
+                    "filenames": names[taxon],
                     "qc_metrics": {
                         "num_reads": out_counts[taxon],
                         "avg_qual": mean(quals[taxon]),

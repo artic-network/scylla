@@ -31,7 +31,7 @@ process split_kreport {
         """
 }
 
-process extract_paired_reads {
+process extract_taxa_paired_reads {
     
     label 'process_single'
     label 'process_high_memory'
@@ -52,7 +52,7 @@ process extract_paired_reads {
         if ( params.reject_human )
             extra += " --max_human ${params.max_human_reads_before_rejection}"
         """
-        extract_kraken_reads.py \
+        extract_taxa_from_reads.py \
             -s1 ${fastq1} \
             -s2 ${fastq2} \
             -k ${kraken_assignments} \
@@ -73,7 +73,7 @@ process extract_paired_reads {
         """
 }
 
-process extract_reads {
+process extract_taxa_reads {
 
     label 'process_single'
     label 'process_high_memory'
@@ -94,7 +94,7 @@ process extract_reads {
         if ( params.reject_human )
             extra += " --max_human ${params.max_human_reads_before_rejection}"
         """
-        extract_kraken_reads.py \
+        extract_taxa_from_reads.py \
             -s ${fastq} \
             -k ${kraken_assignments} \
             -r ${kreport} \
@@ -132,7 +132,7 @@ process extract_paired_virus_and_unclassified {
         tuple val(unique_id), path("*_summary.json"), emit: summary
     script:
         """
-        extract_read_fraction.py \
+        extract_fraction_from_reads.py \
             -s1 ${fastq1} \
             -s2 ${fastq2} \
             -k ${kraken_assignments} \
@@ -161,7 +161,7 @@ process extract_virus_and_unclassified {
         tuple val(unique_id), path("*_summary.json"), emit: summary
     script:
         """
-        extract_read_fraction.py \
+        extract_fraction_from_reads.py \
             -s ${fastq} \
             -k ${kraken_assignments} \
             -t ${taxonomy_dir} \
@@ -172,7 +172,7 @@ process extract_virus_and_unclassified {
 }
 
 
-process extract_paired_non_human {
+process extract_paired_dehumanized {
 
     label 'process_single'
     label 'process_high_memory'
@@ -190,18 +190,18 @@ process extract_paired_non_human {
         tuple val(unique_id), path("*_summary.json"), emit: summary
     script:
         """
-        extract_read_fraction.py \
+        extract_fraction_from_reads.py \
             -s1 ${fastq1} \
             -s2 ${fastq2} \
             -k ${kraken_assignments} \
             -t ${taxonomy_dir} \
-            -p "non_human" \
+            -p "dehumanized" \
             --exclude \
             --taxid ${params.taxid_human}
         """
 }
 
-process extract_non_human {
+process extract_dehumanized {
 
     label 'process_single'
     label 'process_high_memory'
@@ -219,11 +219,11 @@ process extract_non_human {
         tuple val(unique_id), path("*_summary.json"), emit: summary
     script:
         """
-        extract_read_fraction.py \
+        extract_fraction_from_reads.py \
             -s ${fastq} \
             -k ${kraken_assignments} \
             -t ${taxonomy_dir} \
-            -p "non_human" \
+            -p "dehumanized" \
             --exclude \
             --taxid ${params.taxid_human}
         """
@@ -233,13 +233,14 @@ process bgzip_extracted_taxa {
       
       label 'process_medium'
   
-      publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", mode: 'copy'
+      publishDir path: "${params.outdir}/${unique_id}/${prefix}", mode: 'copy'
   
       conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
       container "${params.wf.container}:${params.wf.container_version}"
   
       input:
           tuple val(unique_id), path(read_files)
+          val(prefix)
       output:
           tuple val(unique_id), path("*.f*q.gz")
           tuple val(unique_id), path("virus*.f*q.gz"), emit: virus, optional:true
@@ -256,13 +257,13 @@ process merge_read_summary {
 
     label 'process_single'
 
-    publishDir path: "${params.outdir}/${unique_id}/reads_by_taxa", pattern: "reads_summary_combined.json", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/${prefix}", pattern: "reads_summary_combined.json", mode: 'copy'
 
     container "${params.wf.container}:${params.wf.container_version}"
 
     input:
         tuple val(unique_id), path(reads_summary)
-
+        val(prefix)
     output:
         path "reads_summary_combined.json"
     
@@ -297,37 +298,80 @@ workflow extract_taxa {
         fastq_ch.combine(assignments_ch, by: 0)
                 .combine(kreport_params_ch, by: 0)
                 .set{ extract_ch }
+
+        if ( params.paired ){
+            extract_taxa_paired_reads(extract_ch, taxonomy_dir)
+            extract_taxa_paired_reads.out.reads
+                .set {extracted_taxa}
+            extract_taxa_paired_reads.out.summary
+                .groupTuple()
+                .set {reads_summary_ch}
+        } else {
+            extract_taxa_reads(extract_ch, taxonomy_dir)
+            extract_taxa_reads.out.reads
+                .set {extracted_taxa}
+            extract_taxa_reads.out.summary
+                .groupTuple()
+                .set {reads_summary_ch}       
+        }
+        bgzip_extracted_taxa(extracted_taxa, "reads_by_taxa")
+        merge_read_summary(reads_summary_ch, "reads_by_taxa")
+    emit:
+        kraken_json = split_kreport.out.json
+}
+
+
+workflow extract_fractions {
+    take:
+        fastq_ch
+        assignments_ch
+        kreport_ch
+        taxonomy_dir
+    main:
         fastq_ch.combine(assignments_ch, by: 0)
                 .combine(kreport_ch, by: 0)
                 .set{ full_extract_ch }
 
         if ( params.paired ){
-            extract_paired_non_human(full_extract_ch, taxonomy_dir)
+            extract_paired_dehumanized(full_extract_ch, taxonomy_dir)
             extract_paired_virus_and_unclassified(full_extract_ch, taxonomy_dir)
-            extract_paired_reads(extract_ch, taxonomy_dir)
-            extract_paired_reads.out.reads
-                .concat(extract_paired_non_human.out.reads, extract_paired_virus_and_unclassified.out.reads)
-                .set {extracted_taxa}
-            extract_paired_reads.out.summary
-                .concat(extract_paired_non_human.out.summary, extract_paired_virus_and_unclassified.out.summary)
-                .groupTuple()
-                .set {reads_summary_ch}
+            extract_paired_dehumanized.out.reads
+                .concat(extract_paired_virus_and_unclassified.out.reads)
+                .set {extracted_fractions}
+            extract_paired_dehumanized.out.summary
+                 .concat(extract_paired_virus_and_unclassified.out.summary)
+                 .groupTuple()
+                 .set {fractions_summary_ch}
         } else {
-            extract_non_human(full_extract_ch, taxonomy_dir)
+            extract_dehumanized(full_extract_ch, taxonomy_dir)
             extract_virus_and_unclassified(full_extract_ch, taxonomy_dir)
-            extract_reads(extract_ch, taxonomy_dir)
-            extract_reads.out.reads
-                .concat(extract_non_human.out.reads, extract_virus_and_unclassified.out.reads)
-                .set {extracted_taxa}
-            extract_reads.out.summary
-                .concat(extract_non_human.out.summary, extract_virus_and_unclassified.out.summary)
+            extract_dehumanized.out.reads
+                .concat(extract_virus_and_unclassified.out.reads)
+                .set {extracted_fractions}
+            extract_dehumanized.out.summary
+                .concat(extract_virus_and_unclassified.out.summary)
                 .groupTuple()
-                .set {reads_summary_ch}       
+                .set {fractions_summary_ch}
         }
-        bgzip_extracted_taxa(extracted_taxa)
-        merge_read_summary(reads_summary_ch)
+        bgzip_extracted_taxa(extracted_fractions, "read_fractions")
+        merge_read_summary(fractions_summary_ch, "read_fractions")
     emit:
         virus = bgzip_extracted_taxa.out.virus
+}
+
+
+workflow extract_all {
+    take:
+        fastq_ch
+        assignments_ch
+        kreport_ch
+        taxonomy_dir
+    main:
+        extract_taxa(fastq_ch, assignments_ch, kreport_ch, taxonomy_dir)
+        extract_fractions(fastq_ch, assignments_ch, kreport_ch, taxonomy_dir)
+    emit:
+        kraken_json = extract_taxa.out.kraken_json
+        virus = extract_fractions.out.virus
 }
 
 
@@ -345,6 +389,6 @@ workflow {
     kreport_ch = Channel.of([unique_id, kreport])
     taxonomy_dir = file(params.taxonomy, type: "dir", checkIfExists:true)
 
-    extract_taxa(unique_id, fastq_ch, assignments_ch, kreport_ch, taxonomy_dir)
+    extract_all(fastq_ch, assignments_ch, kreport_ch, taxonomy_dir)
 }
 
