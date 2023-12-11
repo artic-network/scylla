@@ -398,8 +398,7 @@ def extract_taxa(
                         "num_reads": out_counts[taxon],
                         "avg_qual": mean(quals[taxon]),
                         "mean_len": mean(lens[taxon]),
-                    },
-                    "includes_unclassified": False
+                    }
                 }
             )
         else:
@@ -415,8 +414,7 @@ def extract_taxa(
                         "num_reads": out_counts[taxon],
                         "avg_qual": mean(quals[taxon]),
                         "mean_len": mean(lens[taxon]),
-                    },
-                    "includes_unclassified": False
+                    }
                 }
             )
     with open("%s_summary.json" % prefix, "w") as f:

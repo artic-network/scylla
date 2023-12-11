@@ -2,7 +2,7 @@
 include { get_params_and_versions } from '../modules/get_params_and_versions'
 include { kraken_setup; kraken_end } from '../modules/kraken_classification'
 include { classify_and_report } from '../subworkflows/classify_and_report'
-include { extract_taxa } from '../modules/extract_taxa'
+include { extract_all } from '../modules/extract_all'
 
 EXTENSIONS = ["fastq", "fastq.gz", "fq", "fq.gz"]
 
@@ -50,7 +50,7 @@ workflow process_barcode {
         barcode_ch
     main:
         classify_and_report(barcode_ch, barcode_ch, null)
-        extract_taxa(barcode_ch, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
+        extract_all(barcode_ch, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
     emit:
         report = classify_and_report.out.report
 }
