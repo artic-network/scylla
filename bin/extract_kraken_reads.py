@@ -37,21 +37,20 @@ def median(l):
 def load_from_taxonomy(taxonomy_dir):
     taxonomy = os.path.join(taxonomy_dir, "nodes.dmp")
     parents = {}
-    children = defaultdict(list)
+    children = defaultdict(set)
     try:
         with open(taxonomy, "r") as f:
             for line in f:
                 fields = line.split("\t|\t")
                 tax_id, parent_tax_id = fields[0], fields[1]
                 parents[tax_id] = parent_tax_id
-                children[parent_tax_id].append(tax_id)
+                children[parent_tax_id].add(tax_id)
     except:
         sys.stderr.write(
             "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
         )
         sys.exit(3)
     return parents, children
-
 
 def parse_depth(name):
     parse_name = name.split(" ")
@@ -66,7 +65,7 @@ def parse_depth(name):
 
 def infer_hierarchy(report_file):
     parents = {}
-    children = defaultdict(list)
+    children = defaultdict(set)
     hierarchy = []
     with open(report_file, "r") as f:
         for line in f:
@@ -99,7 +98,7 @@ def infer_hierarchy(report_file):
             if len(hierarchy) > 1:
                 parent = hierarchy[-2]
                 parents[ncbi] = parent
-                children[parent].append(ncbi)
+                children[parent].add(ncbi)
     return parents, children
 
 
@@ -138,13 +137,16 @@ def load_report_file(report_file, max_human=None):
             name = name.strip()
             rank = raw_rank[0]
 
-            if name in ["Homo sapiens", "unclassified", "root"]:
+            if name in ["Homo sapiens"]:
                 if max_human and name == "Homo sapiens" and num_direct > max_human:
                     sys.stderr.write(
                         "ERROR: found %i human reads, max allowed is %i\n"
                         % (num_direct, max_human)
                     )
                     sys.exit(2)
+                continue
+
+            if name in ["unclassified", "root"]:
                 continue
 
             entries[ncbi] = {
@@ -156,7 +158,7 @@ def load_report_file(report_file, max_human=None):
                 "name": name,
             }
 
-    sys.stderr.write("FOUND %i TAXA IN BRACKEN REPORT\n" % len(entries))
+    sys.stderr.write("FOUND %i TAXA IN KRAKEN REPORT\n" % len(entries))
     return entries
 
 
@@ -171,9 +173,9 @@ def get_taxon_id_lists(
     min_percent=None,
     top_n=None,
     include_parents=False,
-    include_children=False,
+    include_children=False
 ):
-    lists_to_extract = {}
+    lists_to_extract = defaultdict(set)
     for taxon in report_entries:
         entry = report_entries[taxon]
         if len(target_ranks) > 0 and entry["rank"] not in target_ranks:
@@ -187,21 +189,21 @@ def get_taxon_id_lists(
         if len(names) > 0 and entry["name"] not in names and taxon not in names:
             continue
 
-        lists_to_extract[taxon] = [taxon]
+        lists_to_extract[taxon].add(taxon)
         if include_parents:
             lookup = taxon
             while lookup in parents and lookup != "1":
                 lookup = parents[lookup]
                 if lookup != "1":
-                    lists_to_extract[taxon].append(lookup)
+                    lists_to_extract[taxon].add(lookup)
 
         if include_children:
             lookup = [taxon]
             while len(lookup) > 0:
                 child = lookup.pop()
-                if child != taxon:
-                    lists_to_extract[taxon].append(child)
-                lookup.extend(children[child])
+                lists_to_extract[taxon].add(child)
+                if child in children:
+                    lookup.extend(children[child])
     sys.stderr.write("SELECTED %i TAXA TO EXTRACT\n" % len(lists_to_extract))
 
     if top_n and len(lists_to_extract) > top_n:
@@ -290,9 +292,10 @@ def fastq_iterator(
     quals = defaultdict(list)
     lens = defaultdict(list)
 
-    out_records_1 = {}
-    out_records_2 = {}
+    out_records_1 = defaultdict(list)
+    out_records_2 = defaultdict(list)
 
+    sys.stderr.write("Reading in\n")
     for record in pyfastx.Fastq(fastq_1, build_index=False):
         name, seq, qual = record
         trimmed_name = trim_read_id(name)
@@ -305,14 +308,9 @@ def fastq_iterator(
                 quals[taxon].append(median([ord(x) - 33 for x in qual]))
                 lens[taxon].append(len(seq))
 
-                try:
-                    out_records_1[taxon].append(record)
+                out_records_1[taxon].append(record)
 
-                except KeyError:
-                    out_records_1[taxon] = []
-
-                    out_records_1[taxon].append(record)
-
+    sys.stderr.write("Writing records\n")
     for taxon, records in out_records_1.items():
         if fastq_2:
             with open(f"{taxon}_1.{filetype}", "w") as f:
@@ -324,8 +322,10 @@ def fastq_iterator(
                 for record in records:
                     name, seq, qual = record
                     f.write(f"@{name}\n{seq}\n+\n{qual}\n")
+    del out_records_1
 
     if fastq_2:
+        sys.stderr.write("Reading in second file of pair\n")
         for record in pyfastx.Fastq(fastq_2, build_index=False):
             name, seq, qual = record
             trimmed_name = trim_read_id(name)
@@ -338,14 +338,9 @@ def fastq_iterator(
                     quals[taxon].append(median([ord(x) - 33 for x in qual]))
                     lens[taxon].append(len(seq))
 
-                    try:
-                        out_records_2[taxon].append(record)
+                    out_records_2[taxon].append(record)
 
-                    except KeyError:
-                        out_records_2[taxon] = []
-
-                        out_records_2[taxon].append(record)
-
+        sys.stderr.write("Writing records for second file in pair\n")
         for taxon, records in out_records_2.items():
             with open(f"{taxon}_2.{filetype}", "w") as f:
                 for record in records:
@@ -374,16 +369,19 @@ def extract_taxa(
         #    % (len(lists_to_extract[taxon]), taxon)
         # )
 
+    sys.stderr.write("Collecting read ids\n")
     with open(kraken_assignment_file, "r") as kfile:
         for line in kfile:
             tax_id, read_id = parse_kraken_assignment_line(line)
             if tax_id in subtaxa_map.keys():
                 read_map[read_id].add(tax_id)
 
+    sys.stderr.write("Iterating through read file\n")
     out_counts, quals, lens = fastq_iterator(
         prefix, filetype, read_map, subtaxa_map, reads1, reads2
     )
 
+    sys.stderr.write("Write summary\n")
     summary = []
     for taxon in lists_to_extract:
         if reads2:
@@ -401,6 +399,7 @@ def extract_taxa(
                         "avg_qual": mean(quals[taxon]),
                         "mean_len": mean(lens[taxon]),
                     },
+                    "includes_unclassified": False
                 }
             )
         else:
@@ -417,6 +416,7 @@ def extract_taxa(
                         "avg_qual": mean(quals[taxon]),
                         "mean_len": mean(lens[taxon]),
                     },
+                    "includes_unclassified": False
                 }
             )
     with open("%s_summary.json" % prefix, "w") as f:
@@ -571,6 +571,7 @@ def main():
     else:
         target_ranks = []
 
+    sys.stderr.write("Loading hierarchy\n")
     parent, children = None, None
     if args.taxonomy:
         parent, children = load_from_taxonomy(args.taxonomy)
@@ -578,7 +579,10 @@ def main():
         parent, children = infer_hierarchy(args.report_file)
 
     # get taxids to extract
+    sys.stderr.write("Loading kreport\n")
     report_entries = load_report_file(args.report_file, args.max_human)
+
+    sys.stderr.write("Checking for lists to extract\n")
     lists_to_extract = get_taxon_id_lists(
         report_entries,
         parent,
@@ -590,16 +594,17 @@ def main():
         min_percent=args.min_percent,
         top_n=args.top_n,
         include_parents=args.include_parents,
-        include_children=args.include_children,
+        include_children=args.include_children
     )
 
+    sys.stderr.write("Performing extractions\n")
     out_counts = extract_taxa(
         report_entries,
         lists_to_extract,
         args.kraken_assignment_file,
         args.reads1,
         args.reads2,
-        args.prefix,
+        args.prefix
     )
 
     now = datetime.now()
