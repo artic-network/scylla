@@ -62,7 +62,7 @@ def load_from_taxonomy(taxonomy_dir, taxids, include_unclassified):
             sys.stderr.write(
                 "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
             )
-            sys.exit(3)
+            sys.exit(4)
 
         try:
             taxonomy = os.path.join(taxonomy_dir, "names.dmp")
@@ -75,9 +75,9 @@ def load_from_taxonomy(taxonomy_dir, taxids, include_unclassified):
 
         except:
             sys.stderr.write(
-                "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
+                "ERROR: Could not find taxonomy names.dmp file in %s" % taxonomy_dir
             )
-            sys.exit(3)
+            sys.exit(4)
 
         check = list(taxids)
         while len(check) > 0:
@@ -99,14 +99,14 @@ def check_read_files(reads):
     first = read_file.readline()
     if len(first) == 0:
         sys.stderr.write("ERROR: sequence file's first line is blank\n")
-        sys.exit(1)
+        sys.exit(5)
     if first[0] == ">":
         filetype = "fasta"
     elif first[0] == "@":
         filetype = "fastq"
     else:
         sys.stderr.write("ERROR: sequence file must be FASTA or FASTQ\n")
-        sys.exit(1)
+        sys.exit(5)
     return filetype, zipped
 
 
