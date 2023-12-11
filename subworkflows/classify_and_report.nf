@@ -1,6 +1,7 @@
 include { kraken_classify } from '../modules/kraken_classification'
 include { sourmash_classify } from '../modules/sourmash_classification'
 include { qc_checks } from '../modules/qc_checks'
+include { check_hcid_status } from '../modules/check_hcid_status'
 include { generate_report } from '../modules/generate_report'
 
 
@@ -28,7 +29,10 @@ workflow classify_and_report {
                 .set { classified_jsons }
         }
 
-        qc_checks.out.combine(classified_jsons, by: 0).set { report_ch }
+        check_hcid_status(kraken_classify.out.kreport, concat_fastq_ch, kraken_classify.out.taxonomy)
+
+        qc_checks.out.combine(classified_jsons, by: 0)
+            .join(check_hcid_status.out).set { report_ch }
         generate_report( report_ch )
     emit:
         assignments = kraken_classify.out.assignments

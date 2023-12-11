@@ -16,3 +16,4 @@ dependencies:
   - tabix
   - mako
   - jq
+  - mappy
