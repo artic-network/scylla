@@ -49,7 +49,7 @@ def load_from_taxonomy(taxonomy_dir):
         sys.stderr.write(
             "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
         )
-        sys.exit(3)
+        sys.exit(4)
     return parents, children
 
 def parse_depth(name):
@@ -228,14 +228,14 @@ def check_read_files(reads):
     first = read_file.readline()
     if len(first) == 0:
         sys.stderr.write("ERROR: sequence file's first line is blank\n")
-        sys.exit(1)
+        sys.exit(5)
     if first[0] == ">":
         filetype = "fasta"
     elif first[0] == "@":
         filetype = "fastq"
     else:
         sys.stderr.write("ERROR: sequence file must be FASTA or FASTQ\n")
-        sys.exit(1)
+        sys.exit(5)
     return filetype, zipped
 
 
@@ -437,7 +437,7 @@ def main():
     parser.add_argument(
         "-r",
         dest="report_file",
-        required=False,
+        required=True,
         help="Kraken or Bracken file of taxon relationships and quantities",
     )
     parser.add_argument(
@@ -536,12 +536,6 @@ def main():
     parser.set_defaults(append=False)
 
     args = parser.parse_args()
-
-    if not args.report_file:
-        sys.stderr.write(
-            "ERROR: require at least one report file from bracken or kraken\n"
-        )
-        sys.exit(1)
 
     # Start Program
     now = datetime.now()

@@ -29,7 +29,7 @@ def translate_names(taxonomy_dir, taxon_names):
     except:
         sys.stderr.write(
             "ERROR: Could not find taxonomy names.dmp file in %s" %taxonomy_dir)
-        sys.exit(2)
+        sys.exit(4)
     return taxon_ids, name_dict
 
 def load_from_taxonomy(taxonomy_dir):
@@ -46,7 +46,7 @@ def load_from_taxonomy(taxonomy_dir):
     except:
         sys.stderr.write(
             "ERROR: Could not find taxonomy nodes.dmp file in %s" %taxonomy_dir)
-        sys.exit(2)
+        sys.exit(4)
     return parents, children
 
 
