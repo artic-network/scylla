@@ -1,0 +1,6 @@
+0   success
+1   general fail
+2   too much human
+3   no output file soft fail: in this context we don't always expect to have output files
+4   taxonomy files not found for hierarchy
+5   FASTA/Q file formatting error
