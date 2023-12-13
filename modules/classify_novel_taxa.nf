@@ -157,7 +157,7 @@ workflow {
         unique_id = "${fastq.simpleName}"
     }
 
-    taxon = "all"
+    taxon = "${params.taxon}"
     if (params.paired)
         taxon_fastq_ch = Channel.of([unique_id, taxon, fastq, fastq2])
     else
