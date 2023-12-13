@@ -108,7 +108,7 @@ def parse_report_file(report_file, split_strings, split_rank, save_json):
             save_file(key, lines[key])
 
     if save_json:
-        with open("kraken_report.json", "w") as outfile:
+        with open(report_file.replace(".txt", ".json"), "w") as outfile:
             json.dump(entries, outfile, indent=4, sort_keys=False)
 
 # Main method

@@ -73,10 +73,10 @@ process run_genomad {
     """
     genomad end-to-end -t ${task.cpus} --disable-find-proviruses --relaxed \
         ${contigs} genomad ${genomad_db}
-    if [ -s 'genomad/filtered_contigs_summary/filtered_contigs_virus_summary.tsv' ];
+    if [ grep 'Riboviria' genomad/filtered_contigs_summary/filtered_contigs_virus_summary.tsv ]
     then
         grep 'Riboviria' genomad/filtered_contigs_summary/filtered_contigs_virus_summary.tsv | \
-        awk -F'\t' 'BEGIN{print "contig_id\ttaxonomy"} NR>1{print \$1"\t"\$11}' > tax_assignments.tsv
+        awk -F"\t" 'BEGIN{print "contig_id\ttaxonomy"} NR>1{print \$1"\t"\$11}' > tax_assignments.tsv
     else
         touch tax_assignments.tsv
     fi
@@ -92,9 +92,9 @@ process filter_short_contigs {
     container "biocontainers/bbmap:39.01--h5c4e2a8_0"
  
     input:
-        tuple val(unique_id), val(taxon), path(contigs), path(tax_assignments)
+        tuple val(unique_id), val(taxon), path(contigs)
     output:
-        tuple val(unique_id), val(taxon), path("filtered_contigs.fa"), path(tax_assignments)
+        tuple val(unique_id), val(taxon), path("filtered_contigs.fa")
     script:
     """
     reformat.sh in=${contigs} out=filtered_contigs.fa minlength=2000
