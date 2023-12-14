@@ -137,7 +137,7 @@ def main():
     )
     parser.add_argument(
         "--save_json",
-        action="store_true"
+        action="store_true",
         required=False,
         help="Save the kraken report in JSON format",
     )
