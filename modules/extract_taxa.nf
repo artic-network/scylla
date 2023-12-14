@@ -20,7 +20,7 @@ process split_kreport {
     input:
         tuple val(unique_id), path(kreport)
     output:
-        tuple val(unique_id), path("*.kreport_split.txt")
+        tuple val(unique_id), path("*.kreport_split.txt"), emit: reports
         tuple val(unique_id), path("*.json"), emit: json
     script:
         """
@@ -242,7 +242,7 @@ process bgzip_extracted_taxa {
           tuple val(unique_id), path(read_files)
       output:
           tuple val(unique_id), path("*.f*q.gz")
-          tuple val(unique_id), path("10239.f*q.gz"), emit: virus, optional:true
+          tuple val(unique_id), path("virus*.f*q.gz"), emit: virus, optional:true
       script:
           """
           for f in \$(ls *.f*q)
@@ -281,7 +281,7 @@ workflow extract_taxa {
     main:
         thresholds = params.extract_thresholds
         split_kreport(kreport_ch)
-        split_kreport.out.transpose()
+        split_kreport.out.reports.transpose()
             .map { unique_id, kreport -> [unique_id, kreport, kreport.simpleName, thresholds.containsKey(kreport.simpleName)] }
             .branch { unique_id, kreport, key, status ->
                 valid: status

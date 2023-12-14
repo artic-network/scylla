@@ -3,6 +3,7 @@ include { get_params_and_versions } from '../modules/get_params_and_versions'
 include { kraken_setup; kraken_end } from '../modules/kraken_classification'
 include { classify_and_report } from '../subworkflows/classify_and_report'
 include { extract_taxa } from '../modules/extract_taxa'
+include { classify_virus_fastq } from '../modules/classify_novel_viruses'
 
 EXTENSIONS = ["fastq", "fastq.gz", "fq", "fq.gz"]
 
@@ -51,6 +52,9 @@ workflow process_barcode {
     main:
         classify_and_report(barcode_ch, barcode_ch, null)
         extract_taxa(barcode_ch, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
+        if ( params.classify_novel_viruses ){
+            classify_virus_fastq(extract_taxa.out.virus)
+        }
     emit:
         report = classify_and_report.out.report
 }
