@@ -64,6 +64,7 @@ def parse_report_file(report_file, split_strings, split_rank, save_json):
             num_direct = int(num_direct)
             if num_direct > num_clade_root:
                 num_direct, num_clade_root = num_clade_root, num_direct
+            depth = parse_depth(name)
             name = name.strip()
             rank = raw_rank[0]
 
@@ -77,7 +78,6 @@ def parse_report_file(report_file, split_strings, split_rank, save_json):
                 "taxid": ncbi
             }
 
-            depth = parse_depth(name)
             hierarchy = hierarchy[:depth]
             add_hierarchy = False
 

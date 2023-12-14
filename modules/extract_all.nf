@@ -15,7 +15,7 @@ process split_kreport {
     conda 'bioconda::biopython=1.78'
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy', pattern: "kraken_report.json"
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy', pattern: "*.json"
 
     input:
         tuple val(unique_id), path(kreport)
