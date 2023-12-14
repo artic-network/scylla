@@ -73,10 +73,10 @@ process run_genomad {
     """
     genomad end-to-end -t ${task.cpus} --disable-find-proviruses --relaxed \
         ${contigs} genomad ${genomad_db}
-    if [ -s 'genomad/filtered_contigs_summary/filtered_contigs_virus_summary.tsv' ];
+    if [ grep 'Riboviria' genomad/filtered_contigs_summary/filtered_contigs_virus_summary.tsv ]
     then
         grep 'Riboviria' genomad/filtered_contigs_summary/filtered_contigs_virus_summary.tsv | \
-        awk -F'\t' 'BEGIN{print "contig_id\ttaxonomy"} NR>1{print \$1"\t"\$11}' > tax_assignments.tsv
+        awk -F"\t" 'BEGIN{print "contig_id\ttaxonomy"} NR>1{print \$1"\t"\$11}' > tax_assignments.tsv
     else
         touch tax_assignments.tsv
     fi
@@ -92,9 +92,9 @@ process filter_short_contigs {
     container "biocontainers/bbmap:39.01--h5c4e2a8_0"
  
     input:
-        tuple val(unique_id), val(taxon), path(contigs), path(tax_assignments)
+        tuple val(unique_id), val(taxon), path(contigs)
     output:
-        tuple val(unique_id), val(taxon), path("filtered_contigs.fa"), path(tax_assignments)
+        tuple val(unique_id), val(taxon), path("filtered_contigs.fa")
     script:
     """
     reformat.sh in=${contigs} out=filtered_contigs.fa minlength=2000
@@ -109,7 +109,7 @@ process select_Riboviria {
     conda "bioconda::bbmap"
     container "biocontainers/bbmap:39.01--h5c4e2a8_0"
 
-    publishDir "${params.outdir}/${unique_id}/discovery/{taxon}", mode: 'copy', saveAs: { it == "RNA_viral_contigs.fa" ? "discovered_contigs.fa" : "tax_assignments.tsv" }
+    publishDir "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', saveAs: { it == "RNA_viral_contigs.fa" ? "discovered_contigs.fa" : "tax_assignments.tsv" }
 
     input:
         tuple val(unique_id), val(taxon), path(contigs), path(tax_assignments)
@@ -122,10 +122,15 @@ process select_Riboviria {
     """
 }
 
-workflow classify_novel_taxa {
+workflow classify_virus_fastq {
     take:
-        taxon_fastq_ch
+        fastq_ch
     main:
+        if (params.paired) {
+            taxon_fastq_ch = fastq_ch.map { it -> [it[0], "viruses", it[1], it[2]]}
+        } else {
+            taxon_fastq_ch = fastq_ch.map { it -> [it[0], "viruses", it[1]]}
+        }
         assemble_taxa(taxon_fastq_ch)
 
         if ( params.classifier == 'virbot' ) {
@@ -145,6 +150,26 @@ workflow classify_novel_taxa {
         }
 }
 
+workflow classify_novel_viruses {
+    take:
+        unique_id
+    main:
+        if (params.paired){
+            fastq1 = file("${params.fastq1}", type: "file", checkIfExists:true)
+            fastq2 = file("${params.fastq2}", type: "file", checkIfExists:true)
+            fastq_ch = Channel.of([unique_id, fastq1, fastq2])
+        } else if (params.fastq){
+            fastq = file("${params.fastq}", type: "file", checkIfExists:true)
+            fastq_ch = Channel.of([unique_id, fastq])
+        } else if (params.fastq_dir) {
+            fastqdir = file("${params.fastq_dir}", type: "dir", checkIfExists:true)
+            Channel.fromPath( fastqdir / "*.f*q*", type: "file")
+                .set {input_fastq_ch}
+            fastq_ch = Channel.of([unique_id, input_fastq_ch])
+        }
+        classify_virus_fastq(fastq_ch)
+}
+
 workflow {
     if (params.paired){
         fastq = file("${params.fastq1}", type: "file", checkIfExists:true)
@@ -157,13 +182,6 @@ workflow {
         unique_id = "${fastq.simpleName}"
     }
 
-    taxon = "all"
-    if (params.paired)
-        taxon_fastq_ch = Channel.of([unique_id, taxon, fastq, fastq2])
-    else
-        taxon_fastq_ch = Channel.of([unique_id, taxon, fastq])
-    taxon_fastq_ch.view()
-
-    classify_novel_taxa(taxon_fastq_ch)
+    classify_novel_viruses(unique_id)
 }
 
