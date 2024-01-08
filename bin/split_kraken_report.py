@@ -3,6 +3,7 @@
 import sys
 import argparse
 from datetime import datetime
+import json
 
 
 def parse_depth(name):
@@ -25,12 +26,13 @@ def save_file(name, lines):
             f.write(line)
 
 
-def parse_report_file(report_file, split_strings, split_rank):
+def parse_report_file(report_file, split_strings, split_rank, save_json):
     depth_dict = {}
     lines = {"remainder": []}
     key = "remainder"
     hierarchy = []
     max_depth = -1
+    entries = {}
 
     # parses a kraken or bracken file
     with open(report_file, "r") as f:
@@ -57,9 +59,26 @@ def parse_report_file(report_file, split_strings, split_rank):
                     ncbi,
                     name,
                 ) = line.strip().split("\t")
+            percentage = float(percentage)
+            num_clade_root = int(num_clade_root)
+            num_direct = int(num_direct)
+            if num_direct > num_clade_root:
+                num_direct, num_clade_root = num_clade_root, num_direct
             depth = parse_depth(name)
-            hierarchy = hierarchy[:depth]
             name = name.strip()
+            rank = raw_rank[0]
+
+            entries[ncbi] = {
+                "percentage": percentage,
+                "count": num_direct,
+                "count_descendants": num_clade_root,
+                "raw_rank": raw_rank,
+                "rank": rank,
+                "name": name,
+                "taxid": ncbi
+            }
+
+            hierarchy = hierarchy[:depth]
             add_hierarchy = False
 
             while depth <= max_depth:
@@ -88,6 +107,9 @@ def parse_report_file(report_file, split_strings, split_rank):
         for key in lines:
             save_file(key, lines[key])
 
+    if save_json:
+        with open(report_file.replace(".txt", ".json"), "w") as outfile:
+            json.dump(entries, outfile, indent=4, sort_keys=False)
 
 # Main method
 def main():
@@ -112,6 +134,12 @@ def main():
         dest="rank",
         required=False,
         help="The rank to split the file by",
+    )
+    parser.add_argument(
+        "--save_json",
+        action="store_true",
+        required=False,
+        help="Save the kraken report in JSON format",
     )
 
     args = parser.parse_args()
@@ -145,7 +173,7 @@ def main():
     time = now.strftime("%m/%d/%Y, %H:%M:%S")
     sys.stdout.write("PROGRAM START TIME: " + time + "\n")
 
-    parse_report_file(args.report_file, args.splits, args.rank)
+    parse_report_file(args.report_file, args.splits, args.rank, args.save_json)
 
     now = datetime.now()
     time = now.strftime("%m/%d/%Y, %H:%M:%S")

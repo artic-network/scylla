@@ -1,4 +1,5 @@
 include { ingest } from './subworkflows/ingest'
+include { classify_novel_viruses } from './modules/classify_novel_viruses'
 include { process_run } from './subworkflows/process_run'
 
 workflow {
@@ -25,6 +26,8 @@ workflow {
     // check input fastq exists and run fastp
     if (params.run_dir)
         process_run(unique_id)
+    else if (params.classify_novel_viruses)
+        classify_novel_viruses(unique_id)
     else
         ingest(unique_id)
 }

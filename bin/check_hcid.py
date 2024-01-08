@@ -25,7 +25,7 @@ def load_from_taxonomy(taxonomy_dir):
         sys.stderr.write(
             "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
         )
-        sys.exit(3)
+        sys.exit(4)
     return parents, children
 
 

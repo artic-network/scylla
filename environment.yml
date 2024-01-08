@@ -30,5 +30,7 @@ dependencies:
   - hmmer # for virbot
   - diamond # for virbot
   - genomad
+  - git-lfs # for virbot
+  - gitpython # for virbot
   - pip:
-    - git+https://github.com/rmcolq/RNA_virus_detector.git@dev
+    - git+https://github.com/rmcolq/RNA_virus_detector.git

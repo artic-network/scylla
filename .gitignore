@@ -31,3 +31,5 @@ output
 work
 store_dir
 test/ref
+
+**.DS_Store
