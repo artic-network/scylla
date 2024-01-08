@@ -26,8 +26,7 @@ process run_virbot {
     label "process_medium"
     errorStrategy 'ignore'
 
-    container "biowilko/virbot:1.0.0"
-    conda "bioconda:virbot:1.0.0"
+    container "docker.io/rmcolq/virbot:latest"
     publishDir "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "discovered_contigs.fa" : "tax_assignments.tsv" }
 
     input:
@@ -37,7 +36,7 @@ process run_virbot {
         path "pos_contig_score.tsv"
     script:
     """
-    VirBot.py --input "${contigs}" --output virbot
+    virbot --input "${contigs}" --output virbot
     awk -F',' 'BEGIN {print "contig_id\ttaxonomy"} NR>1{ gsub(/; /, ";", \$4) ; print \$1"\t"\$4 }' virbot/pos_contig_score.csv > pos_contig_score.tsv
     """
 }
