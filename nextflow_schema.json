@@ -1,9 +1,9 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
-  "$id": "https://raw.githubusercontent.com/snowy-leopard/scylla/main/nextflow_schema.json",
-  "title": "snowy-leopard/scylla",
+  "$id": "https://raw.githubusercontent.com/artic-network/scylla/main/nextflow_schema.json",
+  "title": "artic-network/scylla",
   "description": "Metagenomic binning of single reads from both amplicon-targeted and shotgun metagenomics sequencing.",
-  "url": "https://github.com/rmcolq/scylla",
+  "url": "https://github.com/artic-network/scylla",
   "type": "object",
   "definitions": {
     "input_options": {
