@@ -33,7 +33,7 @@ process centrifuge {
         tuple val(unique_id), path("centrifuge.kreport.txt"), emit: kreport
     script:
     """
-    centrifuge -q -x "${database}/${params.centrifuge_db_name}" ${fastq} \
+    bgzip --decompress -c ${fastq} | centrifuge -x "${database}/${params.centrifuge_db_name}" -U ${fastq} \
         -S centrifuge_assignments.tsv \
         --report-file centrifuge_summary.tsv
     centrifuge-kreport -x "${database}/${params.centrifuge_db_name}" centrifuge_assignments.tsv > centrifuge.kreport.txt
