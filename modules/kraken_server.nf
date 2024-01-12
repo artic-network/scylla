@@ -21,7 +21,7 @@
 
 process unpack_database {
     label "process_single"
-    storeDir "${params.store_dir}/${params.database_set}"
+    storeDir "${params.store_dir}/kraken/${params.database_set}"
     input:
         path database
     output:
