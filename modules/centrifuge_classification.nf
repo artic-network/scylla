@@ -58,7 +58,7 @@ workflow centrifuge_classify {
 
         centrifuge(fastq_ch, database)
     emit:
-        kreport = centrifuge_to_json.out.kreport
+        kreport = centrifuge.out.kreport
 }
 
 workflow {
