@@ -13,6 +13,11 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: quay.io/biowilko/scylla
+          flavor: |
+            latest=true
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha
       - name: Checkout
         uses: actions/checkout@v3
       - name: Set up QEMU
