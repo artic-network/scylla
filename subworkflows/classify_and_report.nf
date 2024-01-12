@@ -1,6 +1,6 @@
 include { kraken_classify } from '../modules/kraken_classification'
 include { sourmash_classify } from '../modules/sourmash_classification'
-include { centrifuge_classify } from '../modules/sourmash_classification'
+include { centrifuge_classify } from '../modules/centrifuge_classification'
 include { qc_checks } from '../modules/qc_checks'
 include { check_hcid_status } from '../modules/check_hcid_status'
 include { generate_report } from '../modules/generate_report'
