@@ -22,7 +22,7 @@ process centrifuge {
     label 'error_retry'
     label 'process_high_memory'
 
-    container "biocontainers/centrifuge:1.0.4--hd03093a_0"
+    container "docker.io/ontresearch/centrifuge:latest"
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     input:
