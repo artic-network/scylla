@@ -69,7 +69,7 @@ kraken_compute = params.kraken_clients == 1 ? 1 : params.kraken_clients - 1
 
 process kraken_server {
     label "process_long"
-    memory { 8.GB * task.attempt }
+    memory { database.size() + 8.GB * task.attempt }
     cpus params.threads
     conda "nanoporetech::kraken2-server=0.1.7"
     container "${params.wf.container}:${params.wf.container_version}"

@@ -20,7 +20,7 @@ process unpack_database {
 process centrifuge {
 
     label 'error_retry'
-    label 'process_high_memory'
+    memory { database.size() * 1.5 + 8.GB * task.attempt }
 
     container "docker.io/ontresearch/centrifuge:latest"
     publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
