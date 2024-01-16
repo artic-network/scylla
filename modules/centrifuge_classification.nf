@@ -29,14 +29,31 @@ process centrifuge {
         tuple val(unique_id), path(fastq)
         path database
     output:
-        tuple val(unique_id), path("*.tsv"), emit: centrifuge_tsv
-        tuple val(unique_id), path("centrifuge.kreport.txt"), emit: kreport
+        tuple val(unique_id), path("centrifuge_assignments.tsv"), emit: assignments
+        tuple val(unique_id), path("centrifuge_summary.tsv"), emit: summary
     script:
     """
     centrifuge -x "${database}/${params.centrifuge_db_name}" -U ${fastq} \
         -S centrifuge_assignments.tsv \
         --report-file centrifuge_summary.tsv
-    centrifuge-kreport -x "${database}/${params.centrifuge_db_name}" centrifuge_assignments.tsv > centrifuge.kreport.txt
+    """
+}
+
+process centrifuge_report {
+
+    label 'process_low'
+
+    container "docker.io/ontresearch/centrifuge:latest"
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
+
+    input:
+        tuple val(unique_id), path(assignments)
+        path database
+    output:
+        tuple val(unique_id), path("centrifuge.kreport.txt"), emit: kreport
+    script:
+    """
+    centrifuge-kreport -x "${database}/${params.centrifuge_db_name}" ${assignments} > centrifuge.kreport.txt
     """
 }
 
@@ -57,8 +74,9 @@ workflow centrifuge_classify {
         }
 
         centrifuge(fastq_ch, database)
+        centrifuge_report(fastq_ch, centrifuge.out.assignments)
     emit:
-        kreport = centrifuge.out.kreport
+        kreport = centrifuge_report.out.kreport
 }
 
 workflow {
