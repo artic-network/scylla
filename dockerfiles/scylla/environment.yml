@@ -3,7 +3,7 @@ channels:
   - bioconda
   - conda-forge
   - defaults
-  - epi2melabs
+  - nanoporetech
 dependencies:
   - python<=3.10
   - pysam
@@ -16,4 +16,3 @@ dependencies:
   - tabix
   - mako
   - jq
-  - mappy
