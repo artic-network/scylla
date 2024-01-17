@@ -299,7 +299,7 @@ process bgzip_extracted_taxa {
           val(prefix)
       output:
           tuple val(unique_id), path("*.f*q.gz")
-          tuple val(unique_id), path("virus*_and_unclassified*.f*q.gz"), emit: virus, optional:true
+          tuple val(unique_id), path("viral*_and_unclassified*.f*q.gz"), emit: virus, optional:true
       script:
           """
           for f in \$(ls *.f*q)

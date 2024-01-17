@@ -29,12 +29,12 @@ def median(l):
 
 def load_from_taxonomy(taxonomy_dir, taxids, include_unclassified):
     sys.stderr.write("Loading hierarchy\n")
-    entries = {"0":{"name": "unclassified",
-                    "taxon": "0",
-                    "rank": None
-                    }
-               }
-
+    entries = {}
+    if include_unclassified:
+        entries["0"] = {"name": "unclassified",
+                      "taxon": "0",
+                      "rank": None
+                      }
 
     taxid_map = defaultdict(set)
     for key in taxids:
@@ -196,6 +196,7 @@ def fastq_iterator(
         taxon_name = entry["name"].lower()
         if include_unclassified and taxon_name != "unclassified":
             taxon_name += "_and_unclassified"
+        taxon_name = taxon_name.replace("viruses", "viral")
         if fastq_2:
             out_handles_1[taxon] = open(f"{taxon_name}_1.{filetype}", "w")
             out_handles_2[taxon] = open(f"{taxon_name}_2.{filetype}", "w")
