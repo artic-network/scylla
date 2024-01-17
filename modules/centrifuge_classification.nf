@@ -74,7 +74,7 @@ workflow centrifuge_classify {
         }
 
         centrifuge(fastq_ch, database)
-        centrifuge_report(fastq_ch, centrifuge.out.assignments)
+        centrifuge_report(centrifuge.out.assignments, database)
     emit:
         kreport = centrifuge_report.out.kreport
 }
