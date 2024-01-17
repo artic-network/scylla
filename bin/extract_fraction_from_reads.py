@@ -159,6 +159,7 @@ def trim_read_id(read_id):
 def fastq_iterator(
     prefix: str,
     filetype: str,
+    include_unclassified: bool,
     entries: dict,
     read_map: dict,
     fastq_1: Path,
@@ -169,6 +170,7 @@ def fastq_iterator(
     Args:
         prefix (str): Outfile prefix
         filetype (str): output filetype (only affects naming)
+        include_unclassified (bool): true if includes unclassified reads
         read_map (dict): dict of read_id: taxon_list (from kraken report)
         subtaxa_map (dict): dict of subtaxa: output taxon (from load_from_taxonomy)
         exclude (bool): if true, inverts the logic for including reads
@@ -192,6 +194,8 @@ def fastq_iterator(
     print(entries)
     for taxon, entry in entries.items():
         taxon_name = entry["name"].lower()
+        if include_unclassified and taxon_name != "unclassified":
+            taxon_name += "_and_unclassified"
         if fastq_2:
             out_handles_1[taxon] = open(f"{taxon_name}_1.{filetype}", "w")
             out_handles_2[taxon] = open(f"{taxon_name}_2.{filetype}", "w")
@@ -332,7 +336,7 @@ def extract_reads(
         )
     else:
         out_counts, quals, lens, names = fastq_iterator(
-            prefix, filetype, entries, read_map, reads1, reads2
+            prefix, filetype, include_unclassified, entries, read_map, reads1, reads2
         )
 
     sys.stderr.write("Write summary\n")
