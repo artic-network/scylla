@@ -5,6 +5,7 @@ process kraken2_client {
     
     label "process_low"
     label "error_retry"
+    maxForks kraken_compute
 
     conda "nanoporetech::kraken2-server=0.1.7"
     container "${params.wf.container}:${params.wf.container_version}"
