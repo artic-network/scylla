@@ -2,10 +2,10 @@
 
 process check_hcid {
 
-    label 'process_single'
+    label "process_single"
 
-    conda 'bioconda::biopython=1.78 bioconda::mappy=2.26'
-    container "${params.wf.container}:${params.wf.container_version}"
+    conda "bioconda::mappy=2.26"
+    container "biocontainers/mappy:2.26--py38h7cf9df2_1"
 
     publishDir path: "${params.outdir}/${unique_id}/qc/", mode: 'copy'
 

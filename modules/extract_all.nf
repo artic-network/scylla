@@ -3,19 +3,19 @@
 
 // it is possible that no files would be extracted if there were no subsets of reads which matched the criteria
 // also note that the reads extracted don't match up with bracken abundance reestimates, although we do use those
-// as more accurate numbers when deciding what to pull out (bracken doesn't provide read break down)
+// as more accurate numbers when deciding what to pull out (bracken doesn"t provide read break down)
 // probably want to count up how many have been found here for run log
 // ALSO this step will currently "fail" with exitcode 2 if the number of human reads found exceeds the number specified
 // in config so could be good dehuman sanity check
 
 process split_kreport {
 
-    label 'process_single'
+    label "process_single"
 
-    conda 'bioconda::biopython=1.78'
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    conda "python=3.10"
+    container "biocontainers/python:3.10"
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy', pattern: "*.json"
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: "copy", pattern: "*.json"
 
     input:
         tuple val(unique_id), path(kreport)
@@ -33,12 +33,12 @@ process split_kreport {
 
 process extract_taxa_paired_reads {
     
-    label 'process_single'
-    label 'process_high_memory'
+    label "process_single"
+    label "process_high_memory"
 
-    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
 
-    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
@@ -75,12 +75,12 @@ process extract_taxa_paired_reads {
 
 process extract_taxa_reads {
 
-    label 'process_single'
-    label 'process_high_memory'
+    label "process_single"
+    label "process_high_memory"
     
-    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
 
-    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
@@ -116,12 +116,12 @@ process extract_taxa_reads {
 
 process extract_paired_virus_and_unclassified {
 
-    label 'process_single'
-    label 'process_high_memory'
+    label "process_single"
+    label "process_high_memory"
 
-    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
 
-    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
@@ -145,12 +145,12 @@ process extract_paired_virus_and_unclassified {
 
 process extract_virus_and_unclassified {
 
-    label 'process_single'
-    label 'process_high_memory'
+    label "process_single"
+    label "process_high_memory"
 
-    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
 
-    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
@@ -230,12 +230,12 @@ process extract_virus {
 
 process extract_paired_dehumanized {
 
-    label 'process_single'
-    label 'process_high_memory'
+    label "process_single"
+    label "process_high_memory"
 
-    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
 
-    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
@@ -259,12 +259,12 @@ process extract_paired_dehumanized {
 
 process extract_dehumanized {
 
-    label 'process_single'
-    label 'process_high_memory'
+    label "process_single"
+    label "process_high_memory"
 
-    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
 
-    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+    conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
@@ -287,11 +287,11 @@ process extract_dehumanized {
 
 process bgzip_extracted_taxa {
       
-      label 'process_medium'
+      label "process_medium"
   
-      publishDir path: "${params.outdir}/${unique_id}/${prefix}", mode: 'copy'
+      publishDir path: "${params.outdir}/${unique_id}/${prefix}", mode: "copy"
   
-      conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
+      conda "bioconda::tabix=1.11"
       container "${params.wf.container}:${params.wf.container_version}"
   
       input:
@@ -311,9 +311,9 @@ process bgzip_extracted_taxa {
 
 process merge_read_summary {
 
-    label 'process_single'
+    label "process_single"
 
-    publishDir path: "${params.outdir}/${unique_id}/${prefix}", pattern: "reads_summary_combined.json", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/${prefix}", pattern: "reads_summary_combined.json", mode: "copy"
 
     container "${params.wf.container}:${params.wf.container_version}"
 

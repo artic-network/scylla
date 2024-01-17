@@ -71,6 +71,7 @@ process kraken_server {
     label "process_long"
     memory { 8.GB * task.attempt }
     cpus params.threads
+    conda "nanoporetech::kraken2-server=0.1.7"
     container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     input:
@@ -91,6 +92,7 @@ process kraken_server {
 
 process stop_kraken_server {
     label "process_single"
+    conda "nanoporetech::kraken2-server=0.1.7"
     container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     // this shouldn't happen, but we'll keep retrying
