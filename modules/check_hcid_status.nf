@@ -5,7 +5,7 @@ process check_hcid {
     label "process_single"
 
     conda "bioconda::mappy=2.26"
-    container "biocontainers/mappy:2.26--py38h7cf9df2_1"
+    container "biocontainers/mappy:2.26--py310h83093d7_1"
 
     publishDir path: "${params.outdir}/${unique_id}/qc/", mode: 'copy'
 
