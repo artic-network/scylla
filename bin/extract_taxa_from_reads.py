@@ -381,6 +381,9 @@ def extract_taxa(
     sys.stderr.write("Write summary\n")
     summary = []
     for taxon in lists_to_extract:
+        if out_counts[taxon] == 0:
+            sys.stderr.write("No reads extracted  for taxid %s\n" %taxon)
+            continue
         if reads2:
             summary.append(
                 {
