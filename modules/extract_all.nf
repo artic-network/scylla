@@ -228,7 +228,7 @@ process extract_virus {
 }
 
 
-process extract_paired_dehumanized {
+process extract_paired_dehumanised {
 
     label "process_single"
     label "process_high_memory"
@@ -251,13 +251,13 @@ process extract_paired_dehumanized {
             -s2 ${fastq2} \
             -k ${kraken_assignments} \
             -t ${taxonomy_dir} \
-            -p "dehumanized" \
+            -p "dehumanised" \
             --exclude \
             --taxid ${params.taxid_human}
         """
 }
 
-process extract_dehumanized {
+process extract_dehumanised {
 
     label "process_single"
     label "process_high_memory"
@@ -279,7 +279,7 @@ process extract_dehumanized {
             -s ${fastq} \
             -k ${kraken_assignments} \
             -t ${taxonomy_dir} \
-            -p "dehumanized" \
+            -p "dehumanised" \
             --exclude \
             --taxid ${params.taxid_human}
         """
