@@ -389,24 +389,24 @@ workflow extract_fractions {
                 .set{ full_extract_ch }
 
         if ( params.paired ){
-            extract_paired_dehumanized(full_extract_ch, taxonomy_dir)
+            extract_paired_dehumanised(full_extract_ch, taxonomy_dir)
             extract_paired_virus_and_unclassified(full_extract_ch, taxonomy_dir)
             extract_paired_virus(full_extract_ch, taxonomy_dir)
-            extract_paired_dehumanized.out.reads
+            extract_paired_dehumanised.out.reads
                 .concat(extract_paired_virus_and_unclassified.out.reads, extract_paired_virus.out.reads)
                 .set {extracted_fractions}
-            extract_paired_dehumanized.out.summary
+            extract_paired_dehumanised.out.summary
                  .concat(extract_paired_virus_and_unclassified.out.summary, extract_paired_virus.out.summary)
                  .groupTuple()
                  .set {fractions_summary_ch}
         } else {
-            extract_dehumanized(full_extract_ch, taxonomy_dir)
+            extract_dehumanised(full_extract_ch, taxonomy_dir)
             extract_virus_and_unclassified(full_extract_ch, taxonomy_dir)
             extract_virus(full_extract_ch, taxonomy_dir)
-            extract_dehumanized.out.reads
+            extract_dehumanised.out.reads
                 .concat(extract_virus_and_unclassified.out.reads, extract_virus.out.reads)
                 .set {extracted_fractions}
-            extract_dehumanized.out.summary
+            extract_dehumanised.out.summary
                 .concat(extract_virus_and_unclassified.out.summary, extract_virus.out.summary)
                 .groupTuple()
                 .set {fractions_summary_ch}
