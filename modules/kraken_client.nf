@@ -3,7 +3,7 @@ kraken_compute = params.kraken_clients == 1 ? 1 : params.kraken_clients - 1
 
 process kraken2_client {
     
-    label "process_low"
+    label "process_single"
     label "error_retry"
     maxForks kraken_compute
 

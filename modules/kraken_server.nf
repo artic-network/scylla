@@ -70,7 +70,21 @@ kraken_compute = params.kraken_clients == 1 ? 1 : params.kraken_clients - 1
 process kraken_server {
     label "process_long"
     label "process_high_memory"
-    cpus params.threads
+    cpus {
+        Integer max_local_threads = workflow.session.config?.executor?.$local?.cpus ?: \
+                    Runtime.getRuntime().availableProcessors()
+        if (max_local_threads == 1) {
+            throw new Exception("Cannot run kraken_server and kraken_client at the same time as the local executor appears to be configured with only one CPU.")
+        } else if (max_local_threads == 2) {
+            // run the server single threaded and expect one client
+            log.info("Automatically set kraken2 classification server threads to 1 to ensure a classification client can be run.")
+            1
+        } else {
+            // remove one thread for at least one client, and another for other business
+            Math.min(params.threads, max_local_threads - 2)
+        }
+    }
+
     conda "nanoporetech::kraken2-server=0.1.7"
     container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
@@ -82,7 +96,7 @@ process kraken_server {
     """
     # we add one to requests to allow for stop signal
     kraken2_server \
-        --max-requests ${kraken_compute + 1} --thread-pool ${params.server_threads}\
+        --max-requests ${kraken_compute + 1} --thread-pool ${task.cpus}\
         --port ${params.k2_port} \
         --host-ip ${params.k2_host} \
         --db ./${database}/
