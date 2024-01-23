@@ -92,7 +92,7 @@ process kraken_server {
 
 process stop_kraken_server {
     label "process_single"
-    conda "nanoporetech::kraken2-server=0.1.7"
+    conda "nanoporetech::kraken2-server=0.1.8"
     container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     // this shouldn't happen, but we'll keep retrying
