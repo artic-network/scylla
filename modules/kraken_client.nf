@@ -7,7 +7,7 @@ process kraken2_client {
     label "error_retry"
     maxForks kraken_compute
 
-    conda "nanoporetech::kraken2-server=0.1.7"
+    conda "nanoporetech::kraken2-server=0.1.8"
     container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
 
