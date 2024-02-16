@@ -3,21 +3,23 @@ kraken_compute = params.kraken_clients == 1 ? 1 : params.kraken_clients - 1
 
 process kraken2_client {
     
-    label 'process_low'
-    label 'error_retry'
+    label "process_low"
+    label "error_retry"
     maxForks kraken_compute
 
-    conda "epi2melabs::kraken2-server=0.1.3"
+    conda "nanoporetech::kraken2-server=0.1.8"
     container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: "copy"
 
     input:
         tuple val(unique_id), path(fastq)
+
     output:
         tuple val(unique_id), path("${params.database_set}.kraken_assignments.tsv"), emit: assignments
         tuple val(unique_id), path("${params.database_set}.kraken_report.txt"), emit: report
+
     script:
     """
     kraken2_client \
@@ -52,9 +54,9 @@ process determine_bracken_length {
 // this fails if the kraken file input is empty - currently have no check that it is populated
 process bracken {
     
-    label 'process_low'
+    label "process_low"
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: "copy"
 
     conda "bioconda::bracken=2.7"
     container "biocontainers/bracken:2.9--py39h1f90b4d_0"
@@ -81,9 +83,9 @@ process bracken_to_json {
     
     label "process_low"
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: "copy"
     
-    conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
+    conda "bioconda::taxonkit=0.15.1 python=3.10"
     container "${params.wf.container}:${params.wf.container_version}"
 
     input:
@@ -109,9 +111,9 @@ process kraken_to_json {
 
     label "process_low"
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
+    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: "copy"
 
-    conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
+    conda "bioconda::taxonkit=0.15.1 python=3.10"
     container "${params.wf.container}:${params.wf.container_version}"
 
 

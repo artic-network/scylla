@@ -1,10 +1,12 @@
 process fastp_paired {
     
-    label 'process_medium'
+    label "process_medium"
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy"
 
     container "${params.wf.container}:${params.wf.container_version}"
+
+    errorStrategy {task.exitStatus == 255 ? "ignore" : "terminate"}
 
     input:
         val unique_id
@@ -39,11 +41,13 @@ process fastp_paired {
 
 process fastp_single {
     
-    label 'process_medium'
+    label "process_medium"
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy"
 
     container "${params.wf.container}:${params.wf.container_version}"
+
+    errorStrategy {task.exitStatus == 255 ? "ignore" : "terminate"}
 
     input:
         val unique_id
@@ -71,9 +75,9 @@ process fastp_single {
 
 process paired_concatenate {
 
-    label 'process_low'
+    label "process_low"
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy"
 
     container "${params.wf.container}:${params.wf.container_version}"
 
