@@ -11,7 +11,7 @@ process kraken2_client {
     container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy"
 
     input:
         tuple val(unique_id), path(fastq)
@@ -56,7 +56,7 @@ process bracken {
     
     label "process_low"
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy"
 
     conda "bioconda::bracken=2.7"
     container "biocontainers/bracken:2.9--py39h1f90b4d_0"
@@ -83,7 +83,7 @@ process bracken_to_json {
     
     label "process_low"
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy"
     
     conda "bioconda::taxonkit=0.15.1 python=3.10"
     container "${params.wf.container}:${params.wf.container_version}"
@@ -111,7 +111,7 @@ process kraken_to_json {
 
     label "process_low"
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy"
 
     conda "bioconda::taxonkit=0.15.1 python=3.10"
     container "${params.wf.container}:${params.wf.container_version}"
