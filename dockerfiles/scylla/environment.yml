@@ -9,7 +9,7 @@ dependencies:
   - pysam
   - pip
   - kraken2
-  - kraken2-server # not on mac
+  - kraken2-server>=0.1.8 # not on mac
   - fastcat
   - taxonkit
   - fastp

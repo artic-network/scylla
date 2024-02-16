@@ -22,7 +22,8 @@ process centrifuge {
     label "process_higher_memory"
 
     container "docker.io/ontresearch/centrifuge:latest"
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
+
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     input:
         tuple val(unique_id), path(fastq)
@@ -43,7 +44,8 @@ process centrifuge_report {
     label 'process_low'
 
     container "docker.io/ontresearch/centrifuge:latest"
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
+
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     input:
         tuple val(unique_id), path(assignments)
