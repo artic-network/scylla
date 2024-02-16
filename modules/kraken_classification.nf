@@ -50,7 +50,7 @@ workflow kraken_setup {
                     + "provide a custom database.")
             }
 
-            input_database = file("${params.store_dir}/${params.database_set}/database_dir")
+            input_database = file("${params.store_dir}/kraken/${params.database_set}/database_dir")
             if (input_database.isEmpty()) {
                 database = unpack_database(default_database)
             } else {
