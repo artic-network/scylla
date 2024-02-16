@@ -1,5 +1,6 @@
 include { kraken_classify } from '../modules/kraken_classification'
 include { sourmash_classify } from '../modules/sourmash_classification'
+include { centrifuge_classify } from '../modules/centrifuge_classification'
 include { qc_checks } from '../modules/qc_checks'
 include { check_hcid_status } from '../modules/check_hcid_status'
 include { generate_report } from '../modules/generate_report'
@@ -15,6 +16,9 @@ workflow classify_and_report {
         kraken_classify(concat_fastq_ch, raise_server)
         if (params.run_sourmash){
             sourmash_classify(concat_fastq_ch)
+        }
+        if (params.run_centrifuge){
+            centrifuge_classify(concat_fastq_ch)
         }
 
         if (params.additional_bracken_jsons) {
