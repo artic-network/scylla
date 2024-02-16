@@ -6,6 +6,8 @@ process fastp_paired {
 
     container "${params.wf.container}:${params.wf.container_version}"
 
+    errorStrategy {task.exitStatus == 255 ? "ignore" : "terminate"}
+
     input:
         val unique_id
         path fastq_1 
@@ -44,6 +46,8 @@ process fastp_single {
     publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy"
 
     container "${params.wf.container}:${params.wf.container_version}"
+
+    errorStrategy {task.exitStatus == 255 ? "ignore" : "terminate"}
 
     input:
         val unique_id
