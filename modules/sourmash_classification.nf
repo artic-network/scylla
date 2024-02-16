@@ -32,7 +32,7 @@ process unpack_database {
 
 process sourmash_sketch_dna {
 
-    label 'process_low'
+    label 'process_single'
     label 'error_retry'
 
     conda "bioconda::sourmash=4.8.4"
