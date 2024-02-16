@@ -19,7 +19,6 @@ process unpack_database {
 
 process centrifuge {
 
-    label 'error_retry'
     label "process_higher_memory"
 
     container "docker.io/ontresearch/centrifuge:latest"
@@ -35,7 +34,6 @@ process centrifuge {
     """
     centrifuge -x "${database}/${params.centrifuge_db_name}" -U ${fastq} \
         -S centrifuge_assignments.tsv \
-        -p ${task.cpus} \
         --report-file centrifuge_summary.tsv
     """
 }
