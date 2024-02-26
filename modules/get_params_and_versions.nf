@@ -11,8 +11,7 @@ process get_versions {
     input:
         val unique_id
     output:
-        path "versions_${unique_id}.txt"
-        path "workflow_version_${unique_id}.txt"
+        path "*.txt"
     script:
     """
     conda list > "versions_${unique_id}.txt"
