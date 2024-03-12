@@ -251,7 +251,7 @@ process extract_paired_dehumanised {
             -s2 ${fastq2} \
             -k ${kraken_assignments} \
             -t ${taxonomy_dir} \
-            -p "dehumanised" \
+            -p "human_filtered" \
             --exclude \
             --taxid ${params.taxid_human}
         """
@@ -279,7 +279,7 @@ process extract_dehumanised {
             -s ${fastq} \
             -k ${kraken_assignments} \
             -t ${taxonomy_dir} \
-            -p "dehumanised" \
+            -p "human_filtered" \
             --exclude \
             --taxid ${params.taxid_human}
         """
