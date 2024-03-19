@@ -80,7 +80,8 @@ def parse_report_file(report_file, split_strings, split_rank, ignore, save_json)
                 "raw_rank": raw_rank,
                 "rank": rank,
                 "name": name,
-                "taxid": ncbi
+                "taxid": ncbi,
+                "is_spike_in": False
             }
 
             hierarchy = hierarchy[:depth]
@@ -115,14 +116,16 @@ def parse_report_file(report_file, split_strings, split_rank, ignore, save_json)
                         lines[key].append(ancestor)
 
             hierarchy.append(line)
-            if not ignore_entry:
+            if ignore_entry:
+                entries[ncbi]["is_spike_in"] = True
+            else:
                 lines[key].append(line)
 
     for key in lines:
         save_file(key, lines[key], header)
 
     if save_json:
-        with open(report_file.replace(".txt", ".json"), "w") as outfile:
+        with open(report_file.replace(".filtered", "").replace(".txt", ".json"), "w") as outfile:
             json.dump(entries, outfile, indent=4, sort_keys=False)
 
 # Main method

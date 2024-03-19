@@ -15,16 +15,20 @@ process filter_spike_ins {
     conda "python=3.10"
     container "biocontainers/python:3.10"
 
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", pattern: "*.json"
+
     input:
         tuple val(unique_id), path(kreport)
         val(spike_ins)
     output:
-        tuple val(unique_id), path("${kreport.baseName}.filtered.txt")
+        tuple val(unique_id), path("${kreport.baseName}.filtered.txt"), emit: filtered
+        tuple val(unique_id), path("*.json"), emit: json
     script:
         """
         split_kraken_report.py \
             -r ${kreport} \
-            --ignore ${(spike_ins as List).join(' ')}
+            --ignore ${(spike_ins as List).join(' ')} \
+            --save_json
         mv "remainder.kreport_split.txt" "${kreport.baseName}.filtered.txt"
         """
 }
@@ -37,7 +41,7 @@ process split_kreport {
     conda "python=3.10"
     container "biocontainers/python:3.10"
 
-    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", pattern: "*.json"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", overwrite: false, pattern: "*.json"
 
     input:
         tuple val(unique_id), path(kreport)
@@ -374,7 +378,7 @@ workflow subtract_spike_ins {
             result.valid.concat(result.expand).flatten().collect().set{ expanded_spike_ins }
 
             filter_spike_ins(kreport_ch, expanded_spike_ins)
-            filtered_kreport = filter_spike_ins.out
+            filtered_kreport = filter_spike_ins.out.filtered
         } else {
             filtered_kreport = kreport_ch
         }
