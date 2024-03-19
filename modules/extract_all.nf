@@ -8,6 +8,28 @@
 // ALSO this step will currently "fail" with exitcode 2 if the number of human reads found exceeds the number specified
 // in config so could be good dehuman sanity check
 
+process filter_spike_ins {
+
+    label "process_single"
+
+    conda "python=3.10"
+    container "biocontainers/python:3.10"
+
+    input:
+        tuple val(unique_id), path(kreport)
+        val(spike_ins)
+    output:
+        tuple val(unique_id), path("${kreport.baseName}.filtered.txt")
+    script:
+        """
+        split_kraken_report.py \
+            -r ${kreport} \
+            --ignore ${(spike_ins as List).join(' ')}
+        mv "remainder.kreport_split.txt" "${kreport.baseName}.filtered.txt"
+        """
+}
+
+
 process split_kreport {
 
     label "process_single"
@@ -329,6 +351,37 @@ process merge_read_summary {
 }
 
 
+workflow subtract_spike_ins {
+    take:
+        kreport_ch
+    main:
+        if (params.spike_ins) {
+            spike_ins = params.spike_ins?.split(',') as List
+            Channel.from( spike_ins )
+                .branch { spike_in ->
+                    valid: spike_in.matches("[0-9.]+")
+                        return spike_in
+                    expand: params.spike_in_sets.containsKey(spike_in)
+                        return params.spike_in_sets.get(spike_in, false)
+                    other: true
+                        return spike_in
+                    }
+                    .set { result }
+
+            keys = params.spike_in_sets.keySet()
+            result.other.map { spike_in -> throw new Exception("Named spike in $spike_in is invalid, must be one of $keys")}
+
+            result.valid.concat(result.expand).flatten().collect().set{ expanded_spike_ins }
+
+            filter_spike_ins(kreport_ch, expanded_spike_ins)
+            filtered_kreport = filter_spike_ins.out
+        } else {
+            filtered_kreport = kreport_ch
+        }
+    emit:
+        filtered_kreport
+}
+
 workflow extract_taxa {
     take:
         fastq_ch
@@ -425,8 +478,9 @@ workflow extract_all {
         kreport_ch
         taxonomy_dir
     main:
-        extract_taxa(fastq_ch, assignments_ch, kreport_ch, taxonomy_dir)
-        extract_fractions(fastq_ch, assignments_ch, kreport_ch, taxonomy_dir)
+        subtract_spike_ins(kreport_ch)
+        extract_taxa(fastq_ch, assignments_ch, subtract_spike_ins.out, taxonomy_dir)
+        extract_fractions(fastq_ch, assignments_ch, subtract_spike_ins.out, taxonomy_dir)
     emit:
         kraken_json = extract_taxa.out.kraken_json
         virus = extract_fractions.out.virus
