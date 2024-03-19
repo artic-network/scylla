@@ -4,7 +4,7 @@ process make_report {
     label "process_single"
     label "process_high_memory"
 
-    publishDir path: "${params.outdir}/${unique_id}/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/", mode: 'copy'
     
     conda "anaconda::Mako=1.2.3"
     container "${params.wf.container}:${params.wf.container_version}"

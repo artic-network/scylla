@@ -32,7 +32,7 @@ process unpack_database {
 
 process sourmash_sketch_dna {
 
-    label 'process_low'
+    label 'process_single'
     label 'error_retry'
 
     conda "bioconda::sourmash=4.8.4"
@@ -79,7 +79,7 @@ process sourmash_tax_metagenome {
 
     conda "bioconda::sourmash=4.8.4"
     container "biocontainers/sourmash:4.8.4--hdfd78af_0"
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy', pattern: '*.csv'
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: 'copy', pattern: '*.csv'
 
     input:
         tuple val(unique_id), path(gather_csv)
@@ -103,7 +103,7 @@ process sourmash_to_json {
 
     label "process_low"
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
     container "${params.wf.container}:${params.wf.container_version}"

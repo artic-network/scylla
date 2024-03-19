@@ -7,7 +7,7 @@ process check_hcid {
     conda "bioconda::mappy=2.26"
     container "biocontainers/mappy:2.26--py310h83093d7_1"
 
-    publishDir path: "${params.outdir}/${unique_id}/qc/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/qc/", mode: 'copy'
 
     input:
         tuple val(unique_id), path(kreport), path(reads)

@@ -15,6 +15,7 @@ dependencies:
   - sourmash=4.8.4
   - fastcat
   - biopython
+  - mappy
   - flye
   - megahit
   - pandas

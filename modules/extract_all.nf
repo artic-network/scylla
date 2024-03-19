@@ -15,7 +15,7 @@ process split_kreport {
     conda "python=3.10"
     container "biocontainers/python:3.10"
 
-    publishDir path: "${params.outdir}/${unique_id}/classifications", mode: "copy", pattern: "*.json"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", pattern: "*.json"
 
     input:
         tuple val(unique_id), path(kreport)
@@ -289,7 +289,7 @@ process bgzip_extracted_taxa {
       
       label "process_medium"
   
-      publishDir path: "${params.outdir}/${unique_id}/${prefix}", mode: "copy"
+      publishDir "${params.outdir}/${unique_id}/${prefix}", mode: "copy"
   
       conda "bioconda::tabix=1.11"
       container "${params.wf.container}:${params.wf.container_version}"
@@ -313,7 +313,7 @@ process merge_read_summary {
 
     label "process_single"
 
-    publishDir path: "${params.outdir}/${unique_id}/${prefix}", pattern: "reads_summary_combined.json", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/${prefix}", pattern: "reads_summary_combined.json", mode: "copy"
 
     container "${params.wf.container}:${params.wf.container_version}"
 
