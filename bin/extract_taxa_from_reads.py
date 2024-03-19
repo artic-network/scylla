@@ -17,23 +17,7 @@ from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
 
-
-def mean(l):
-    if len(l) == 0:
-        return 0
-    return sum(l) / len(l)
-
-
-def median(l):
-    if len(l) == 0:
-        return 0
-    if len(l) % 2 == 0:
-        i = (len(l)) / 2
-    else:
-        i = (len(l) + 1) / 2
-    i = int(i) - 1
-    l = sorted(l)
-    return l[i]
+from extract_utils import mean,median,check_read_files,parse_kraken_assignment_line,parse_kraken_assignment_file,trim_read_id
 
 
 def load_from_taxonomy(taxonomy_dir, parents, children):
@@ -216,54 +200,6 @@ def get_taxon_id_lists(
 
     return lists_to_extract
 
-
-def check_read_files(reads):
-    if reads[-3:] == ".gz":
-        read_file = gzip.open(reads, "rt")
-        zipped = True
-    else:
-        read_file = open(reads, "rt")
-        zipped = False
-    first = read_file.readline()
-    if len(first) == 0:
-        sys.stderr.write("ERROR: sequence file's first line is blank\n")
-        sys.exit(5)
-    if first[0] == ">":
-        filetype = "fasta"
-    elif first[0] == "@":
-        filetype = "fastq"
-    else:
-        sys.stderr.write("ERROR: sequence file must be FASTA or FASTQ\n")
-        sys.exit(5)
-    return filetype, zipped
-
-
-def parse_kraken_assignment_line(line):
-    line_vals = line.strip().split("\t")
-    if len(line_vals) < 5:
-        return -1, ""
-    if "taxid" in line_vals[2]:
-        temp = line_vals[2].split("taxid ")[-1]
-        tax_id = temp[:-1]
-    else:
-        tax_id = line_vals[2]
-
-    read_id = trim_read_id(line_vals[1])
-
-    if tax_id == "A":
-        tax_id = 81077
-    else:
-        tax_id = tax_id
-    return tax_id, read_id
-
-
-def trim_read_id(read_id):
-    if read_id.endswith("/1") or read_id.endswith("/2"):
-        read_id = read_id[:-2]
-
-    return read_id
-
-
 def fastq_iterator(
     prefix: str,
     filetype: str,
@@ -348,14 +284,11 @@ def fastq_iterator(
 
     return (out_counts, quals, lens)
 
-
 def extract_taxa(
     report_entries, lists_to_extract, kraken_assignment_file, reads1, reads2, prefix
 ):
     # open read files
     filetype, zipped = check_read_files(reads1)
-
-    read_map = defaultdict(set)
 
     subtaxa_map = defaultdict(set)
 
@@ -367,13 +300,7 @@ def extract_taxa(
         #    "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES for %s\n"
         #    % (len(lists_to_extract[taxon]), taxon)
         # )
-
-    sys.stderr.write("Collecting read ids\n")
-    with open(kraken_assignment_file, "r") as kfile:
-        for line in kfile:
-            tax_id, read_id = parse_kraken_assignment_line(line)
-            if tax_id in subtaxa_map.keys():
-                read_map[read_id].add(tax_id)
+    read_map = parse_kraken_assignment_file(kraken_assignment_file, subtaxa_map)
 
     sys.stderr.write("Iterating through read file\n")
     out_counts, quals, lens = fastq_iterator(

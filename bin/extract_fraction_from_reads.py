@@ -10,23 +10,7 @@ from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
 
-
-def mean(l):
-    if len(l) == 0:
-        return 0
-    return sum(l) / len(l)
-
-
-def median(l):
-    if len(l) == 0:
-        return 0
-    if len(l) % 2 == 0:
-        i = (len(l)) / 2
-    else:
-        i = (len(l) + 1) / 2
-    i = int(i) - 1
-    l = sorted(l)
-    return l[i]
+from extract_utils import mean,median,check_read_files,parse_kraken_assignment_line,parse_kraken_assignment_file,trim_read_id
 
 
 def load_from_taxonomy(taxonomy_dir, taxids, include_unclassified):
@@ -89,74 +73,6 @@ def load_from_taxonomy(taxonomy_dir, taxids, include_unclassified):
                 taxid_map[child].update(taxid_map[current])
 
     return taxid_map, entries, parent
-
-
-def check_read_files(reads):
-    if reads[-3:] == ".gz":
-        read_file = gzip.open(reads, "rt")
-        zipped = True
-    else:
-        read_file = open(reads, "rt")
-        zipped = False
-    first = read_file.readline()
-    if len(first) == 0:
-        sys.stderr.write("ERROR: sequence file's first line is blank\n")
-        sys.exit(5)
-    if first[0] == ">":
-        filetype = "fasta"
-    elif first[0] == "@":
-        filetype = "fastq"
-    else:
-        sys.stderr.write("ERROR: sequence file must be FASTA or FASTQ\n")
-        sys.exit(5)
-    return filetype, zipped
-
-
-def parse_kraken_assignment_line(line):
-    line_vals = line.strip().split("\t")
-    if len(line_vals) < 5:
-        return -1, ""
-    if "taxid" in line_vals[2]:
-        temp = line_vals[2].split("taxid ")[-1]
-        taxid = temp[:-1]
-    else:
-        taxid = line_vals[2]
-
-    read_id = trim_read_id(line_vals[1])
-
-    if taxid == "A":
-        taxid = 81077
-    else:
-        taxid = taxid
-    return taxid, read_id
-
-def parse_kraken_assignment_file(kraken_assignment_file, taxid_map, parent):
-    sys.stderr.write("Loading read assignments\n")
-    read_map = defaultdict(set)
-    with open(kraken_assignment_file, "r") as kfile:
-        for line in kfile:
-            taxid, read_id = parse_kraken_assignment_line(line)
-            if taxid in taxid_map:
-                read_map[read_id].update(taxid_map[taxid])
-            else:
-                # handle case where taxid has changed
-                current = taxid
-                while current in parent and current not in taxid_map and current != "1":
-                    current = parent[current]
-                    if current in taxid_map:
-                        print(f"Add {taxid} to {current} list")
-                        read_map[read_id].update(taxid_map[current])
-            if read_id == "08c2e096-4393-f2b0-b327-155f13f52ecc":
-                print(line)
-                print(read_map[read_id])
-    return read_map
-
-def trim_read_id(read_id):
-    if read_id.endswith("/1") or read_id.endswith("/2"):
-        read_id = read_id[:-2]
-
-    return read_id
-
 
 def fastq_iterator(
     prefix: str,
@@ -325,7 +241,6 @@ def fastq_iterator_inverse(
         out_handles_2[taxon].close()
 
     return (out_counts, quals, lens, names)
-
 
 def extract_reads(
     read_map, entries, reads1, reads2, prefix, taxids, exclude, include_unclassified
