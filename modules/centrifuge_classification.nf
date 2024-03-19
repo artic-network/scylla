@@ -5,15 +5,22 @@ process unpack_database {
     label "process_single"
     storeDir "${params.store_dir}/centrifuge"
     input:
-        val database
+        path database
     output:
         path "database_dir", emit: database
     """
-    mkdir database_dir
-    cd database_dir
-    wget "${database}"
-    tar xzf *tar.gz
-    cd ..
+    if [[ "${database}" == *.tar.gz ]]
+    then
+        mkdir database_dir
+        tar xf "${database}" -C database_dir
+    elif [ -d "${database}" ]
+    then
+        mv "${database}" database_dir
+    else
+        echo "Error: database is neither .tar.gz nor a dir"
+        echo "Exiting".
+        exit 1
+    fi
     """
 }
 
@@ -65,7 +72,8 @@ workflow centrifuge_classify {
         } else {
             stored_database = file("${params.store_dir}/centrifuge/database_dir", type: "dir")
             if (stored_database.isEmpty()) {
-                unpack_database("${params.centrifuge_remote}")
+                remote = file("${params.centrifuge_remote}", checkIfExists:true)
+                unpack_database(remote)
                 database = unpack_database.out.database
             } else {
                 database = file("${params.store_dir}/centrifuge/database_dir", type: "dir", checkIfExists:true)
