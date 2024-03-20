@@ -9,6 +9,7 @@ from mako.template import Template
 from mako.runtime import Context
 from mako.exceptions import RichTraceback
 from io import StringIO
+import json
 import os
 
 
@@ -127,9 +128,10 @@ def main():
         read_length_counts, read_length_step, read_quality_counts = [], 2, []
 
     warnings = ""
-    if args.warnings:
+    if args.warnings and os.path.getsize(args.warnings) > 0:
         with open(args.warnings, "r") as f:
-            warnings = f.read().strip()
+            content = json.load(f)
+            warnings = content["msg"]
 
     data_for_report = {"sankey_data": assignments, "read_length_data": read_length_counts, "read_length_step": read_length_step, "read_quality_data": read_quality_counts, "classifier": args.classifier, "classification_database": args.classification_database, "warnings": warnings}
 

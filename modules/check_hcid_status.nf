@@ -15,7 +15,7 @@ process check_hcid {
         path hcid_defs
         path hcid_refs
     output:
-        tuple val(unique_id), path("*.warning"), emit: warnings, optional: true
+        tuple val(unique_id), path("*.warning.json"), emit: warnings, optional: true
         tuple val(unique_id), path("hcid.counts.csv"), emit: counts
     script:
         """
