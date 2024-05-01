@@ -33,6 +33,37 @@ process filter_spike_ins {
         """
 }
 
+process check_spike_ins_found {
+
+    label "process_single"
+
+    conda "python=3.10"
+    container "biocontainers/python:3.10"
+
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", pattern: "*.json"
+
+    input:
+        tuple val(unique_id), path(json)
+        val(spike_ins)
+    script:
+        """
+        #!/usr/bin/env python
+        import json
+
+        print("${spike_ins.join(' ')}")
+        spike_in_summary = {}
+
+        with open("${json}", "r") as f:
+            entries = json.load(f)
+            for d in entries:
+                if entries[d]["is_spike_in"]:
+                    spike_in_summary[entries[d]["taxid"]] = {"percentage": entries[d]["percentage"], "count" : entries[d]["count_descendants"]}
+        print(spike_in_summary)
+        for taxid in ${spike_ins}:
+            print(taxid)
+        """
+}
+
 
 process split_kreport {
 
@@ -365,19 +396,20 @@ workflow subtract_spike_ins {
                 .branch { spike_in ->
                     valid: spike_in.matches("[0-9.]+")
                         return spike_in
-                    expand: params.spike_in_sets.containsKey(spike_in)
-                        return params.spike_in_sets.get(spike_in, false)
+                    expand: params.spike_in_taxon_sets.containsKey(spike_in)
+                        return params.spike_in_taxon_sets.get(spike_in, false)
                     other: true
                         return spike_in
                     }
                     .set { result }
 
-            keys = params.spike_in_sets.keySet()
+            keys = params.spike_in_taxon_sets.keySet()
             result.other.map { spike_in -> throw new Exception("Named spike in $spike_in is invalid, must be one of $keys")}
 
             result.valid.concat(result.expand).flatten().collect().set{ expanded_spike_ins }
 
             filter_spike_ins(kreport_ch, expanded_spike_ins)
+            check_spike_ins_found(filter_spike_ins.out.json, expanded_spike_ins)
             filtered_kreport = filter_spike_ins.out.filtered
         } else {
             filtered_kreport = kreport_ch
