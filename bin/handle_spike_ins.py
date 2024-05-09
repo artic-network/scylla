@@ -145,8 +145,8 @@ def parse_report_file(report_file, spike_in, save_json):
             spike_entries[taxid]["classified_count"]= entries[taxid]["count_descendants"]
     return spike_entries
 
-def map_to_refs(query, reference, counts):
-    a = mp.Aligner(reference, best_n=1)  # load or build index
+def map_to_refs(query, reference, counts, preset):
+    a = mp.Aligner(reference, best_n=1, preset=preset)  # load or build index
     if not a:
         raise Exception(f"ERROR: failed to load/build index for {reference}")
 
@@ -161,11 +161,11 @@ def map_to_refs(query, reference, counts):
             break
     return a.seq_names
 
-def identify_spike_map_counts(query, spike_refs):
+def identify_spike_map_counts(query, spike_refs, preset):
     map_counts = defaultdict(int)
     map_ids = defaultdict(list)
     for reference in spike_refs:
-        map_ids[reference] = map_to_refs(query, reference, map_counts)
+        map_ids[reference] = map_to_refs(query, reference, map_counts, preset)
     return map_counts, map_ids
 
 def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries, map_counts, map_ids):
@@ -296,11 +296,21 @@ def main():
         required=False,
         help="Save the kraken report in JSON format",
     )
+    parser.add_argument(
+        "--illumina",
+        action="store_true",
+        required=False,
+        help="Use the short read minimap preset",
+    )
 
     args = parser.parse_args()
     spike_ins = []
     for spike in args.spike_ins:
         spike_ins.extend(spike.split(","))
+
+    preset = None
+    if args.illumina:
+        preset = "sr"
 
     # Start Program
     now = datetime.now()
@@ -312,8 +322,10 @@ def main():
 
     spike_kraken_entries = parse_report_file(args.report_file, spike_taxids, args.save_json)
 
+    if args.illumina:
+        preset = "sr"
     if len(spike_taxids) > 0 or len(spike_refs) > 0:
-        map_counts, map_ids = identify_spike_map_counts(args.fastq_file, spike_refs)
+        map_counts, map_ids = identify_spike_map_counts(args.fastq_file, spike_refs, preset)
 
         spike_summary = combine_report_and_map_counts(spike_ins, spike_in_dict, spike_kraken_entries, map_counts, map_ids)
         check_spike_summary(spike_summary)

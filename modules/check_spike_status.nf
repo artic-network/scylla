@@ -20,16 +20,22 @@ process check_spike_ins {
         tuple val(unique_id), path("spike_summary.json"), emit: status, optional: true
         tuple val(unique_id), path("spike_count_summary.json"), emit: counts, optional: true
         tuple val(unique_id), path("${kreport.baseName}*.json"), emit: kreport
-        script:
-            """
-            handle_spike_ins.py \
-              -r ${kreport} \
-              -i ${reads} \
-              --spike_ins ${spike_ins} \
-              --spike_in_dict ${spike_in_dict} \
-              --spike_in_ref_dir ${spike_in_ref_dir} \
-              --save_json
-            """
+    script:
+        preset = ""
+        if ( params.read_type == "illumina") {
+            preset = "--illumina"
+        } else if ( params.paired ) {
+            preset = "--illumina"
+        }
+        """
+        handle_spike_ins.py \
+            -r ${kreport} \
+            -i ${reads} \
+            --spike_ins ${spike_ins} \
+            --spike_in_dict ${spike_in_dict} \
+            --spike_in_ref_dir ${spike_in_ref_dir} \
+            --save_json ${preset}
+        """
 }
 
 workflow check_spike_status {
