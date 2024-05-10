@@ -19,6 +19,6 @@
 - name: spike_checks_1
   command: nextflow run main.nf --fastq test/test_data/spike_in_tests/ercc_illumina/small.fastq.gz --spike_ins zymo-mc_D6320,ERCC_92 -profile docker --local
 - name: spike_checks_2
-  command: nextflow run main.nf --fastq1 test/test_data/spike_in_tests/ercc_illumina_paired/R1.small.fastq.gz --fastq2 test/test_data/spike_in_tests/ercc_illumina_paired/R2.small.fastq.gz --spike_ins zymo-mc_D6320,ERCC_92 -profile docker --local
+  command: nextflow run main.nf --paired --fastq1 test/test_data/spike_in_tests/ercc_illumina_paired/R1.small.fastq.gz --fastq2 test/test_data/spike_in_tests/ercc_illumina_paired/R2.small.fastq.gz --spike_ins zymo-mc_D6320,ERCC_92 -profile docker --local
 - name: spike_checks_3
-  command: nextflow run main.nf --fastq test/test_data/spike_in_tests/zymo_ont/small.fastq.gz --spike_ins zymo-mc_D6320,ERCC_92 -profile docker --local
+  command: nextflow run main.nf --read_type illumina --fastq test/test_data/spike_in_tests/zymo_ont/small.fastq.gz --spike_ins zymo-mc_D6320,ERCC_92 -profile docker --local
