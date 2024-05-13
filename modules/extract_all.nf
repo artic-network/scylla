@@ -15,7 +15,7 @@ process split_kreport {
     conda "python=3.10"
     container "biocontainers/python:3.10"
 
-    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", pattern: "*.json"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", overwrite: false, pattern: "*.json"
 
     input:
         tuple val(unique_id), path(kreport)

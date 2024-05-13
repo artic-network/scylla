@@ -1,0 +1,18 @@
+{
+  "ERCC_92": {
+    "taxa": [32630],
+    "ref": "ERCC92.fa.gz"
+  },
+  "tobacco_mosaic_virus": {
+    "taxa": [12242],
+    "ref": "NC_001367.1.fa.gz"
+  },
+  "zymo-mc_D6320": {
+    "taxa": [1165090,570278],
+    "ref": "Zymo_D6320.fa.gz"
+  },
+  "zymo-mc_D6321": {
+    "taxa": [1165090,570278,332249],
+    "ref": "Zymo_D6321.fa.gz"
+  }
+}
