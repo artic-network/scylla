@@ -159,6 +159,7 @@ def map_to_refs(query, reference, counts, preset):
             break
         if read_count % 1000000 == 0:
             break
+    counts["total"] = read_count
     return a.seq_names
 
 def identify_spike_map_counts(query, spike_refs, preset):
@@ -181,6 +182,7 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
             if spike_in_dict[spike]["ref"]:
                 for name in map_ids[spike_in_dict[spike]["ref"]]:
                     spike_dict[name]["mapped_count"] = map_counts[name]
+                    spike_dict[name]["mapped_percentage"] = float(map_counts[name])/map_counts["total"]
         elif spike.isnumeric():
             entry = report_entries[spike]
             spike_name = entry["name"]
@@ -189,6 +191,7 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
             spike_name = spike.split("/")[-1].split(".")[0]
             for name in map_ids[spike]:
                 spike_dict[name]["mapped_count"] = map_counts[name]
+                spike_dict[name]["mapped_percentage"] = float(map_counts[name])/map_counts["total"]
         spike_summary[spike_name].update(spike_dict)
     with open("spike_count_summary.json", "w") as outfile:
         json.dump(spike_summary, outfile, indent=4, sort_keys=False)
