@@ -20,6 +20,8 @@ def parse_spike_in_refs(ref_file, ref_dir):
     for key in ref_dict:
         if ref_dict[key]["ref"] and not ref_dict[key]["ref"].startswith("/"):
             ref_dict[key]["ref"] = os.path.join(rel_path, ref_dict[key]["ref"])
+        if ref_dict[key]["taxa"]:
+            ref_dict[key]["taxa"] = [str(s) for s in ref_dict[key]["taxa"]]
     return ref_dict
 
 def expand_spike_in_input(list_spike_ins, spike_in_dict):
