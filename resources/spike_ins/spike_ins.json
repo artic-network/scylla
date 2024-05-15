@@ -3,6 +3,10 @@
     "taxa": [32630],
     "ref": "ERCC92.fa.gz"
   },
+  "ms2-phage": {
+    "taxa": [12022],
+    "ref": "NC_001417.2.fa.gz"
+  },
   "tobacco_mosaic_virus": {
     "taxa": [12242],
     "ref": "NC_001367.1.fa.gz"
