@@ -182,7 +182,11 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
                 if entry:
                     spike_dict[entry["name"]].update(entry)
             if spike_in_dict[spike]["ref"]:
-                for name in map_ids[spike_in_dict[spike]["ref"]]:
+                for long_name in map_ids[spike_in_dict[spike]["ref"]]:
+                    name, taxid, taxon_name = long_name.split('|')
+                    taxon_name = taxon_name.replace("_", " ")
+                    spike_dict[name]["taxid"] = taxid
+                    spike_dict[name]["human_readable"] = taxon_name
                     spike_dict[name]["mapped_count"] = map_counts[name]
                     spike_dict[name]["mapped_percentage"] = float(map_counts[name])/map_counts["total"]
         elif spike.isnumeric():
@@ -191,7 +195,11 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
             spike_dict[spike_name].update(entry)
         elif spike.endswith("f*a") or spike.endswith("f*a.gz"):
             spike_name = spike.split("/")[-1].split(".")[0]
-            for name in map_ids[spike]:
+            for long_name in map_ids[spike]:
+                name, taxid, taxon_name = long_name.split('|')
+                taxon_name = taxon_name.replace("_", " ")
+                spike_dict[name]["taxid"] = taxid
+                spike_dict[name]["human_readable"] = taxon_name
                 spike_dict[name]["mapped_count"] = map_counts[name]
                 spike_dict[name]["mapped_percentage"] = float(map_counts[name])/map_counts["total"]
         spike_summary[spike_name].update(spike_dict)
