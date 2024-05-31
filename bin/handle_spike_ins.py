@@ -185,7 +185,6 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
                 for long_name in map_ids[spike_in_dict[spike]["ref"]]:
                     name, taxid, taxon_name = long_name.split('|')
                     taxon_name = taxon_name.replace("_", " ")
-                    spike_dict[name]["segment_name"] = name
                     spike_dict[name]["taxid"] = taxid
                     spike_dict[name]["human_readable"] = taxon_name
                     spike_dict[name]["mapped_count"] = map_counts[name]
@@ -199,7 +198,6 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
             for long_name in map_ids[spike]:
                 name, taxid, taxon_name = long_name.split('|')
                 taxon_name = taxon_name.replace("_", " ")
-                spike_dict[name]["segment_name"] = name
                 spike_dict[name]["taxid"] = taxid
                 spike_dict[name]["human_readable"] = taxon_name
                 spike_dict[name]["mapped_count"] = map_counts[name]
