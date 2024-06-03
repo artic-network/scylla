@@ -42,6 +42,7 @@ def expand_spike_in_input(list_spike_ins, spike_in_dict):
         else:
             str_list_keys = ','.join(spike_in_dict.keys())
             sys.stdout.write(f"Spike in {spike} does not correspond to named spike_ins [{str_list_keys}] and is not a taxid or a reference fasta\n")
+            sys.exit(6)
     return spike_taxids, spike_refs
 
 def parse_depth(name):
@@ -145,6 +146,8 @@ def parse_report_file(report_file, spike_in, save_json):
             spike_entries[taxid]["taxid"]= entries[taxid]["taxid"]
             spike_entries[taxid]["classified_percentage"]= entries[taxid]["percentage"]
             spike_entries[taxid]["classified_count"]= entries[taxid]["count_descendants"]
+            spike_entries[taxid]["mapped_percentage"] = 0.0
+            spike_entries[taxid]["mapped_count"] = 0
     return spike_entries
 
 def map_to_refs(query, reference, counts, preset):
@@ -189,6 +192,9 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
                     spike_dict[name]["human_readable"] = taxon_name
                     spike_dict[name]["mapped_count"] = map_counts[name]
                     spike_dict[name]["mapped_percentage"] = float(map_counts[name])/map_counts["total"]
+                    if "classified_count" not in spike_dict[name]:
+                        spike_dict[name]["classified_count"] = 0
+                        spike_dict[name]["classified_percentage"] = 0.0
         elif spike.isnumeric():
             entry = report_entries[spike]
             spike_name = entry["name"]
@@ -202,6 +208,9 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
                 spike_dict[name]["human_readable"] = taxon_name
                 spike_dict[name]["mapped_count"] = map_counts[name]
                 spike_dict[name]["mapped_percentage"] = float(map_counts[name])/map_counts["total"]
+                if "classified_count" not in spike_dict[name]:
+                    spike_dict[name]["classified_count"] = 0
+                    spike_dict[name]["classified_percentage"] = 0.0
         spike_summary[spike_name].update(spike_dict)
     with open("spike_count_summary.json", "w") as outfile:
         json.dump(spike_summary, outfile, indent=4, sort_keys=False)
