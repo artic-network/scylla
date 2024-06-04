@@ -163,8 +163,8 @@ def map_to_refs(query, reference, counts, preset):
             counts[hit.ctg] += 1
             # print("{}\t{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
             break
-        if read_count % 1000000 == 0:
-            break
+        #if read_count % 1000000 == 0:
+        #    break
     counts["total"] = read_count
     return a.seq_names
 
