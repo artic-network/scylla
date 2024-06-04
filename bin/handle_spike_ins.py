@@ -196,7 +196,7 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
                         spike_dict[name].setdefault("classified_count", 0)
                         spike_dict[taxid].setdefault("classified_percentage", 0.0)
                     spike_dict[name]["mapped_count"] = map_counts[name]
-                    spike_dict[name]["mapped_percentage"] = float(map_counts[name])/map_counts["total"]
+                    spike_dict[name]["mapped_percentage"] = float(map_counts[name])/map_counts["total"]*100
             else:
                 for taxid in spike_in_dict[spike]["taxa"]:
                     entry = report_entries.get(taxid)
@@ -222,7 +222,7 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
                     spike_dict[name].setdefault("classified_count", 0)
                     spike_dict[taxid].setdefault("classified_percentage", 0.0)
                 spike_dict[name]["mapped_count"] = map_counts[name]
-                spike_dict[name]["mapped_percentage"] = float(map_counts[name])/map_counts["total"]
+                spike_dict[name]["mapped_percentage"] = float(map_counts[name])/map_counts["total"]*100
         spike_summary[spike_name].update(spike_dict)
     with open("spike_count_summary.json", "w") as outfile:
         json.dump(spike_summary, outfile, indent=4, sort_keys=False)
