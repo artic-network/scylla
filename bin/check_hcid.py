@@ -149,8 +149,8 @@ def map_to_refs(query, reference):
             ranges[hit.ctg].append([hit.r_st, hit.r_en])
             # print("{}\t{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
             break
-        if read_count % 1000000 == 0:
-            break
+        #if read_count % 1000000 == 0:
+        #    break
     return counts, ranges
 
 
