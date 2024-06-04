@@ -231,56 +231,60 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
 def check_spike_summary(spike_summary):
     check = {}
     for spike in spike_summary:
-        found = False
+        found_any = False
         found_all = True
 
-        found_classified = False
-        found_mapped = False
+        found_classified_any = False
+        found_mapped_any = False
         found_classified_all = True
         found_mapped_all = True
 
         for ref in spike_summary[spike]:
+            found_classified = False
+            found_mapped = False
             classified_count = spike_summary[spike][ref].get("classified_count")
             mapped_count = spike_summary[spike][ref].get("mapped_count")
             if (classified_count and int(classified_count) > 0):
                 found_classified = True
+                found_classified_any = True
             else:
                 found_classified_all = False
 
             if (mapped_count and int(mapped_count) > 0):
                 found_mapped = True
+                found_mapped_any = True
             else:
                 found_mapped_all = False
 
             if found_classified or found_mapped:
-                found = True
+                found_any = True
             else:
                 found_all = False
 
-        if not found:
+        if not found_any:
             found_all = False
-        if not found_classified:
+        if not found_classified_any:
             found_classified_all = False
-        if not found_mapped:
+        if not found_mapped_any:
             found_mapped_all = False
 
         if found_all:
             check[spike] = "pass"
-        elif found:
+        elif found_any:
             check[spike] = "partial"
         else:
             check[spike] = "fail"
 
         if found_classified_all:
             print(f"Spike {spike} found all refs by classification")
-        elif found_classified:
+        elif found_classified_any:
              print(f"Spike {spike} found some refs by classification")
         else:
             print(f"Spike {spike} failed by classification")
 
         if found_mapped_all:
             print(f"Spike {spike} found all refs by mapping")
-        elif found_mapped:
+        elif found_mapped_any:
             print(f"Spike {spike} found some refs by mapping")
         else:
             print(f"Spike {spike} failed by mapping")
