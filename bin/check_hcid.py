@@ -149,8 +149,8 @@ def map_to_refs(query, reference):
             ranges[hit.ctg].append([hit.r_st, hit.r_en])
             # print("{}\t{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
             break
-        if read_count % 1000000 == 0:
-            break
+        #if read_count % 1000000 == 0:
+        #    break
     return counts, ranges
 
 
@@ -213,13 +213,17 @@ def report_findings(hcid_dict, prefix):
             hcid_dict[taxid]["classified_found"]
             or hcid_dict[taxid]["classified_parent_found"]
         ):
-            with open("%s.warning" % taxid, "w") as f_warn:
-                f_warn.write(
-                    f"WARNING: Found {hcid_dict[taxid]['classified_count']} classified reads ({hcid_dict[taxid]['mapped_count']} mapped reads) of {hcid_dict[taxid]['name']}\n"
-                )
-                f_warn.write(
-                    f"Mapping details for required references (ref_accession:mapped_read_count:fraction_ref_covered) {hcid_dict[taxid]['mapped_required_details']}\n"
-                )
+            with open("%s.warning.json" % taxid, "w") as f_warn:
+                msg1 = f"WARNING: Found {hcid_dict[taxid]['classified_count']} classified reads ({hcid_dict[taxid]['mapped_count']} mapped reads) of {hcid_dict[taxid]['name']} and {hcid_dict[taxid]['classified_parent_count']} classified reads for the parent taxon.\n"
+                msg2 = f"Mapping details for required references (ref_accession:mapped_read_count:fraction_ref_covered) {hcid_dict[taxid]['mapped_required_details']}.\n"
+                warning =   {
+                                "msg":msg1+msg2,
+                                "taxid":taxid,
+                                "classified_count":hcid_dict[taxid]['classified_count'],
+                                "mapped_count":hcid_dict[taxid]['mapped_count'],
+                                "mapped_details":f"ref_accession:mapped_read_count:fraction_ref_covered|{hcid_dict[taxid]['mapped_required_details']}"
+                            }
+                json.dump(warning, f_warn, indent=4, sort_keys=False)
             found.append(taxid)
     keys = [
         "name",

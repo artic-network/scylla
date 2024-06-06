@@ -15,7 +15,7 @@ process check_hcid {
         path hcid_defs
         path hcid_refs
     output:
-        tuple val(unique_id), path("*.warning"), emit: warnings, optional: true
+        tuple val(unique_id), path("*.warning.json"), emit: warnings, optional: true
         tuple val(unique_id), path("hcid.counts.csv"), emit: counts
     script:
         """
@@ -35,13 +35,13 @@ workflow check_hcid_status {
         fastq_ch
         taxonomy
     main:
-        hcid_defs = file("$baseDir/resources/hcid.json")
-        hcid_refs = file("$baseDir/resources/hcid_refs.fa.gz")
+        hcid_defs = file("$projectDir/resources/hcid.json")
+        hcid_refs = file("$projectDir/resources/hcid_refs.fa.gz")
 
         kreport_ch.join(fastq_ch).set{input_ch}
         check_hcid(input_ch, taxonomy, hcid_defs, hcid_refs)
 
-        empty_file = file("$baseDir/resources/empty_file")
+        empty_file = file("$projectDir/resources/empty_file")
         kreport_ch.map{unique_id, kreport -> [unique_id, empty_file]}
             .concat(check_hcid.out.warnings)
             .collectFile()
