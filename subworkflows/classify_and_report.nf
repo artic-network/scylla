@@ -35,7 +35,10 @@ workflow classify_and_report {
         }
 
         check_hcid_status(kraken_classify.out.kreport, concat_fastq_ch, kraken_classify.out.taxonomy)
-        check_spike_status(kraken_classify.out.kreport, concat_fastq_ch)
+        
+        if (params.spike_ins) {
+            check_spike_status(kraken_classify.out.kreport, concat_fastq_ch)
+        }
 
         qc_checks.out.combine(classified_jsons, by: 0)
             .join(check_hcid_status.out).set { report_ch }
