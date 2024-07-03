@@ -50,15 +50,12 @@ workflow process_barcode {
     take:
         input_ch
     main:
-        input_ch.view()
         move_or_compress(input_ch).set{ barcode_ch }
-        barcode_ch.view()
 
         if (params.paired)
             input_ch.map{barcode_id, barcode_files -> [barcode_id, barcode_files[0], barcode_files[1]]}.set{ raw_ch }
         else
             raw_ch = barcode_ch
-        raw_ch.view()
 
         classify_and_report(raw_ch, barcode_ch, null)
         extract_all(raw_ch, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
