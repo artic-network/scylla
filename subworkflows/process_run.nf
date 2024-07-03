@@ -66,7 +66,10 @@ workflow process_run {
         get_params_and_versions(unique_id)
 
         run_dir = file("${params.run_dir}", type: "dir", checkIfExists:true)
-        barcode_input = Channel.fromPath("${run_dir}/*", type: "dir", checkIfExists:true, maxDepth:1).map { [it.baseName, get_fq_files_in_dir(it)]}
+        if (params.paired)
+            barcode_input = Channel.fromFilePairs("${run_dir}/*_R{1,2}*.f*q*", type: "file", checkIfExists:true)
+        else
+            barcode_input = Channel.fromPath("${run_dir}/*", type: "dir", checkIfExists:true, maxDepth:1).map { [it.baseName, get_fq_files_in_dir(it)]}
         move_or_compress(barcode_input)
 
         if (params.raise_server)
