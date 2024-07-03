@@ -74,10 +74,10 @@ workflow process_run {
 
         run_dir = file("${params.run_dir}", type: "dir", checkIfExists:true)
         if (params.paired)
-            barcode_input = Channel.fromFilePairs("${run_dir}/*_*{1,2}*.f*q*", type: "file", checkIfExists:true).map { [it[0], it[1]]}
+            barcode_input = Channel.fromFilePairs("${run_dir}/*_R{1,2}*.f*q*", type: "file", checkIfExists:true)
         else
             barcode_input = Channel.fromPath("${run_dir}/*", type: "dir", checkIfExists:true, maxDepth:1).map { [it.baseName, get_fq_files_in_dir(it)]}
-
+        barcode_input.view()
         if (params.raise_server)
             kraken_setup(params.raise_server)
 
