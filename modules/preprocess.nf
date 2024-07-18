@@ -66,7 +66,7 @@ process fastp_single {
         --out1 ${unique_id}.fastp.fastq \\
         --json ${unique_id}.fastp.json \\
         --thread $task.cpus \\
-        --disable-adaptor-trimming \\
+        --disable_adapter_trimming \\
         --low_complexity_filter \\
         --qualified_quality_phred 10 \\
         2> ${unique_id}.fastp.log
