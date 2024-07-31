@@ -3,6 +3,7 @@ include { sourmash_classify } from '../modules/sourmash_classification'
 include { centrifuge_classify } from '../modules/centrifuge_classification'
 include { qc_checks } from '../modules/qc_checks'
 include { check_hcid_status } from '../modules/check_hcid_status'
+include { check_spike_status } from '../modules/check_spike_status'
 include { generate_report } from '../modules/generate_report'
 
 
@@ -34,6 +35,10 @@ workflow classify_and_report {
         }
 
         check_hcid_status(kraken_classify.out.kreport, concat_fastq_ch, kraken_classify.out.taxonomy)
+        
+        if (params.spike_ins) {
+            check_spike_status(kraken_classify.out.kreport, concat_fastq_ch)
+        }
 
         qc_checks.out.combine(classified_jsons, by: 0)
             .join(check_hcid_status.out).set { report_ch }

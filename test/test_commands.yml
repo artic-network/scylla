@@ -16,3 +16,9 @@
       - "human reads, max allowed is "
 - name: hcid_checks
   command: nextflow run main.nf --run_dir test/test_data/hcid_tests/ -profile docker --local
+- name: spike_checks_1
+  command: nextflow run main.nf --fastq test/test_data/spike_in_tests/ercc_illumina/small.fastq.gz --spike_ins zymo_D6320,ERCC-RNA_4456740 -profile docker --local
+- name: spike_checks_2
+  command: nextflow run main.nf --paired --fastq1 test/test_data/spike_in_tests/ercc_illumina_paired/R1.small.fq.gz --fastq2 test/test_data/spike_in_tests/ercc_illumina_paired/R2.small.fq.gz --spike_ins zymo_D6320,ERCC-RNA_4456740 -profile docker --local
+- name: spike_checks_3
+  command: nextflow run main.nf --read_type illumina --fastq test/test_data/spike_in_tests/zymo_ont/small.fastq.gz --spike_ins zymo_D6320,ERCC-RNA_4456740 -profile docker --local

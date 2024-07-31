@@ -18,11 +18,13 @@ def mean(l):
 
 
 def median(l):
+    if len(l) == 0:
+        return 0
     if len(l) % 2 == 0:
         i = (len(l)) / 2
     else:
         i = (len(l) + 1) / 2
-    i = int(i)
+    i = int(i) - 1
     l = sorted(l)
     return l[i]
 
