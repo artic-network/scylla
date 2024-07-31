@@ -126,6 +126,8 @@ def fastq_iterator(
 
     sys.stderr.write("Iterating through read file\n")
     count = 0
+    forward_count = 0
+    reverse_count = 0
     for record in pyfastx.Fastq(fastq_1, build_index=False):
         count += 1
         if count % 1000000 == 0:
@@ -138,6 +140,7 @@ def fastq_iterator(
         for taxon in read_map[trimmed_name]:
             out_handles_1[taxon].write(f"@{name}\n{seq}\n+\n{qual}\n")
             out_counts[taxon] += 1
+            forward_count += 1
             quals[taxon].append(median([ord(x) - 33 for x in qual]))
             lens[taxon].append(len(seq))
 
@@ -152,8 +155,15 @@ def fastq_iterator(
             for taxon in read_map[trimmed_name]:
                 out_handles_2[taxon].write(f"@{name}\n{seq}\n+\n{qual}\n")
                 out_counts[taxon] += 1
+                reverse_count += 1
                 quals[taxon].append(median([ord(x) - 33 for x in qual]))
                 lens[taxon].append(len(seq))
+
+        if forward_count != reverse_count and (forward_count == 0 or reverse_count == 0):
+            sys.stderr.write(
+                "ERROR: No reads found for one of the file pair: extracted %i an %i reads respectively" % (forward_count, reverse_count)
+            )
+            sys.exit(6)
 
     for taxon in out_handles_1:
         out_handles_1[taxon].close()
@@ -208,6 +218,8 @@ def fastq_iterator_inverse(
 
     sys.stderr.write("Iterating through read file\n")
     count = 0
+    forward_count = 0
+    reverse_count = 0
     for record in pyfastx.Fastq(fastq_1, build_index=False):
         count += 1
         if count % 1000000 == 0:
@@ -219,6 +231,7 @@ def fastq_iterator_inverse(
 
         out_handles_1["all"].write(f"@{name}\n{seq}\n+\n{qual}\n")
         out_counts["all"] += 1
+        forward_count += 1
         quals["all"].append(median([ord(x) - 33 for x in qual]))
         lens["all"].append(len(seq))
 
@@ -232,8 +245,15 @@ def fastq_iterator_inverse(
 
             out_handles_2["all"].write(f"@{name}\n{seq}\n+\n{qual}\n")
             out_counts["all"] += 1
+            reverse_count += 1
             quals["all"].append(median([ord(x) - 33 for x in qual]))
             lens["all"].append(len(seq))
+
+        if forward_count != reverse_count and (forward_count == 0 or reverse_count == 0):
+            sys.stderr.write(
+                "ERROR: No reads found for one of the file pair: extracted %i an %i reads respectively" % (forward_count, reverse_count)
+            )
+            sys.exit(6)
 
     for taxon in out_handles_1:
         out_handles_1[taxon].close()
