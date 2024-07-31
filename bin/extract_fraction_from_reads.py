@@ -163,7 +163,7 @@ def fastq_iterator(
             sys.stderr.write(
                 "ERROR: No reads found for one of the file pair: extracted %i an %i reads respectively" % (forward_count, reverse_count)
             )
-            sys.exit(6)
+            sys.exit(7)
 
     for taxon in out_handles_1:
         out_handles_1[taxon].close()
@@ -253,7 +253,7 @@ def fastq_iterator_inverse(
             sys.stderr.write(
                 "ERROR: No reads found for one of the file pair: extracted %i an %i reads respectively" % (forward_count, reverse_count)
             )
-            sys.exit(6)
+            sys.exit(7)
 
     for taxon in out_handles_1:
         out_handles_1[taxon].close()

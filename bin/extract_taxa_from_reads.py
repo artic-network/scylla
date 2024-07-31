@@ -289,7 +289,7 @@ def fastq_iterator(
             sys.stderr.write(
                     "ERROR: No reads found for one of the file pair: extracted %i an %i reads respectively" % (forward_count, reverse_count)
                 )
-            sys.exit(6)
+            sys.exit(7)
 
     return (out_counts, quals, lens)
 
