@@ -360,8 +360,6 @@ def main():
 
     spike_kraken_entries = parse_report_file(args.report_file, spike_taxids, args.save_json)
 
-    if args.illumina:
-        preset = "sr"
     if len(spike_taxids) > 0 or len(spike_refs) > 0:
         map_counts, map_ids = identify_spike_map_counts(args.fastq_file, spike_refs, preset)
 

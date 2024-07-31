@@ -48,10 +48,17 @@ process move_or_compress {
 
 workflow process_barcode {
     take:
-        barcode_ch
+        input_ch
     main:
-        classify_and_report(barcode_ch, barcode_ch, null)
-        extract_all(barcode_ch, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
+        move_or_compress(input_ch).set{ barcode_ch }
+
+        if (params.paired)
+            input_ch.map{barcode_id, barcode_files -> [barcode_id, barcode_files[0], barcode_files[1]]}.set{ raw_ch }
+        else
+            raw_ch = barcode_ch
+
+        classify_and_report(raw_ch, barcode_ch, null)
+        extract_all(raw_ch, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
         if ( params.classify_novel_viruses ){
             classify_virus_fastq(extract_all.out.virus)
         }
@@ -66,13 +73,15 @@ workflow process_run {
         get_params_and_versions(unique_id)
 
         run_dir = file("${params.run_dir}", type: "dir", checkIfExists:true)
-        barcode_input = Channel.fromPath("${run_dir}/*", type: "dir", checkIfExists:true, maxDepth:1).map { [it.baseName, get_fq_files_in_dir(it)]}
-        move_or_compress(barcode_input)
-
+        if (params.paired)
+            barcode_input = Channel.fromFilePairs("${run_dir}/*_R{1,2}*.f*q*", type: "file", checkIfExists:true)
+        else
+            barcode_input = Channel.fromPath("${run_dir}/*", type: "dir", checkIfExists:true, maxDepth:1).map { [it.baseName, get_fq_files_in_dir(it)]}
+        barcode_input.view()
         if (params.raise_server)
             kraken_setup(params.raise_server)
 
-        process_barcode(move_or_compress.out)
+        process_barcode(barcode_input)
         process_barcode.out.report
             .map{ barcode_id, barcode_report -> "barcode,filepath,sample_report\n${barcode_id},${barcode_id}/classifications/${params.database_set}.kraken_report.txt,${barcode_id}/${barcode_id}_report.html\n" }.collectFile(name: "${params.outdir}/${unique_id}/samples.csv", sort:true, keepHeader:true, skip:1)
 

@@ -18,6 +18,12 @@ process check_hcid {
         tuple val(unique_id), path("*.warning.json"), emit: warnings, optional: true
         tuple val(unique_id), path("hcid.counts.csv"), emit: counts
     script:
+        preset = ""
+        if ( params.read_type == "illumina") {
+            preset = "--illumina"
+        } else if ( params.paired ) {
+            preset = "--illumina"
+        }
         """
         check_hcid.py \
             -k ${kreport} \
@@ -25,7 +31,7 @@ process check_hcid {
             -t ${taxonomy} \
             -i ${hcid_defs} \
             -d ${hcid_refs} \
-            -p "hcid"
+            -p "hcid" {preset}
         """
 }
 
