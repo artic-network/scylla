@@ -81,6 +81,8 @@ process paired_concatenate {
 
     label "process_low"
 
+    errorStrategy {task.exitStatus in [5, 8] ? 'ignore' : 'terminate'}
+
     publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy"
 
     container "${params.wf.container}:${params.wf.container_version}"
@@ -95,6 +97,7 @@ process paired_concatenate {
     """
     concatenate_reads.py --no-interleave \\
         ${processed_fastq_1} ${processed_fastq_2} \\
+        --strict \\
         > ${unique_id}.concatenated.fastq
 
     
