@@ -12,11 +12,13 @@ import gzip
 
 def enforce_headers(f1_header, f2_header):
     if f1_header[0] != "@" or f2_header[0] != "@":
-        raise Exception("Invalid input FASTQ files.")
+        # raise Exception("Invalid input FASTQ files.")
+        sys.exit(5)
     if f1_header.strip().split(" ")[0] != f2_header.strip().split(" ")[0]:
-        raise Exception(
-            "Input FASTQ files do not share headers. " "Check and re-run w/o --strict."
-        )
+        # raise Exception(
+        #     "Input FASTQ files do not share headers. " "Check and re-run w/o --strict."
+        # )
+        sys.exit(8)
 
 
 def join_w_separator(f1, f2, f_out, strict=False, sep="|"):
