@@ -6,3 +6,4 @@
 5   FASTA/Q file formatting error
 6   Spike in not understood/not in reference JSON
 7   No output files for one half of a read-pair
+8   Mismatching paired read FASTQ headers
