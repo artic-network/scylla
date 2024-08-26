@@ -25,6 +25,7 @@ process fastp_paired {
         --out1 ${unique_id}_1.fastp.fastq \\
         --out2 ${unique_id}_2.fastp.fastq \\
         --json ${unique_id}.fastp.json \\
+        --low_complexity_filter \\
         --thread $task.cpus \\
         2> ${unique_id}.fastp.log
 
@@ -65,6 +66,9 @@ process fastp_single {
         --out1 ${unique_id}.fastp.fastq \\
         --json ${unique_id}.fastp.json \\
         --thread $task.cpus \\
+        --disable_adapter_trimming \\
+        --low_complexity_filter \\
+        --qualified_quality_phred 10 \\
         2> ${unique_id}.fastp.log
 
     if [ -s ${unique_id}.fastp.fastq ]; then
@@ -76,6 +80,8 @@ process fastp_single {
 process paired_concatenate {
 
     label "process_low"
+
+    errorStrategy {task.exitStatus in [5, 8] ? 'ignore' : 'terminate'}
 
     publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy"
 
@@ -91,6 +97,7 @@ process paired_concatenate {
     """
     concatenate_reads.py --no-interleave \\
         ${processed_fastq_1} ${processed_fastq_2} \\
+        --strict \\
         > ${unique_id}.concatenated.fastq
 
     

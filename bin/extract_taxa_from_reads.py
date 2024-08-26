@@ -229,6 +229,8 @@ def fastq_iterator(
 
     out_records_1 = defaultdict(list)
     out_records_2 = defaultdict(list)
+    forward_count = 0
+    reverse_count = 0
 
     sys.stderr.write("Reading in\n")
     for record in pyfastx.Fastq(fastq_1, build_index=False):
@@ -240,6 +242,7 @@ def fastq_iterator(
         for k2_taxon in read_map[trimmed_name]:
             for taxon in subtaxa_map[k2_taxon]:
                 out_counts[taxon] += 1
+                forward_count += 1
                 quals[taxon].append(median([ord(x) - 33 for x in qual]))
                 lens[taxon].append(len(seq))
 
@@ -270,6 +273,7 @@ def fastq_iterator(
             for k2_taxon in read_map[trimmed_name]:
                 for taxon in subtaxa_map[k2_taxon]:
                     out_counts[taxon] += 1
+                    reverse_count += 1
                     quals[taxon].append(median([ord(x) - 33 for x in qual]))
                     lens[taxon].append(len(seq))
 
@@ -281,6 +285,11 @@ def fastq_iterator(
                 for record in records:
                     name, seq, qual = record
                     f.write(f"@{name}\n{seq}\n+\n{qual}\n")
+        if forward_count != reverse_count and (forward_count == 0 or reverse_count == 0):
+            sys.stderr.write(
+                    "ERROR: No reads found for one of the file pair: extracted %i an %i reads respectively" % (forward_count, reverse_count)
+                )
+            sys.exit(7)
 
     return (out_counts, quals, lens)
 
