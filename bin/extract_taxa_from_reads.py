@@ -17,138 +17,14 @@ from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
 
-from extract_utils import mean,median,check_read_files,parse_kraken_assignment_line,parse_kraken_assignment_file,trim_read_id
-
-
-def load_from_taxonomy(taxonomy_dir, parents, children):
-    taxonomy = os.path.join(taxonomy_dir, "nodes.dmp")
-    try:
-        with open(taxonomy, "r") as f:
-            for line in f:
-                fields = line.split("\t|\t")
-                tax_id, parent_tax_id = fields[0], fields[1]
-                parents[tax_id] = parent_tax_id
-                children[parent_tax_id].add(tax_id)
-    except:
-        sys.stderr.write(
-            "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
-        )
-        sys.exit(4)
-    return parents, children
-
-def parse_depth(name):
-    parse_name = name.split(" ")
-    depth = 0
-    for i in parse_name:
-        if i != "":
-            break
-        depth += 1
-    depth = int(depth / 2)
-    return depth
-
-
-def infer_hierarchy(report_file, parents, children):
-    hierarchy = []
-    with open(report_file, "r") as f:
-        for line in f:
-            if line.startswith("% of Seqs"):
-                continue
-            try:
-                (
-                    percentage,
-                    num_clade_root,
-                    num_direct,
-                    raw_rank,
-                    ncbi,
-                    name,
-                ) = line.strip().split("\t")
-            except:
-                (
-                    percentage,
-                    num_clade_root,
-                    num_direct,
-                    ignore1,
-                    ignore2,
-                    raw_rank,
-                    ncbi,
-                    name,
-                ) = line.strip().split("\t")
-            depth = parse_depth(name)
-            hierarchy = hierarchy[: depth - 1]
-            hierarchy.append(ncbi)
-
-            if len(hierarchy) > 1:
-                parent = hierarchy[-2]
-                if ncbi not in parents:
-                    parents[ncbi] = parent
-                children[parent].add(ncbi)
-    return parents, children
-
-
-def load_report_file(report_file, max_human=None):
-    entries = {}
-    # parses a kraken or bracken file
-    with open(report_file, "r") as f:
-        for line in f:
-            if line.startswith("% of Seqs"):
-                continue
-            try:
-                (
-                    percentage,
-                    num_clade_root,
-                    num_direct,
-                    raw_rank,
-                    ncbi,
-                    name,
-                ) = line.strip().split("\t")
-            except:
-                (
-                    percentage,
-                    num_clade_root,
-                    num_direct,
-                    ignore1,
-                    ignore2,
-                    raw_rank,
-                    ncbi,
-                    name,
-                ) = line.strip().split("\t")
-            percentage = float(percentage)
-            num_clade_root = int(num_clade_root)
-            num_direct = int(num_direct)
-            if num_direct > num_clade_root:
-                num_direct, num_clade_root = num_clade_root, num_direct
-            name = name.strip()
-            rank = raw_rank[0]
-
-            if name in ["Homo sapiens"]:
-                if max_human and name == "Homo sapiens" and num_direct > max_human:
-                    sys.stderr.write(
-                        "ERROR: found %i human reads, max allowed is %i\n"
-                        % (num_direct, max_human)
-                    )
-                    sys.exit(2)
-                continue
-
-            if name in ["unclassified", "root"]:
-                continue
-
-            entries[ncbi] = {
-                "percentage": percentage,
-                "count": num_direct,
-                "count_descendants": num_clade_root,
-                "raw_rank": raw_rank,
-                "rank": rank,
-                "name": name,
-            }
-
-    sys.stderr.write("FOUND %i TAXA IN KRAKEN REPORT\n" % len(entries))
-    return entries
-
+from extract_utils import mean,median,check_read_files
+from report import KrakenReport
+from assignment import KrakenAssignments
+from taxonomy import Taxonomy
 
 def get_taxon_id_lists(
-    report_entries,
-    parents,
-    children,
+    kraken_report,
+    loaded_taxonomy,
     names=[],
     target_ranks=[],
     min_count=None,
@@ -159,39 +35,45 @@ def get_taxon_id_lists(
     include_children=False
 ):
     lists_to_extract = defaultdict(set)
-    for taxon in report_entries:
-        entry = report_entries[taxon]
+    for taxon in kraken_report:
+        entry = kraken_report[taxon]
         if len(target_ranks) > 0 and entry["rank"] not in target_ranks:
             continue
-        if min_count and entry["count"] < min_count:
+        if min_count and entry["ucount"] < min_count:
             continue
-        if min_count_descendants and entry["count_descendants"] < min_count_descendants:
+        if min_count_descendants and entry["count"] < min_count_descendants:
             continue
-        if min_percent and entry["percentage"] < min_percent:
+        if min_percent and kraken_report.get_percentage(taxon) < min_percent:
             continue
         if len(names) > 0 and entry["name"] not in names and taxon not in names:
             continue
 
         lists_to_extract[taxon].add(taxon)
         if include_parents:
-            lookup = taxon
-            while lookup in parents and lookup != "1":
-                lookup = parents[lookup]
-                if lookup != "1":
-                    lists_to_extract[taxon].add(lookup)
+            lookup = [taxon]
+            while len(lookup) > 0:
+                parent = lookup.pop()
+                if parent in loaded_taxonomy.parents and parent != "1":
+                    lookup.append(loaded_taxonomy.parents[lookup])
+                if parent in kraken_report.entries and parent != "1":
+                    lookup.append(kraken_report.entries[parent].parent)
+                if parent != "1":
+                    lists_to_extract[taxon].add(parent)
 
         if include_children:
             lookup = [taxon]
             while len(lookup) > 0:
                 child = lookup.pop()
                 lists_to_extract[taxon].add(child)
-                if child in children:
-                    lookup.extend(children[child])
+                if child in loaded_taxonomy.children:
+                    lookup.extend(loaded_taxonomy.children[child])
+                if child in kraken_report.entries:
+                    lookup.extend(kraken_report.entries[child].children)
     sys.stderr.write("SELECTED %i TAXA TO EXTRACT\n" % len(lists_to_extract))
 
     if top_n and len(lists_to_extract) > top_n:
         X = list(lists_to_extract.keys())
-        Y = [report_entries[x]["percentage"] for x in X]
+        Y = [kraken_report.get_percentage(x) for x in X]
         ordered = [x for _, x in sorted(zip(Y, X))]
         to_delete = ordered[top_n:]
         for taxon in to_delete:
@@ -285,7 +167,7 @@ def fastq_iterator(
     return (out_counts, quals, lens)
 
 def extract_taxa(
-    report_entries, lists_to_extract, kraken_assignment_file, reads1, reads2, prefix
+    kraken_report, lists_to_extract, kraken_assignment, reads1, reads2, prefix
 ):
     # open read files
     filetype, zipped = check_read_files(reads1)
@@ -300,7 +182,7 @@ def extract_taxa(
         #    "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES for %s\n"
         #    % (len(lists_to_extract[taxon]), taxon)
         # )
-    read_map = parse_kraken_assignment_file(kraken_assignment_file, subtaxa_map)
+    read_map = kraken_assignment.parse_kraken_assignment_file(subtaxa_map)
 
     sys.stderr.write("Iterating through read file\n")
     out_counts, quals, lens = fastq_iterator(
@@ -316,9 +198,9 @@ def extract_taxa(
         if reads2:
             summary.append(
                 {
-                    "human_readable": report_entries[taxon]["name"],
+                    "human_readable": kraken_report[taxon]["name"],
                     "taxon": taxon,
-                    "tax_level": report_entries[taxon]["rank"],
+                    "tax_level": kraken_report[taxon]["rank"],
                     "filenames": [
                         "%s_1.%s" % (taxon, filetype),
                         "%s_2.%s" % (taxon, filetype),
@@ -333,9 +215,9 @@ def extract_taxa(
         else:
             summary.append(
                 {
-                    "human_readable": report_entries[taxon]["name"],
+                    "human_readable": kraken_report[taxon]["name"],
                     "taxon": taxon,
-                    "tax_level": report_entries[taxon]["rank"],
+                    "tax_level": kraken_report[taxon]["rank"],
                     "filenames": [
                         "%s.%s" % (taxon, filetype),
                     ],
@@ -492,22 +374,23 @@ def main():
     else:
         target_ranks = []
 
-    sys.stderr.write("Loading hierarchy\n")
-    parent = {}
-    children = defaultdict(set)
+    loaded_taxonomy = None
     if args.taxonomy:
-        parent, children = load_from_taxonomy(args.taxonomy, parent, children)
-    parent, children = infer_hierarchy(args.report_file, parent, children)
+        sys.stderr.write("Loading taxonomy\n")
+        loaded_taxonomy = Taxonomy(args.taxonomy)
 
-    # get taxids to extract
+    # Load kraken report entries
     sys.stderr.write("Loading kreport\n")
-    report_entries = load_report_file(args.report_file, args.max_human)
+    kraken_report = KrakenReport(args.report_file)
+    kraken_report.check_host({9606:args.max_human})
+
+    # Initialize kraken assignment file
+    kraken_assignment = KrakenAssignment(args.kraken_assignment_file)
 
     sys.stderr.write("Checking for lists to extract\n")
     lists_to_extract = get_taxon_id_lists(
-        report_entries,
-        parent,
-        children,
+        kraken_report,
+        loaded_taxonomy,
         names=args.taxid,
         target_ranks=target_ranks,
         min_count=args.min_count,
@@ -520,9 +403,9 @@ def main():
 
     sys.stderr.write("Performing extractions\n")
     out_counts = extract_taxa(
-        report_entries,
+        kraken_report,
         lists_to_extract,
-        args.kraken_assignment_file,
+        kraken_assignment,
         args.reads1,
         args.reads2,
         args.prefix
