@@ -82,89 +82,7 @@ def get_taxon_id_lists(
 
     return lists_to_extract
 
-def fastq_iterator(
-    prefix: str,
-    filetype: str,
-    read_map: dict,
-    subtaxa_map: dict,
-    fastq_1: Path,
-    fastq_2: Path = None,
-) -> tuple[dict, dict, dict]:
-    """Func to iterate over fastq files and extract reads of interest
 
-    Args:
-        prefix (str): Outfile prefix
-        filetype (str): output filetype (only affects naming)
-        read_map (dict): dict of read_id: taxon_list (from kraken report)
-        subtaxa_map (dict): dict of subtaxa: output taxon (from lists_to_extract)
-        fastq_1 (Path): Path to fastq _1 file
-        fastq_2 (Path, optional): Path to fastq _2 file if input is paired data. Defaults to None.
-
-    Returns:
-        tuple[dict, dict, dict]: number of reads written by taxa, quality scores by taxa, sequence length by taxa
-    """
-    reads_of_interest = set(read_map.keys())
-
-    out_counts = defaultdict(int)
-    quals = defaultdict(list)
-    lens = defaultdict(list)
-
-    out_records_1 = defaultdict(list)
-    out_records_2 = defaultdict(list)
-
-    sys.stderr.write("Reading in\n")
-    for record in pyfastx.Fastq(fastq_1, build_index=False):
-        name, seq, qual = record
-        trimmed_name = trim_read_id(name)
-        if trimmed_name not in reads_of_interest:
-            continue
-
-        for k2_taxon in read_map[trimmed_name]:
-            for taxon in subtaxa_map[k2_taxon]:
-                out_counts[taxon] += 1
-                quals[taxon].append(median([ord(x) - 33 for x in qual]))
-                lens[taxon].append(len(seq))
-
-                out_records_1[taxon].append(record)
-
-    sys.stderr.write("Writing records\n")
-    for taxon, records in out_records_1.items():
-        if fastq_2:
-            with open(f"{taxon}_1.{filetype}", "w") as f:
-                for record in records:
-                    name, seq, qual = record
-                    f.write(f"@{name}\n{seq}\n+\n{qual}\n")
-        else:
-            with open(f"{taxon}.{filetype}", "w") as f:
-                for record in records:
-                    name, seq, qual = record
-                    f.write(f"@{name}\n{seq}\n+\n{qual}\n")
-    del out_records_1
-
-    if fastq_2:
-        sys.stderr.write("Reading in second file of pair\n")
-        for record in pyfastx.Fastq(fastq_2, build_index=False):
-            name, seq, qual = record
-            trimmed_name = trim_read_id(name)
-            if trimmed_name not in reads_of_interest:
-                continue
-
-            for k2_taxon in read_map[trimmed_name]:
-                for taxon in subtaxa_map[k2_taxon]:
-                    out_counts[taxon] += 1
-                    quals[taxon].append(median([ord(x) - 33 for x in qual]))
-                    lens[taxon].append(len(seq))
-
-                    out_records_2[taxon].append(record)
-
-        sys.stderr.write("Writing records for second file in pair\n")
-        for taxon, records in out_records_2.items():
-            with open(f"{taxon}_2.{filetype}", "w") as f:
-                for record in records:
-                    name, seq, qual = record
-                    f.write(f"@{name}\n{seq}\n+\n{qual}\n")
-
-    return (out_counts, quals, lens)
 
 def extract_taxa(
     kraken_report, lists_to_extract, kraken_assignment, reads1, reads2, prefix
@@ -185,51 +103,11 @@ def extract_taxa(
     read_map = kraken_assignment.parse_kraken_assignment_file(subtaxa_map)
 
     sys.stderr.write("Iterating through read file\n")
-    out_counts, quals, lens = fastq_iterator(
+    out_counts, quals, lens, filenames = fastq_iterator(
         prefix, filetype, read_map, subtaxa_map, reads1, reads2
     )
 
-    sys.stderr.write("Write summary\n")
-    summary = []
-    for taxon in lists_to_extract:
-        if out_counts[taxon] == 0:
-            sys.stderr.write("No reads extracted  for taxid %s\n" %taxon)
-            continue
-        if reads2:
-            summary.append(
-                {
-                    "human_readable": kraken_report[taxon]["name"],
-                    "taxon": taxon,
-                    "tax_level": kraken_report[taxon]["rank"],
-                    "filenames": [
-                        "%s_1.%s" % (taxon, filetype),
-                        "%s_2.%s" % (taxon, filetype),
-                    ],
-                    "qc_metrics": {
-                        "num_reads": out_counts[taxon],
-                        "avg_qual": mean(quals[taxon]),
-                        "mean_len": mean(lens[taxon]),
-                    }
-                }
-            )
-        else:
-            summary.append(
-                {
-                    "human_readable": kraken_report[taxon]["name"],
-                    "taxon": taxon,
-                    "tax_level": kraken_report[taxon]["rank"],
-                    "filenames": [
-                        "%s.%s" % (taxon, filetype),
-                    ],
-                    "qc_metrics": {
-                        "num_reads": out_counts[taxon],
-                        "avg_qual": mean(quals[taxon]),
-                        "mean_len": mean(lens[taxon]),
-                    }
-                }
-            )
-    with open("%s_summary.json" % prefix, "w") as f:
-        json.dump(summary, f)
+    generate_summary(lists_to_extract, entries, out_counts, quals, lens, filenames)
     return out_counts
 
 

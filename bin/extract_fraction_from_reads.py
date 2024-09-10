@@ -10,69 +10,11 @@ from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
 
-from extract_utils import mean,median,check_read_files,parse_kraken_assignment_line,parse_kraken_assignment_file,trim_read_id
+from extract_utils import mean,median,check_read_files
+from report import KrakenReport
+from assignment import KrakenAssignments
+from taxonomy import Taxonomy
 
-
-def load_from_taxonomy(taxonomy_dir, taxids, include_unclassified):
-    sys.stderr.write("Loading hierarchy\n")
-    entries = {}
-    if include_unclassified:
-        entries["0"] = {"name": "unclassified",
-                      "taxon": "0",
-                      "rank": None
-                      }
-
-    taxid_map = defaultdict(set)
-    for key in taxids:
-        taxid_map[key].add(key)
-    if include_unclassified:
-        taxid_map["0"].update(taxids)
-
-    children = defaultdict(set)
-    parent = defaultdict(str)
-    if len(taxids) > 0:
-        try:
-            taxonomy = os.path.join(taxonomy_dir, "nodes.dmp")
-            with open(taxonomy, "r") as f:
-                for line in f:
-                    fields = line.split("\t|\t")
-                    taxid, parent_taxid, rank = fields[0], fields[1], fields[2]
-                    children[parent_taxid].add(taxid)
-                    parent[taxid] = parent_taxid
-                    if taxid in taxids:
-                        entries[taxid] = {"name": None,
-                                          "taxon": taxid,
-                                          "rank": rank
-                                          }
-        except:
-            sys.stderr.write(
-                "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
-            )
-            sys.exit(4)
-
-        try:
-            taxonomy = os.path.join(taxonomy_dir, "names.dmp")
-            with open(taxonomy, "r") as f:
-                for line in f:
-                    fields = line.split("\t|\t")
-                    taxid, name, name_type = fields[0], fields[1], fields[3]
-                    if taxid in taxids and ("scientific name" in name_type or entries[taxid]["name"] == None):
-                        entries[taxid]["name"] = name
-
-        except:
-            sys.stderr.write(
-                "ERROR: Could not find taxonomy names.dmp file in %s" % taxonomy_dir
-            )
-            sys.exit(4)
-
-        check = list(taxids)
-        while len(check) > 0:
-            current = check.pop()
-            check.extend(children[current])
-            for child in children[current]:
-                taxid_map[child].update(taxid_map[current])
-
-    return taxid_map, entries, parent
 
 def fastq_iterator(
     prefix: str,
@@ -103,11 +45,6 @@ def fastq_iterator(
     out_counts = defaultdict(int)
     quals = defaultdict(list)
     lens = defaultdict(list)
-    names = defaultdict(list)
-
-    sys.stderr.write("Open file handles\n")
-    out_handles_1 = {}
-    out_handles_2 = {}
 
     print(entries)
     for taxon, entry in entries.items():
@@ -115,14 +52,10 @@ def fastq_iterator(
         if include_unclassified and taxon_name != "unclassified":
             taxon_name += "_and_unclassified"
         taxon_name = taxon_name.replace("viruses", "viral")
-        if fastq_2:
-            out_handles_1[taxon] = open(f"{taxon_name}_1.{filetype}", "w")
-            out_handles_2[taxon] = open(f"{taxon_name}_2.{filetype}", "w")
-            names[taxon].append(f"{taxon_name}_1.{filetype}")
-            names[taxon].append(f"{taxon_name}_2.{filetype}")
-        else:
-            out_handles_1[taxon] = open(f"{taxon_name}.{filetype}", "w")
-            names[taxon].append(f"{taxon_name}.{filetype}")
+        subtaxa_map[taxon_name] = [taxon]
+
+    filenames, out_handles_1, out_handles_2 = setup_outfiles(fastq_2, subtaxa_map, filetype, open=True)
+
 
     sys.stderr.write("Iterating through read file\n")
     count = 0
@@ -155,12 +88,10 @@ def fastq_iterator(
                 quals[taxon].append(median([ord(x) - 33 for x in qual]))
                 lens[taxon].append(len(seq))
 
-    for taxon in out_handles_1:
-        out_handles_1[taxon].close()
-    for taxon in out_handles_2:
-        out_handles_2[taxon].close()
+    close_outfiles(out_handles_1, out_handles_2)
 
-    return (out_counts, quals, lens, names)
+    return (out_counts, quals, lens, names, filenames)
+
 
 
 def fastq_iterator_inverse(
@@ -188,12 +119,14 @@ def fastq_iterator_inverse(
     reads_of_interest = set(read_map.keys())
     print(reads_of_interest)
 
+    filenames, out_handles_1, out_handles_2 =
+
     out_counts = defaultdict(int)
     quals = defaultdict(list)
     lens = defaultdict(list)
     names = defaultdict(list)
 
-    sys.stderr.write("Open file handles\n")
+    sys.stderr.write("Setup file handles\n")
     out_handles_1 = {}
     out_handles_2 = {}
 
@@ -257,35 +190,8 @@ def extract_reads(
             prefix, filetype, include_unclassified, entries, read_map, reads1, reads2
         )
 
-    sys.stderr.write("Write summary\n")
-    summary = []
-    for taxon in names:
-        if reads2:
-            summary.append(
-                {
-                    "filenames": names[taxon],
-                    "qc_metrics": {
-                        "num_reads": out_counts[taxon],
-                        "avg_qual": mean(quals[taxon]),
-                        "mean_len": mean(lens[taxon]),
-                    },
-                    "includes_unclassified": (include_unclassified != exclude) # this is xor
-                }
-            )
-        else:
-            summary.append(
-                {
-                    "filenames": names[taxon],
-                    "qc_metrics": {
-                        "num_reads": out_counts[taxon],
-                        "avg_qual": mean(quals[taxon]),
-                        "mean_len": mean(lens[taxon]),
-                    },
-                    "includes_unclassified": (include_unclassified != exclude) # this is xor
-                }
-            )
-    with open("%s_summary.json" % prefix, "w") as f:
-        json.dump(summary, f)
+    generate_summary(lists_to_extract, entries, out_counts, quals, lens, filenames, includes_unclassified=(include_unclassified != exclude))
+
     return out_counts
 
 
@@ -362,12 +268,16 @@ def main():
     time = now.strftime("%m/%d/%Y, %H:%M:%S")
     sys.stderr.write("PROGRAM START TIME: " + time + "\n")
 
-    taxid_map, entries, parent = load_from_taxonomy(args.taxonomy, args.taxid, args.include_unclassified)
-    read_map = parse_kraken_assignment_file(args.kraken_assignment_file, taxid_map, parent)
+    loaded_taxonomy = Taxonomy(args.taxonomy)
+    taxon_id_map = loaded_taxonomy.get_taxon_id_map(args.taxid, args.include_unclassified)
+
+    # Initialize kraken assignment file
+    kraken_assignment = KrakenAssignment(args.kraken_assignment_file)
+    read_map = kraken_assignment.parse_kraken_assignment_file(taxon_id_map)
 
     out_counts = extract_reads(
         read_map,
-        entries,
+        loaded_taxonomy.entries,
         args.reads1,
         args.reads2,
         args.prefix,

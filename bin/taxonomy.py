@@ -11,9 +11,15 @@ class Taxonomy:
         parents (dict): A dict with keys for taxon ids and values for parent taxon id.
         children (dict): A dict with keys for taxon ids and values for sets of direct child taxon id.
     """
-    def __init__(self, taxonomy_dir):
-        self.parents = {}
+    def __init__(self, taxonomy_dir=None, taxon_ids=None):
+        self.parents = defaultdict(int)
         self.children = defaultdict(set)
+        self.entries = defaultdict({"name": "unclassified", "taxon_id": 0, "rank": None})
+
+        if taxonomy_dir:
+            self.load_parents_and_children(taxonomy_dir)
+        if taxonomy_dir and taxon_ids:
+            self.load_entries(taxonomy_dir, taxon_ids)
 
     def load_parents_and_children(self, taxonomy_dir):
         """
@@ -28,12 +34,78 @@ class Taxonomy:
             with open(taxonomy, "r") as f:
                 for line in f:
                     fields = line.split("\t|\t")
-                    tax_id, parent_tax_id = fields[0], fields[1]
+                    taxon_id, parent_taxon_id = fields[0], fields[1]
 
-                    self.parents[tax_id] = parent_tax_id
-                    self.children[parent_tax_id].add(tax_id)
+                    self.parents[taxon_id] = parent_taxon_id
+                    self.children[parent_taxon_id].add(taxon_id)
         except:
             sys.stderr.write(
                 "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
             )
             sys.exit(4)
+
+    def load_entries_from_nodes(self, taxonomy_dir, taxon_ids):
+        if len(taxon_ids) == 0:
+            return
+
+        taxonomy = os.path.join(taxonomy_dir, "nodes.dmp")
+        try:
+            with open(taxonomy, "r") as f:
+                for line in f:
+                    fields = line.split("\t|\t")
+                    taxon_id, rank = fields[0], fields[2]
+                    self.entries[taxon_id]["taxon_id"] = taxon_id
+                    self.entries[taxon_id]["rank"] = rank
+        except:
+            sys.stderr.write(
+                "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
+            )
+            sys.exit(4)
+
+    def load_entries_from_names(self, taxonomy_dir, taxon_ids):
+        if len(taxon_ids) == 0:
+            return
+
+        taxonomy = os.path.join(taxonomy_dir, "names.dmp")
+        try:
+            with open(taxonomy, "r") as f:
+                for line in f:
+                    fields = line.split("\t|\t")
+                    taxon_id, name, name_type = fields[0], fields[1], fields[3]
+                    if taxon_id in taxon_ids and ("scientific name" in name_type or entries[taxon_id]["name"] == None):
+                        entries[taxon_id]["name"] = name
+        except:
+            sys.stderr.write(
+                "ERROR: Could not find taxonomy names.dmp file in %s" % taxonomy_dir
+            )
+            sys.exit(4)
+
+    def load_entries(self, taxonomy_dir, taxon_ids):
+        self.load_entries_from_nodes(taxonomy_dir, taxon_ids)
+        self.load_entries_from_names(taxonomy_dir, taxon_ids)
+
+    def get_taxon_id_map(self, taxon_ids, include_unclassified=False):
+        """
+        Generates a map from a specified list of taxon_ids and their children to sets of taxon_ids
+        Any descendent of a specified taxon_id will include this taxon_id in it's set.
+        If include_unclassified is specified, there will be an entry from 0 to the input taxon_ids
+
+        Parameters:
+            taxonomy_dir (str): The unzipped directory downloaded from NCBI taxonomy.
+            taxon_ids (list/set): An iterable of taxon_ids to consider.
+        """
+        taxon_id_map = defaultdict(set)
+
+        for key in taxon_ids:
+            taxon_id_map[key].add(key)
+        if include_unclassified:
+            taxon_id_map["0"].update(taxon_ids)
+
+        check = list(taxon_ids)
+        while len(check) > 0:
+            current = check.pop()
+            check.extend(self.children[current])
+            for child in self.children[current]:
+                taxon_id_map[child].update(taxon_id_map[current])
+
+        return taxon_id_map
