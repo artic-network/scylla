@@ -31,7 +31,7 @@ process check_hcid {
             -t ${taxonomy} \
             -i ${hcid_defs} \
             -d ${hcid_refs} \
-            -p "hcid" {preset}
+            -p "hcid" ${preset}
         """
 }
 
