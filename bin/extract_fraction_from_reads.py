@@ -26,7 +26,6 @@ def setup_prefixes(list_taxon_ids, entries, prefix, inverse=False, include_uncla
             taxon_name += "_and_unclassified"
         taxon_name = taxon_name.replace("viruses", "viral")
         outprefix[taxon_id] = taxon_name
-        print(taxon_id, taxon_name)
 
     return outprefix
 
@@ -35,10 +34,9 @@ def extract_reads(
 ):
     # check read files
     filetype, zipped = check_read_files(reads1)
-    print(taxon_ids)
 
     prefixes = setup_prefixes(taxon_ids, entries, prefix, inverse=exclude, include_unclassified=include_unclassified)
-    out_counts, quals, lens, filenames = fastq_iterator(prefixes, filetype, read_map, taxon_id_map, reads1, reads2, inverse=exclude, single_output=True, get_handles=True)
+    out_counts, quals, lens, filenames = fastq_iterator(prefixes, filetype, read_map, taxon_id_map, reads1, reads2, inverse=exclude, get_handles=True)
 
     generate_summary(taxon_ids, entries, prefix, out_counts, quals, lens, filenames, include_unclassified=(include_unclassified != exclude), short=True)
 

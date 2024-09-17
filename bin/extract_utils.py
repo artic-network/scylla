@@ -49,34 +49,29 @@ def check_read_files(reads):
         sys.exit(5)
     return filetype, zipped
 
-def setup_outfiles(fastq_2, prefixes, filetype, get_handles=True, single_output=False):
+def setup_outfiles(fastq_2, prefixes, filetype, get_handles=True):
     out_handles_1 = {}
     out_handles_2 = {}
     filenames = defaultdict(list)
-    open_handle_1 = False
-    open_handle_2 = False
 
     for key, prefix in prefixes.items():
         if fastq_2:
             filenames[key].append(f"{prefix}_1.{filetype}")
             filenames[key].append(f"{prefix}_2.{filetype}")
             if get_handles:
-                if open_handle_1:
-                    out_handles_1[key] = open_handle_1
-                    out_handles_2[key] = open_handle_2
+                if key in out_handles_1:
+                    print("already open")
                 else:
                     out_handles_1[key] = open(f"{prefix}_1.{filetype}", "w")
                     out_handles_2[key] = open(f"{prefix}_2.{filetype}", "w")
-                    open_handle_1 = out_handles_1[key]
-                    open_handle_2 = out_handles_2[key]
+
         else:
             filenames[key].append(f"{prefix}.{filetype}")
             if get_handles:
-                if open_handle_1:
-                     out_handles_1[key] = open_handle_1
+                if key in out_handles_1:
+                    print("already open")
                 else:
                     out_handles_1[key] = open(f"{prefix}.{filetype}", "w")
-                    open_handle_1 = out_handles_1[key]
     return filenames, out_handles_1, out_handles_2
 
 def close_outfiles(out_handles_1, out_handles_2):
@@ -138,6 +133,7 @@ def file_iterator(fastq, read_map, subtaxa_map, inverse, file_index, out_handles
                 continue
             for k2_taxon in read_map[trimmed_name]:
                 for taxon in subtaxa_map[k2_taxon]:
+                    #print(trimmed_name, read_map[trimmed_name], subtaxa_map[k2_taxon], taxon)
                     add_record(taxon, record, out_counts, quals, lens, filenames, file_index, out_handles=out_handles, out_records=out_records)
 
     if not low_memory:
@@ -153,7 +149,6 @@ def fastq_iterator(
     fastq_1: Path,
     fastq_2: Path = None,
     inverse: bool = False,
-    single_output: bool = False,
     get_handles: bool = False
 ) -> tuple[dict, dict, dict, dict]:
     """Func to iterate over fastq files and extract reads of interest
@@ -170,16 +165,11 @@ def fastq_iterator(
     Returns:
         tuple[dict, dict, dict]: number of reads written by taxa, quality scores by taxa, sequence length by taxa
     """
-    reads_of_interest = set(read_map.keys())
-    lists_to_extract = set()
-    for s in subtaxa_map.values():
-        lists_to_extract.update(s)
-
     out_counts = defaultdict(int)
     quals = defaultdict(list)
     lens = defaultdict(list)
 
-    filenames, out_handles_1, out_handles_2 = setup_outfiles(fastq_2, prefixes, filetype, get_handles=get_handles, single_output=single_output)
+    filenames, out_handles_1, out_handles_2 = setup_outfiles(fastq_2, prefixes, filetype, get_handles=get_handles)
 
     out_records_1 = file_iterator(fastq_1, read_map, subtaxa_map, inverse, 0, out_handles_1, out_counts, quals, lens, filenames, low_memory=get_handles)
 

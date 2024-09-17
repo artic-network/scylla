@@ -84,7 +84,6 @@ process extract_taxa_paired_reads {
             -k ${kraken_assignments} \
             -r ${kreport} \
             -t ${taxonomy_dir} \
-            -p ${kreport} \
             --include_children \
             --min_count_descendants ${min_reads} \
             --rank ${params.extract_rank} \
@@ -125,7 +124,6 @@ process extract_taxa_reads {
             -k ${kraken_assignments} \
             -r ${kreport} \
             -t ${taxonomy_dir} \
-            -p ${kreport} \
             --include_children \
             --min_count_descendants ${min_reads} \
             --rank ${params.extract_rank} \

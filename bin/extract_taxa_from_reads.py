@@ -83,6 +83,7 @@ def get_taxon_id_lists(
     return lists_to_extract
 
 def setup_prefixes(lists_to_extract, prefix=None):
+    outprefix = {}
     if prefix:
         for taxid in lists_to_extract:
             outprefix[taxid] =  f"{prefix}_{taxid}"
@@ -110,7 +111,7 @@ def extract_taxa(
 
     prefixes = setup_prefixes(lists_to_extract, prefix)
     out_counts, quals, lens, filenames = fastq_iterator(
-        prefixes, filetype, read_map, subtaxa_map, reads1, reads2, inverse=False, single_output=False, get_handles=False
+        prefixes, filetype, read_map, subtaxa_map, reads1, reads2, inverse=False, get_handles=False
     )
 
     generate_summary(lists_to_extract, kraken_report.entries, prefix, out_counts, quals, lens, filenames, short=False)
