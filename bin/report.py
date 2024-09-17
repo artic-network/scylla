@@ -8,20 +8,20 @@ class KrakenEntry:
     A class representing a line in a kraken report.
 
     Attributes:
-        taxon_id (int): The NCBI taxon identifier.
+        taxon_id (str): The NCBI taxon identifier.
         name (string): The scientific name associated with this taxon.
         rank (str): A letter coding the rank of this taxon.
         depth (int): The number of indentations this entry had in the kraken file (related to hierarchy).
         count (int): The count of reads assigned to this taxon and its descendants.
         name (int): The count of reads assigned specifically to this taxon.
         domain (str): The domain this taxon is a member of.
-        parent (int): The taxon id associated with the taxonomic parent.
+        parent (str): The taxon id associated with the taxonomic parent.
         children (set): A set of taxon ids associated with the direct taxonomic children.
         sibling_rank (int): An integer representing the ranking among direct siblings (share the parent) based on count.
         hierarchy (list): An ordered list of taxon ids representing the parents to taxonomic root.
     """
     def __init__(self, row=None, domain=None, hierarchy=[]):
-        self.taxon_id = 0
+        self.taxon_id = "0"
         self.name = "unclassified"
         self.rank = "U"
         self.depth = 0
@@ -50,7 +50,7 @@ class KrakenEntry:
         return depth
 
     def add_row(self, row):
-        self.taxon_id = int(row["Taxonomy ID"])
+        self.taxon_id = row["Taxonomy ID"]
         self.name = row["Scientific Name"].strip()
         self.depth = self.parse_depth(row["Scientific Name"])
         self.rank = row["Rank"]
@@ -163,7 +163,7 @@ class KrakenReport:
             hierarchy = entry.hierarchy.copy()
             if len(hierarchy) > 0:
                 self.add_parent_child(hierarchy[-1], entry.taxon_id)
-            if entry.taxon_id > 0:
+            if entry.taxon_id != "0":
                 hierarchy.append(entry.taxon_id)
         csvfile.close()
         self.set_sibling_ranks()

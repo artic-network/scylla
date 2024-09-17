@@ -10,187 +10,21 @@ from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
 
-from extract_utils import mean,median,check_read_files
+from extract_utils import *
 from report import KrakenReport
 from assignment import KrakenAssignments
 from taxonomy import Taxonomy
 
 
-def fastq_iterator(
-    prefix: str,
-    filetype: str,
-    include_unclassified: bool,
-    entries: dict,
-    read_map: dict,
-    fastq_1: Path,
-    fastq_2: Path = None,
-) -> tuple[dict, dict, dict]:
-    """Func to iterate over fastq files and extract reads of interest
-
-    Args:
-        prefix (str): Outfile prefix
-        filetype (str): output filetype (only affects naming)
-        include_unclassified (bool): true if includes unclassified reads
-        read_map (dict): dict of read_id: taxon_list (from kraken report)
-        subtaxa_map (dict): dict of subtaxa: output taxon (from load_from_taxonomy)
-        exclude (bool): if true, inverts the logic for including reads
-        fastq_1 (Path): Path to fastq _1 file
-        fastq_2 (Path, optional): Path to fastq _2 file if input is paired data. Defaults to None.
-
-    Returns:
-        tuple[dict, dict, dict]: number of reads written by taxa, quality scores by taxa, sequence length by taxa
-    """
-    reads_of_interest = set(read_map.keys())
-
-    out_counts = defaultdict(int)
-    quals = defaultdict(list)
-    lens = defaultdict(list)
-
-    print(entries)
-    for taxon, entry in entries.items():
-        taxon_name = entry["name"].lower()
-        if include_unclassified and taxon_name != "unclassified":
-            taxon_name += "_and_unclassified"
-        taxon_name = taxon_name.replace("viruses", "viral")
-        subtaxa_map[taxon_name] = [taxon]
-
-    filenames, out_handles_1, out_handles_2 = setup_outfiles(fastq_2, subtaxa_map, filetype, open=True)
-
-
-    sys.stderr.write("Iterating through read file\n")
-    count = 0
-    for record in pyfastx.Fastq(fastq_1, build_index=False):
-        count += 1
-        if count % 1000000 == 0:
-            print(count)
-        name, seq, qual = record
-        trimmed_name = trim_read_id(name)
-        if trimmed_name not in reads_of_interest:
-            continue
-
-        for taxon in read_map[trimmed_name]:
-            out_handles_1[taxon].write(f"@{name}\n{seq}\n+\n{qual}\n")
-            out_counts[taxon] += 1
-            quals[taxon].append(median([ord(x) - 33 for x in qual]))
-            lens[taxon].append(len(seq))
-
-    if fastq_2:
-        sys.stderr.write("Iterating second read file of pair\n")
-        for record in pyfastx.Fastq(fastq_2, build_index=False):
-            name, seq, qual = record
-            trimmed_name = trim_read_id(name)
-            if trimmed_name not in reads_of_interest:
-                continue
-
-            for taxon in read_map[trimmed_name]:
-                out_handles_2[taxon].write(f"@{name}\n{seq}\n+\n{qual}\n")
-                out_counts[taxon] += 1
-                quals[taxon].append(median([ord(x) - 33 for x in qual]))
-                lens[taxon].append(len(seq))
-
-    close_outfiles(out_handles_1, out_handles_2)
-
-    return (out_counts, quals, lens, names, filenames)
-
-
-
-def fastq_iterator_inverse(
-    prefix: str,
-    filetype: str,
-    taxids: list,
-    read_map: dict,
-    fastq_1: Path,
-    fastq_2: Path = None,
-) -> tuple[dict, dict, dict]:
-    """Func to iterate over fastq files and extract reads of interest
-
-    Args:
-        prefix (str): Outfile prefix
-        filetype (str): output filetype (only affects naming)
-        read_map (dict): dict of read_id: taxon_list (from kraken report)
-        subtaxa_map (dict): dict of subtaxa: output taxon (from load_from_taxonomy)
-        exclude (bool): if true, inverts the logic for including reads
-        fastq_1 (Path): Path to fastq _1 file
-        fastq_2 (Path, optional): Path to fastq _2 file if input is paired data. Defaults to None.
-
-    Returns:
-        tuple[dict, dict, dict]: number of reads written by taxa, quality scores by taxa, sequence length by taxa
-    """
-    reads_of_interest = set(read_map.keys())
-    print(reads_of_interest)
-
-    filenames, out_handles_1, out_handles_2 =
-
-    out_counts = defaultdict(int)
-    quals = defaultdict(list)
-    lens = defaultdict(list)
-    names = defaultdict(list)
-
-    sys.stderr.write("Setup file handles\n")
-    out_handles_1 = {}
-    out_handles_2 = {}
-
-    if fastq_2:
-        out_handles_1["all"] = open(f"{prefix}_1.{filetype}", "w")
-        out_handles_2["all"] = open(f"{prefix}_2.{filetype}", "w")
-        names["all"].append(f"{prefix}_1.{filetype}")
-        names["all"].append(f"{prefix}_2.{filetype}")
-    else:
-        out_handles_1["all"] = open(f"{prefix}.{filetype}", "w")
-        names["all"].append(f"{prefix}.{filetype}")
-
-    sys.stderr.write("Iterating through read file\n")
-    count = 0
-    for record in pyfastx.Fastq(fastq_1, build_index=False):
-        count += 1
-        if count % 1000000 == 0:
-            print(count)
-        name, seq, qual = record
-        trimmed_name = trim_read_id(name)
-        if trimmed_name  in reads_of_interest:
-            continue
-
-        out_handles_1["all"].write(f"@{name}\n{seq}\n+\n{qual}\n")
-        out_counts["all"] += 1
-        quals["all"].append(median([ord(x) - 33 for x in qual]))
-        lens["all"].append(len(seq))
-
-    if fastq_2:
-        sys.stderr.write("Iterating second read file of pair\n")
-        for record in pyfastx.Fastq(fastq_2, build_index=False):
-            name, seq, qual = record
-            trimmed_name = trim_read_id(name)
-            if trimmed_name in reads_of_interest:
-                continue
-
-            out_handles_2["all"].write(f"@{name}\n{seq}\n+\n{qual}\n")
-            out_counts["all"] += 1
-            quals["all"].append(median([ord(x) - 33 for x in qual]))
-            lens["all"].append(len(seq))
-
-    for taxon in out_handles_1:
-        out_handles_1[taxon].close()
-    for taxon in out_handles_2:
-        out_handles_2[taxon].close()
-
-    return (out_counts, quals, lens, names)
-
 def extract_reads(
-    read_map, entries, reads1, reads2, prefix, taxids, exclude, include_unclassified
+    read_map, taxon_id_map, entries, reads1, reads2, prefix, taxids, exclude, include_unclassified
 ):
     # open read files
     filetype, zipped = check_read_files(reads1)
 
-    if exclude:
-        out_counts, quals, lens, names = fastq_iterator_inverse(
-            prefix, filetype, taxids, read_map, reads1, reads2
-        )
-    else:
-        out_counts, quals, lens, names = fastq_iterator(
-            prefix, filetype, include_unclassified, entries, read_map, reads1, reads2
-        )
+    out_counts, quals, lens, filenames = fastq_iterator(prefix, filetype, read_map, taxon_id_map, reads1, reads2, inverse=exclude, single_output=True, get_handles=True)
 
-    generate_summary(lists_to_extract, entries, out_counts, quals, lens, filenames, includes_unclassified=(include_unclassified != exclude))
+    generate_summary(taxids, entries, prefix, out_counts, quals, lens, filenames, includes_unclassified=(include_unclassified != exclude))
 
     return out_counts
 
@@ -270,13 +104,15 @@ def main():
 
     loaded_taxonomy = Taxonomy(args.taxonomy)
     taxon_id_map = loaded_taxonomy.get_taxon_id_map(args.taxid, args.include_unclassified)
+    loaded_taxonomy.load_entries(args.taxonomy, taxon_id_map.keys())
 
     # Initialize kraken assignment file
-    kraken_assignment = KrakenAssignment(args.kraken_assignment_file)
+    kraken_assignment = KrakenAssignments(args.kraken_assignment_file)
     read_map = kraken_assignment.parse_kraken_assignment_file(taxon_id_map)
 
     out_counts = extract_reads(
         read_map,
+        taxon_id_map,
         loaded_taxonomy.entries,
         args.reads1,
         args.reads2,

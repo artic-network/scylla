@@ -13,19 +13,19 @@ def parse_kraken_assignment_line(line):
     line_vals = line.strip().split("\t")
     if len(line_vals) < 5:
         return -1, ""
-    if "taxon_id" in line_vals[2]:
-        temp = line_vals[2].split("taxon_id ")[-1]
-        tax_id = temp[:-1]
+    if "taxid" in line_vals[2]:
+        temp = line_vals[2].split("taxid ")[-1]
+        taxon_id = temp[:-1]
     else:
-        tax_id = line_vals[2]
+        taxon_id = line_vals[2]
 
     read_id = trim_read_id(line_vals[1])
 
-    if tax_id == "A":
-        tax_id = 81077
+    if taxon_id == "A":
+        taxon_id = "81077"
     else:
-        tax_id = tax_id
-    return tax_id, read_id
+        taxon_id = taxon_id
+    return taxon_id, read_id
 
 
 class KrakenAssignments:
@@ -36,7 +36,7 @@ class KrakenAssignments:
         file (str): Name of file to parse.
     """
     def __init__(self, assignment_file):
-        self.file = self.assignment_file
+        self.file = assignment_file
 
     def parse_kraken_assignment_file(self, taxon_id_map, parents=None):
         """

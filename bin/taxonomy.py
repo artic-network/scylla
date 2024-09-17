@@ -2,6 +2,24 @@ import os
 import sys
 from collections import defaultdict
 
+class TaxonEntry:
+    """
+    A class representing a line in a kraken report.
+
+    Attributes:
+        taxon_id (str): The NCBI taxon identifier.
+        name (string): The scientific name associated with this taxon.
+        rank (str): A letter coding the rank of this taxon.
+    """
+    def __init__(self, taxon_id="0", name="unclassified", rank="U"):
+        self.taxon_id = taxon_id
+        self.name = name
+        self.rank = rank
+
+    def print(self):
+        print(
+            f"{self.taxon_id},{self.name},{self.rank}")
+
 
 class Taxonomy:
     """
@@ -12,9 +30,9 @@ class Taxonomy:
         children (dict): A dict with keys for taxon ids and values for sets of direct child taxon id.
     """
     def __init__(self, taxonomy_dir=None, taxon_ids=None):
-        self.parents = defaultdict(int)
+        self.parents = defaultdict(str)
         self.children = defaultdict(set)
-        self.entries = defaultdict({"name": "unclassified", "taxon_id": 0, "rank": None})
+        self.entries = defaultdict(TaxonEntry)
 
         if taxonomy_dir:
             self.load_parents_and_children(taxonomy_dir)
@@ -35,7 +53,6 @@ class Taxonomy:
                 for line in f:
                     fields = line.split("\t|\t")
                     taxon_id, parent_taxon_id = fields[0], fields[1]
-
                     self.parents[taxon_id] = parent_taxon_id
                     self.children[parent_taxon_id].add(taxon_id)
         except:
@@ -49,16 +66,21 @@ class Taxonomy:
             return
 
         taxonomy = os.path.join(taxonomy_dir, "nodes.dmp")
+        if not os.path.exists(taxonomy):
+            sys.stderr.write(
+                f"ERROR: Could not find taxonomy nodes.dmp file in {taxonomy_dir}"
+            )
+            sys.exit(4)
         try:
             with open(taxonomy, "r") as f:
                 for line in f:
                     fields = line.split("\t|\t")
                     taxon_id, rank = fields[0], fields[2]
-                    self.entries[taxon_id]["taxon_id"] = taxon_id
-                    self.entries[taxon_id]["rank"] = rank
+                    self.entries[taxon_id].taxon_id = taxon_id
+                    self.entries[taxon_id].rank = rank
         except:
             sys.stderr.write(
-                "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
+                f"ERROR: Badly formatted nodes.dmp file in {taxonomy}"
             )
             sys.exit(4)
 
@@ -67,16 +89,21 @@ class Taxonomy:
             return
 
         taxonomy = os.path.join(taxonomy_dir, "names.dmp")
+        if not os.path.exists(taxonomy):
+            sys.stderr.write(
+                f"ERROR: Could not find taxonomy names.dmp file in {taxonomy_dir}"
+            )
+            sys.exit(4)
         try:
             with open(taxonomy, "r") as f:
                 for line in f:
-                    fields = line.split("\t|\t")
+                    fields = [i.lstrip() for i in line.split("\t|")]
                     taxon_id, name, name_type = fields[0], fields[1], fields[3]
-                    if taxon_id in taxon_ids and ("scientific name" in name_type or entries[taxon_id]["name"] == None):
-                        entries[taxon_id]["name"] = name
+                    if taxon_id in taxon_ids and ("scientific name" in name_type or self.entries[taxon_id].name == "unclassified"):
+                        self.entries[taxon_id].name = name
         except:
             sys.stderr.write(
-                "ERROR: Could not find taxonomy names.dmp file in %s" % taxonomy_dir
+                f"ERROR: Badly formatted names.dmp file in {taxonomy}"
             )
             sys.exit(4)
 
@@ -84,7 +111,7 @@ class Taxonomy:
         self.load_entries_from_nodes(taxonomy_dir, taxon_ids)
         self.load_entries_from_names(taxonomy_dir, taxon_ids)
 
-    def get_taxon_id_map(self, taxon_ids, include_unclassified=False):
+    def get_taxon_id_map(self, taxon_ids=[], include_unclassified=False):
         """
         Generates a map from a specified list of taxon_ids and their children to sets of taxon_ids
         Any descendent of a specified taxon_id will include this taxon_id in it's set.

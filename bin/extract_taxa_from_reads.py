@@ -17,7 +17,7 @@ from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
 
-from extract_utils import mean,median,check_read_files
+from extract_utils import *
 from report import KrakenReport
 from assignment import KrakenAssignments
 from taxonomy import Taxonomy
@@ -35,17 +35,17 @@ def get_taxon_id_lists(
     include_children=False
 ):
     lists_to_extract = defaultdict(set)
-    for taxon in kraken_report:
-        entry = kraken_report[taxon]
-        if len(target_ranks) > 0 and entry["rank"] not in target_ranks:
+    for taxon in kraken_report.entries:
+        entry = kraken_report.entries[taxon]
+        if len(target_ranks) > 0 and entry.rank not in target_ranks:
             continue
-        if min_count and entry["ucount"] < min_count:
+        if min_count and entry.ucount < min_count:
             continue
-        if min_count_descendants and entry["count"] < min_count_descendants:
+        if min_count_descendants and entry.count < min_count_descendants:
             continue
         if min_percent and kraken_report.get_percentage(taxon) < min_percent:
             continue
-        if len(names) > 0 and entry["name"] not in names and taxon not in names:
+        if len(names) > 0 and entry.name not in names and taxon not in names:
             continue
 
         lists_to_extract[taxon].add(taxon)
@@ -95,19 +95,17 @@ def extract_taxa(
     for taxon, subtaxons in lists_to_extract.items():
         for subtaxa in subtaxons:
             subtaxa_map[subtaxa].add(taxon)
-
         # sys.stderr.write(
         #    "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES for %s\n"
         #    % (len(lists_to_extract[taxon]), taxon)
         # )
     read_map = kraken_assignment.parse_kraken_assignment_file(subtaxa_map)
 
-    sys.stderr.write("Iterating through read file\n")
     out_counts, quals, lens, filenames = fastq_iterator(
-        prefix, filetype, read_map, subtaxa_map, reads1, reads2
+        prefix, filetype, read_map, subtaxa_map, reads1, reads2, inverse=False, single_output=False, get_handles=False
     )
 
-    generate_summary(lists_to_extract, entries, out_counts, quals, lens, filenames)
+    generate_summary(lists_to_extract, kraken_report.entries, prefix, out_counts, quals, lens, filenames)
     return out_counts
 
 
@@ -258,14 +256,15 @@ def main():
         loaded_taxonomy = Taxonomy(args.taxonomy)
 
     # Load kraken report entries
-    sys.stderr.write("Loading kreport\n")
+    sys.stderr.write("Loading kraken report\n")
     kraken_report = KrakenReport(args.report_file)
     kraken_report.check_host({9606:args.max_human})
 
     # Initialize kraken assignment file
-    kraken_assignment = KrakenAssignment(args.kraken_assignment_file)
+    sys.stderr.write("Loading kraken assignments\n")
+    kraken_assignment = KrakenAssignments(args.kraken_assignment_file)
 
-    sys.stderr.write("Checking for lists to extract\n")
+    sys.stderr.write("Identifying lists to extract\n")
     lists_to_extract = get_taxon_id_lists(
         kraken_report,
         loaded_taxonomy,
@@ -279,7 +278,7 @@ def main():
         include_children=args.include_children
     )
 
-    sys.stderr.write("Performing extractions\n")
+    sys.stderr.write("Extracting reads from file\n")
     out_counts = extract_taxa(
         kraken_report,
         lists_to_extract,
