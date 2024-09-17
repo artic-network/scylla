@@ -15,16 +15,32 @@ from report import KrakenReport
 from assignment import KrakenAssignments
 from taxonomy import Taxonomy
 
+def setup_prefixes(list_taxon_ids, entries, prefix, inverse=False, include_unclassified=False):
+    outprefix = {}
+    if inverse:
+        return {"other": prefix}
+
+    for taxon_id in list_taxon_ids:
+        taxon_name = entries[taxon_id].name.lower()
+        if include_unclassified and taxon_name != "unclassified":
+            taxon_name += "_and_unclassified"
+        taxon_name = taxon_name.replace("viruses", "viral")
+        outprefix[taxon_id] = taxon_name
+        print(taxon_id, taxon_name)
+
+    return outprefix
 
 def extract_reads(
-    read_map, taxon_id_map, entries, reads1, reads2, prefix, taxids, exclude, include_unclassified
+    read_map, taxon_id_map, entries, reads1, reads2, prefix, taxon_ids, exclude, include_unclassified
 ):
-    # open read files
+    # check read files
     filetype, zipped = check_read_files(reads1)
+    print(taxon_ids)
 
-    out_counts, quals, lens, filenames = fastq_iterator(prefix, filetype, read_map, taxon_id_map, reads1, reads2, inverse=exclude, single_output=True, get_handles=True)
+    prefixes = setup_prefixes(taxon_ids, entries, prefix, inverse=exclude, include_unclassified=include_unclassified)
+    out_counts, quals, lens, filenames = fastq_iterator(prefixes, filetype, read_map, taxon_id_map, reads1, reads2, inverse=exclude, single_output=True, get_handles=True)
 
-    generate_summary(taxids, entries, prefix, out_counts, quals, lens, filenames, includes_unclassified=(include_unclassified != exclude))
+    generate_summary(taxon_ids, entries, prefix, out_counts, quals, lens, filenames, include_unclassified=(include_unclassified != exclude), short=True)
 
     return out_counts
 
@@ -66,7 +82,6 @@ def main():
         "--prefix",
         dest="prefix",
         required=True,
-        default="taxid",
         help="Prefix for output files",
     )
 

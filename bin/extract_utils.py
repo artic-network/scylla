@@ -91,21 +91,21 @@ def update_summary_with_record(taxon, record, out_counts, quals, lens):
     quals[taxon].append(median([ord(x) - 33 for x in qual]))
     lens[taxon].append(len(seq))
 
-def add_record(taxon, record, out_counts, quals, lens, filenames, file_index, out_handles=None, out_records=None, buffer_record_size=None):
+def add_record(taxon_id, record, out_counts, quals, lens, filenames, file_index, out_handles=None, out_records=None, buffer_record_size=None):
     name, seq, qual = record
-    update_summary_with_record(taxon, record, out_counts, quals, lens)
+    update_summary_with_record(taxon_id, record, out_counts, quals, lens)
 
-    if out_handles != {} and taxon in out_handles:
-        out_handles[taxon].write(f"@{name}\n{seq}\n+\n{qual}\n")
+    if out_handles != {} and taxon_id in out_handles:
+        out_handles[taxon_id].write(f"@{name}\n{seq}\n+\n{qual}\n")
     else:
-        if not buffer_record_size or len(out_records[taxon]) < buffer_record_size:
-            out_records[taxon].append(record)
+        if not buffer_record_size or len(out_records[taxon_id]) < buffer_record_size:
+            out_records[taxon_id].append(record)
         else:
-            with open(filenames[taxon][file_index], "a") as f:
-                for existing_record in out_records[taxon]:
+            with open(filenames[taxon_id][file_index], "a") as f:
+                for existing_record in out_records[taxon_id]:
                     f.write(f"@{name}\n{seq}\n+\n{qual}\n")
-            del out_records[taxon]
-            out_records[taxon].append(record)
+            del out_records[taxon_id]
+            out_records[taxon_id].append(record)
 
 def save_records_to_file(out_records, filenames, file_index):
     sys.stderr.write(f"Writing records for file {file_index+1}\n")
@@ -146,7 +146,7 @@ def file_iterator(fastq, read_map, subtaxa_map, inverse, file_index, out_handles
     return out_records
 
 def fastq_iterator(
-    prefix: str,
+    prefixes: str,
     filetype: str,
     read_map: dict,
     subtaxa_map: dict,
@@ -179,16 +179,7 @@ def fastq_iterator(
     quals = defaultdict(list)
     lens = defaultdict(list)
 
-    outprefix = {}
-    if single_output and inverse:
-        outprefix = {"other": prefix}
-    elif single_output:
-        for taxid in lists_to_extract:
-            outprefix[taxid] =  f"{prefix}"
-    else:
-        for taxid in lists_to_extract:
-            outprefix[taxid] =  f"{prefix}_{taxid}"
-    filenames, out_handles_1, out_handles_2 = setup_outfiles(fastq_2, outprefix, filetype, get_handles=get_handles, single_output=single_output)
+    filenames, out_handles_1, out_handles_2 = setup_outfiles(fastq_2, prefixes, filetype, get_handles=get_handles, single_output=single_output)
 
     out_records_1 = file_iterator(fastq_1, read_map, subtaxa_map, inverse, 0, out_handles_1, out_counts, quals, lens, filenames, low_memory=get_handles)
 
@@ -199,15 +190,28 @@ def fastq_iterator(
     return (out_counts, quals, lens, filenames)
 
 
-def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens, filenames, includes_unclassified=False):
+def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens, filenames, include_unclassified=False, short=False):
     sys.stderr.write("Write summary\n")
     summary = []
-    for taxon_id in lists_to_extract:
+    for taxon_id in out_counts:
         if out_counts[taxon_id] == 0:
             sys.stderr.write(f"No reads extracted  for taxon_id {taxon_id}\n")
             continue
 
-        summary.append(
+        if short:
+            summary.append(
+            {
+                "filenames": filenames[taxon_id],
+                "qc_metrics": {
+                    "num_reads": out_counts[taxon_id],
+                    "avg_qual": mean(quals[taxon_id]),
+                    "mean_len": mean(lens[taxon_id]),
+                },
+                "includes_unclassified": include_unclassified
+            }
+            )
+        else:
+            summary.append(
             {
                 "human_readable": entries[taxon_id].name,
                 "taxon_id": taxon_id,
@@ -218,9 +222,9 @@ def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens,
                     "avg_qual": mean(quals[taxon_id]),
                     "mean_len": mean(lens[taxon_id]),
                 },
-                "includes_unclassified": includes_unclassified
+                "includes_unclassified": include_unclassified
             }
-        )
+            )
 
     with open(f"{prefix}_summary.json", "w") as f:
         json.dump(summary, f)
