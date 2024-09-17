@@ -204,7 +204,7 @@ def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens,
     summary = []
     for taxon_id in lists_to_extract:
         if out_counts[taxon_id] == 0:
-            sys.stderr.write("No reads extracted  for taxon_id %s\n" %taxon)
+            sys.stderr.write(f"No reads extracted  for taxon_id {taxon_id}\n")
             continue
 
         summary.append(
@@ -222,5 +222,5 @@ def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens,
             }
         )
 
-    with open("%s_summary.json" % prefix, "w") as f:
+    with open(f"{prefix}_summary.json", "w") as f:
         json.dump(summary, f)

@@ -57,7 +57,7 @@ class Taxonomy:
                     self.children[parent_taxon_id].add(taxon_id)
         except:
             sys.stderr.write(
-                "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
+                f"ERROR: Could not find taxonomy nodes.dmp file in {taxonomy_dir}"
             )
             sys.exit(4)
 
