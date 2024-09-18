@@ -84,12 +84,12 @@ def get_taxon_id_lists(
 
 def setup_prefixes(lists_to_extract, prefix=None):
     outprefix = {}
-    if prefix:
-        for taxid in lists_to_extract:
-            outprefix[taxid] =  f"{prefix}_{taxid}"
-    else:
-        for taxid in lists_to_extract:
-            outprefix[taxid] =  f"{taxid}"
+    #if prefix:
+    #    for taxid in lists_to_extract:
+    #        outprefix[taxid] =  f"{prefix}_{taxid}"
+    #else:
+    for taxid in lists_to_extract:
+        outprefix[taxid] =  f"{taxid}"
     return outprefix
 
 def extract_taxa(
@@ -117,6 +117,13 @@ def extract_taxa(
     generate_summary(lists_to_extract, kraken_report.entries, prefix, out_counts, quals, lens, filenames, short=False)
     return out_counts
 
+def check_out_counts(out_counts, kraken_report):
+    for taxon_id in out_counts:
+        if out_counts[taxon_id] != kraken_report.entries[taxon_id].count:
+            sys.stderr.write(
+                f"Did not correctly extract all reads for {taxon_id}, found {out_counts[taxon_id]} whilst the kraken report contains {kraken_report.entries[taxon_id].count}"
+            )
+            sys.exit(2)
 
 # Main method
 def main():

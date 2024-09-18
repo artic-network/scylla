@@ -9,6 +9,7 @@ import json
 from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
+import statistics as stats
 
 from assignment import trim_read_id
 
@@ -16,17 +17,13 @@ from assignment import trim_read_id
 def mean(l):
     if len(l) == 0:
         return 0
-    return sum(l) / len(l)
+    return stats.fmean(l)
 
 
 def median(l):
-    if len(l) % 2 == 0:
-        i = (len(l)) / 2
-    else:
-        i = (len(l) + 1) / 2
-    i = int(i)
-    l = sorted(l)
-    return l[i]
+    if len(l) == 0:
+        return 0
+    return stats.median(l)
 
 
 def check_read_files(reads):
