@@ -2,7 +2,10 @@
 process make_report {
     
     label "process_single"
-    label "process_high_memory"
+    label "process_more_memory"
+
+    errorStrategy "retry"
+    maxRetries 3
 
     publishDir "${params.outdir}/${unique_id}/", mode: 'copy'
     
