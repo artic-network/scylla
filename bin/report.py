@@ -192,7 +192,7 @@ class KrakenReport:
                 sys.stderr.write(
                     f"Kraken report file {file_name} badly formatted - must have 6 or 8 columns"
                     )
-                sys.exit(2)
+                sys.exit(9)
             if line.startswith("%"):
                 return True, num_fields
             else:
