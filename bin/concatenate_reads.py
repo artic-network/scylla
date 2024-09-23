@@ -12,12 +12,13 @@ import gzip
 
 def enforce_headers(f1_header, f2_header):
     if f1_header[0] != "@" or f2_header[0] != "@":
-        # raise Exception("Invalid input FASTQ files.")
         sys.exit(5)
-    if f1_header.strip().split(" ")[0] != f2_header.strip().split(" ")[0]:
-        # raise Exception(
-        #     "Input FASTQ files do not share headers. " "Check and re-run w/o --strict."
-        # )
+
+    if f1_header.split()[0].endswith("/1") and f2_header.split()[0].endswith("/2"):
+        if f1_header.split()[0][:-2] != f2_header.split()[0][:-2]:
+            sys.exit(8)
+
+    elif f1_header.strip().split(" ")[0] != f2_header.strip().split(" ")[0]:
         sys.exit(8)
 
 

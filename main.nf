@@ -3,6 +3,11 @@ include { classify_novel_viruses } from './modules/classify_novel_viruses'
 include { process_run } from './subworkflows/process_run'
 
 workflow {
+    if (params.output)
+    	exit 1, "Please specify outdir with --outdir -- aborting"
+    if (params.out_dir)
+        exit 1, "Please specify outdir with --outdir -- aborting"
+
     unique_id = "${params.unique_id}"
 
     if (unique_id == "null") {
