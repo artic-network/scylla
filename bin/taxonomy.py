@@ -27,7 +27,7 @@ class TaxonEntry:
     def print(self):
         """
         Print the attributes of TaxonEntry as a string
-        """"
+        """
         print(
             f"{self.taxon_id},{self.name},{self.rank}")
 

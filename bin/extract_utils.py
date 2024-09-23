@@ -283,12 +283,12 @@ def process_read_files(
     quals = defaultdict(list)
     lens = defaultdict(list)
 
-    filenames, out_handles_1, out_handles_2 = setup_outfiles(fastq_2, prefixes, filetype, get_handles=get_handles)
+    filenames, out_handles_1, out_handles_2 = setup_outfiles(read_file_2, prefixes, filetype, get_handles=get_handles)
 
     forward_count = file_iterator(read_file_1, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 0, out_handles_1, low_memory=get_handles)
 
     reverse_count = 0
-    if fastq_2:
+    if read_file_2:
         reverse_count = file_iterator(read_file_2, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 1, out_handles_2, low_memory=get_handles)
 
         if forward_count != reverse_count and (forward_count == 0 or reverse_count == 0):

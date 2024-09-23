@@ -1,7 +1,6 @@
 from collections import defaultdict
 import csv
 import sys
-import pandas as pd
 
 
 class KrakenEntry:
@@ -47,7 +46,7 @@ class KrakenEntry:
     def print(self):
         """
         Print the attributes of KrakenEntry as a string
-        """"
+        """
         print(
             f"{self.taxon_id},{self.name},{self.rank},{self.depth},{self.count},{self.ucount},{self.domain},{self.parent},{self.children},{self.sibling_rank},{self.hierarchy}")
 
@@ -129,7 +128,7 @@ class KrakenReport:
     def print(self):
         """
         Print the attributes of KrakenEntry as a string
-        """"
+        """
         print(f"Report has {len(self.entries)} taxon entries corresponding to {self.classified} classified and {self.unclassified} unclassified reads.")
 
     def add_parent_child(self, parent_id, child_id):
