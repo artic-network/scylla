@@ -82,6 +82,7 @@ def get_taxon_id_lists(
 
     return lists_to_extract
 
+
 def setup_prefixes(lists_to_extract, prefix=None):
     outprefix = {}
     #if prefix:
@@ -91,6 +92,7 @@ def setup_prefixes(lists_to_extract, prefix=None):
     for taxid in lists_to_extract:
         outprefix[taxid] =  f"{taxid}"
     return outprefix
+  
 
 def extract_taxa(
     kraken_report, lists_to_extract, kraken_assignment, reads1, reads2, prefix

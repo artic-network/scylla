@@ -134,10 +134,10 @@ def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
             hcid_dict[taxid]["classified_parent_found"] = True
 
 
-def map_to_refs(query, reference):
+def map_to_refs(query, reference, preset):
     counts = defaultdict(int)
     ranges = defaultdict(list)
-    a = mp.Aligner(reference, best_n=1)  # load or build index
+    a = mp.Aligner(reference, best_n=1, preset=preset)  # load or build index
     if not a:
         raise Exception("ERROR: failed to load/build index")
 
@@ -149,8 +149,8 @@ def map_to_refs(query, reference):
             ranges[hit.ctg].append([hit.r_st, hit.r_en])
             # print("{}\t{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
             break
-        if read_count % 1000000 == 0:
-            break
+        #if read_count % 1000000 == 0:
+        #    break
     return counts, ranges
 
 
@@ -168,8 +168,8 @@ def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
     return 0
 
 
-def check_ref_coverage(hcid_dict, query, reference):
-    counts, ranges = map_to_refs(query, reference)
+def check_ref_coverage(hcid_dict, query, reference, preset):
+    counts, ranges = map_to_refs(query, reference, preset)
 
     for taxon in hcid_dict:
         taxon_found = True
@@ -213,13 +213,17 @@ def report_findings(hcid_dict, prefix):
             hcid_dict[taxid]["classified_found"]
             or hcid_dict[taxid]["classified_parent_found"]
         ):
-            with open("%s.warning" % taxid, "w") as f_warn:
-                f_warn.write(
-                    f"WARNING: Found {hcid_dict[taxid]['classified_count']} classified reads ({hcid_dict[taxid]['mapped_count']} mapped reads) of {hcid_dict[taxid]['name']}\n"
-                )
-                f_warn.write(
-                    f"Mapping details for required references (ref_accession:mapped_read_count:fraction_ref_covered) {hcid_dict[taxid]['mapped_required_details']}\n"
-                )
+            with open("%s.warning.json" % taxid, "w") as f_warn:
+                msg1 = f"WARNING: Found {hcid_dict[taxid]['classified_count']} classified reads ({hcid_dict[taxid]['mapped_count']} mapped reads) of {hcid_dict[taxid]['name']} and {hcid_dict[taxid]['classified_parent_count']} classified reads for the parent taxon.\n"
+                msg2 = f"Mapping details for required references (ref_accession:mapped_read_count:fraction_ref_covered) {hcid_dict[taxid]['mapped_required_details']}.\n"
+                warning =   {
+                                "msg":msg1+msg2,
+                                "taxid":taxid,
+                                "classified_count":hcid_dict[taxid]['classified_count'],
+                                "mapped_count":hcid_dict[taxid]['mapped_count'],
+                                "mapped_details":f"ref_accession:mapped_read_count:fraction_ref_covered|{hcid_dict[taxid]['mapped_required_details']}"
+                            }
+                json.dump(warning, f_warn, indent=4, sort_keys=False)
             found.append(taxid)
     keys = [
         "name",
@@ -284,8 +288,17 @@ def main():
         default="resources/hcid_refs.fa.gz",
         help="Reference FASTA for each HCID",
     )
+    parser.add_argument(
+            "--illumina",
+            action="store_true",
+            required=False,
+            help="Use the short read minimap preset",
+        )
 
     args = parser.parse_args()
+    preset = None
+    if args.illumina:
+        preset = "sr"
 
     # Start Program
     now = datetime.now()
@@ -297,7 +310,7 @@ def main():
     sys.stderr.write("Check kraken report for counts\n")
     check_report_for_hcid(hcid_dict, args.taxonomy, args.kreport_file)
     sys.stderr.write("Check mapped coverage\n")
-    check_ref_coverage(hcid_dict, args.reads, args.ref_fasta)
+    check_ref_coverage(hcid_dict, args.reads, args.ref_fasta, preset)
     sys.stderr.write("Report findings\n")
     report_findings(hcid_dict, args.prefix)
 

@@ -99,8 +99,8 @@ process kraken_server {
         --max-requests ${kraken_compute + 1} --thread-pool ${task.cpus}\
         --port ${params.k2_port} \
         --host-ip ${params.k2_host} \
-        --confidence ${params.confidence} \
-        --db ./${database}/
+        --db ./${database}/ \
+        --confidence ${params.kraken_confidence}
     """
 }
 
