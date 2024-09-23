@@ -110,7 +110,7 @@ def extract_taxa(
     read_map = kraken_assignment.parse_kraken_assignment_file(subtaxa_map)
 
     prefixes = setup_prefixes(lists_to_extract, prefix)
-    out_counts, quals, lens, filenames = fastq_iterator(
+    out_counts, quals, lens, filenames = process_read_files(
         prefixes, filetype, read_map, subtaxa_map, reads1, reads2, inverse=False, get_handles=False
     )
 

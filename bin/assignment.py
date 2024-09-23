@@ -3,6 +3,15 @@ from collections import defaultdict
 
 
 def trim_read_id(read_id):
+    """
+    Parses the read_id to remove forward/reverse identifier.
+
+    Parameters:
+        read_id (str): A read name.
+
+    Returns:
+        read_id (str): Trimmed read name without forward/reverse identifiers.
+    """
     if read_id.endswith("/1") or read_id.endswith("/2"):
         read_id = read_id[:-2]
 
@@ -10,6 +19,16 @@ def trim_read_id(read_id):
 
 
 def parse_kraken_assignment_line(line):
+    """
+    Parses the read_id and taxon_id from a line in the kraken assignment file.
+
+    Parameters:
+        line (str): A line from kraken assignment file.
+
+    Returns:
+        taxon_id (str): The NCBI taxon identifier.
+        read_id (str): trimmed read identifier.
+    """
     line_vals = line.strip().split("\t")
     if len(line_vals) < 5:
         return -1, ""
@@ -36,6 +55,9 @@ class KrakenAssignments:
         file (str): Name of file to parse.
     """
     def __init__(self, assignment_file):
+        """
+        Initializes an KrakenAssignments object.
+        """
         self.file = assignment_file
 
     def parse_kraken_assignment_file(self, taxon_id_map, parents=None):

@@ -36,7 +36,7 @@ def extract_reads(
     filetype, zipped = check_read_files(reads1)
 
     prefixes = setup_prefixes(taxon_ids, entries, prefix, inverse=exclude, include_unclassified=include_unclassified)
-    out_counts, quals, lens, filenames = fastq_iterator(prefixes, filetype, read_map, taxon_id_map, reads1, reads2, inverse=exclude, get_handles=True)
+    out_counts, quals, lens, filenames = process_read_files(prefixes, filetype, read_map, taxon_id_map, reads1, reads2, inverse=exclude, get_handles=True)
 
     generate_summary(taxon_ids, entries, prefix, out_counts, quals, lens, filenames, include_unclassified=(include_unclassified != exclude), short=True)
 

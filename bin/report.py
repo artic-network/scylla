@@ -1,6 +1,7 @@
 from collections import defaultdict
 import csv
 import sys
+import pandas as pd
 
 
 class KrakenEntry:
@@ -13,7 +14,7 @@ class KrakenEntry:
         rank (str): A letter coding the rank of this taxon.
         depth (int): The number of indentations this entry had in the kraken file (related to hierarchy).
         count (int): The count of reads assigned to this taxon and its descendants.
-        name (int): The count of reads assigned specifically to this taxon.
+        ucount (int): The count of reads assigned specifically to this taxon.
         domain (str): The domain this taxon is a member of.
         parent (str): The taxon id associated with the taxonomic parent.
         children (set): A set of taxon ids associated with the direct taxonomic children.
@@ -21,6 +22,14 @@ class KrakenEntry:
         hierarchy (list): An ordered list of taxon ids representing the parents to taxonomic root.
     """
     def __init__(self, row=None, domain=None, hierarchy=[]):
+        """
+        Initializes an KrakenEntry object.
+
+        Parameters:
+            row (str): A row from a kraken file
+            domain (str): The taxonomic domain this entry is associated with.
+            hierarchy (list): A list of taxon_ids tracing the ancestry from this taxon to the root.
+        """
         self.taxon_id = "0"
         self.name = "unclassified"
         self.rank = "U"
@@ -36,10 +45,22 @@ class KrakenEntry:
             self.add_row(row)
 
     def print(self):
+        """
+        Print the attributes of KrakenEntry as a string
+        """"
         print(
             f"{self.taxon_id},{self.name},{self.rank},{self.depth},{self.count},{self.ucount},{self.domain},{self.parent},{self.children},{self.sibling_rank},{self.hierarchy}")
 
     def parse_depth(self, name):
+        """
+        Parse the number of indentations from the kraken name string
+
+        Args:
+            name (str): The "Scientific Name" column from a kraken report line
+
+        Returns:
+            depth (int): The relative depth within the name string.
+        """
         parse_name = name.split(" ")
         depth = 0
         for i in parse_name:
@@ -50,6 +71,12 @@ class KrakenEntry:
         return depth
 
     def add_row(self, row):
+        """
+        Parse information from kraken report row to update this entry.
+
+        Args:
+            row (str): A line from a kraken report.
+        """
         self.taxon_id = row["Taxonomy ID"]
         self.name = row["Scientific Name"].strip()
         self.depth = self.parse_depth(row["Scientific Name"])
@@ -82,6 +109,12 @@ class KrakenReport:
         domains (int): A dict with keys for names of domains and values for associated taxon id.
     """
     def __init__(self, file_name=None):
+        """
+        Initializes an KrakenReport object.
+
+        Parameters:
+            file_name (Path): Name of kraken report file.
+        """
         self.entries = defaultdict(KrakenEntry)
         self.total = 0
         self.unclassified = 0
@@ -94,13 +127,32 @@ class KrakenReport:
             self.total = self.classified + self.unclassified
 
     def print(self):
+        """
+        Print the attributes of KrakenEntry as a string
+        """"
         print(f"Report has {len(self.entries)} taxon entries corresponding to {self.classified} classified and {self.unclassified} unclassified reads.")
 
     def add_parent_child(self, parent_id, child_id):
+        """
+        Add parent-child relationship to each KrakenEntry.
+
+        Parameters:
+            parent_id (str): taxon_id of parent.
+            child_id (str): taxon_id of child.
+        """
+
         self.entries[child_id].add_parent(parent_id)
         self.entries[parent_id].add_child(child_id)
 
     def set_sibling_ranks(self):
+        """
+        Rank siblings (share common parent) based on the number of classified reads (count including descendants). Lower
+        rank means higher read count. Rank starts at 1, 2, 3, ...
+
+        Parameters:
+            parent_id (str): taxon_id of parent.
+            child_id (str): taxon_id of child.
+        """
         for entry_id, entry in self.entries.items():
             if entry.sibling_rank > 0 or entry.parent in [None, 1, 131567]:
                 continue
@@ -116,11 +168,24 @@ class KrakenReport:
                     self.entries[i].set_sibling_rank(rank)
 
     def check_sibling_ranks(self):
+        """
+        Check every entry has been set a sibling_rank. 0 means not set.
+        """
         for entry_id in self.entries:
             if self.entries[entry_id].sibling_rank == 0:
                 print(entry_id)
 
     def check_report(self, file_name):
+        """
+        Check every line in the kraken report has the appropriate number of tab separated fields
+
+        Parameters:
+            file_name (Path): Name of kraken report file
+
+        Returns:
+            report_has_header (bool): True if report includes the header line
+            num_fields (int) number of fields in a line [6,8]
+        """
         with open(file_name, 'r') as handle:
             line = handle.readline()
             num_fields = len(line.split("\t"))
@@ -135,6 +200,16 @@ class KrakenReport:
                 return False, num_fields
 
     def load_df(self, file_name):
+        """
+        Check every line in the kraken report has the appropriate number of tab separated fields
+
+        Parameters:
+            file_name (Path): Name of kraken report file
+
+        Returns:
+            report_has_header (bool): True if report includes the header line
+            num_fields (int) number of fields in a line [6,8]
+        """
         csvfile = open(file_name, newline='')
         df = {}
         report_has_header, num_fields = self.check_report((file_name))
@@ -170,6 +245,12 @@ class KrakenReport:
         # self.check_sibling_ranks()
 
     def get_domains(self):
+        """
+        Get a list of taxonomic domains found in the report
+
+        Returns:
+            list: List of domains
+        """
         domains = []
         for entry_id, entry in self.entries.items():
             if entry.rank == "D":
@@ -178,6 +259,12 @@ class KrakenReport:
         return domains
 
     def get_tips(self):
+        """
+        Get a list of terminating taxa (ie have no children)
+
+        Returns:
+            list: List of KrakenEntry
+        """
         tips = []
         for entry_id, entry in self.entries.items():
             if len(entry.children) == 0:
@@ -186,6 +273,14 @@ class KrakenReport:
         return tips
 
     def get_rank_entries(self, rank):
+        """
+        Get a list of  taxa at a given rank
+
+        Parameters:
+            rank (str): a taxonomic rank
+        Returns:
+            list: List of KrakenEntry
+        """
         subset = []
         for entry_id, entry in self.entries.items():
             if entry.rank == rank:
@@ -194,7 +289,15 @@ class KrakenReport:
         return subset
 
     def get_percentage(self, taxon_id, domain=None):
+        """
+        For a taxon_id, what percentage of the dataset counts (or the domain counts) is it?
 
+        Parameters:
+            taxon_id (str): a taxon ID
+            domain (str): Optional name of a domain
+        Returns:
+            float: Percentage of the dataset corresponding to counts of this taxon and descendants
+        """
         if domain and self.entries[taxon_id].domain != domain:
             return 0.0
 
@@ -205,7 +308,19 @@ class KrakenReport:
         count = self.entries[taxon_id].count
         return float(count) / denominator
 
-    def to_source_target_df(self, max_rank=None, domain=None, trace_ids=[]):
+    def to_source_target_df(self, max_rank=None, domain=None):
+        """
+        Convert this KrakenReport to a CSV with "source", "target", "value", "percentage" columns. If max_rank given,
+        the result is filtered to including only this number of top-ranking children for each parent. If domain is
+        given, includes only those as part of this domain, and scales percentage accordingly. Output file written to
+        "source_target.csv".
+
+        Parameters:
+            max_rank (str): (optional) maximum rank among siblings to be included
+            domain (str): (optional) name of a domain
+        Returns:
+            list: a list of row-entry dictionaries
+        """
         records = []
         ignore = set()
         skip = set()
@@ -223,28 +338,20 @@ class KrakenReport:
             if max_rank:
                 if entry.sibling_rank > max_rank:
                     ignore.add(entry_id)
-                    if entry_id in trace_ids:
-                        print(entry_id, 1)
                     continue
                 elif entry.parent in ignore:
                     ignore.add(entry_id)
-                    if entry_id in trace_ids:
-                        print(entry_id, 2)
                     continue
 
             # filter if an intermediate rank
             if entry.rank not in ["K", "D", "D1", "D2", "P", "C", "O", "F", "G", "S", "S1", "S2"]:
                 skip.add(entry_id)
-                if entry_id in trace_ids:
-                    print(entry_id, 3)
                 continue
 
             index = 1
             while index < len(entry.hierarchy) and entry.hierarchy[-index] in skip:
                 index += 1
             source_id = entry.hierarchy[-index]
-            if entry_id in trace_ids:
-                print(entry_id, 4, source_id)
             records.append({"source": self.entries[source_id].name, "target": entry.name, "value": entry.count,
                             "percentage": self.get_percentage(entry_id, domain=domain)})
 
@@ -260,6 +367,13 @@ class KrakenReport:
         return records
 
     def to_df(self, sample_id="sample_id", ranks=[]):
+        """
+        Create a pandas dataframe from KrakenReport. If ranks are specified, include only entries at those ranks.
+
+        Parameters:
+            sample_id (str): (optional) A name to give this report in the dataframe.
+            ranks (list): (optional) A list of strings corresponding to ranks to include.
+        """
         if not ranks or len(ranks) == 0:
             taxon_ids = [e for e in self.entries.keys()]
         else:
@@ -267,6 +381,13 @@ class KrakenReport:
         return pd.DataFrame({sample_id: [self.entries[e].count for e in taxon_ids]}, index=taxon_ids)
 
     def check_host(self, host_dict):
+        """
+        Check if any host taxon_id exceeds the max number of reads permitted.
+
+        Parameters:
+            host_dict (dict): A dictionary with key a taxon_id, value a max number of reads allowed.
+        """
+
         for host_id, max_host_count in host_dict.items():
             if host_id in self.entries and self.entries[host_id].count > max_host_count:
                 sys.stderr.write(

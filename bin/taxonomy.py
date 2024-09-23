@@ -12,11 +12,22 @@ class TaxonEntry:
         rank (str): A letter coding the rank of this taxon.
     """
     def __init__(self, taxon_id="0", name="unclassified", rank="U"):
+        """
+        Initializes an TaxonEntry object.
+
+        Parameters:
+            taxon_id (str): The NCBI taxon identifier.
+            name (str): The scientific name associated with this taxon.
+            rank (str): A letter coding the rank of this taxon.
+        """
         self.taxon_id = taxon_id
         self.name = name
         self.rank = rank
 
     def print(self):
+        """
+        Print the attributes of TaxonEntry as a string
+        """"
         print(
             f"{self.taxon_id},{self.name},{self.rank}")
 
@@ -26,8 +37,9 @@ class Taxonomy:
     A class representing taxonomic information.
 
     Attributes:
-        parents (dict): A dict with keys for taxon ids and values for parent taxon id.
-        children (dict): A dict with keys for taxon ids and values for sets of direct child taxon id.
+        parents (dict): A dict with keys for taxon_ids and values for parent taxon id.
+        children (dict): A dict with keys for taxon_ids and values for sets of direct child taxon id.
+        entries (dict): A dict with keys for taxon_ids and values for TaxonEntry representing that taxon.
     """
     def __init__(self, taxonomy_dir=None, taxon_ids=None):
         self.parents = defaultdict(str)
@@ -62,6 +74,14 @@ class Taxonomy:
             sys.exit(4)
 
     def load_entries_from_nodes(self, taxonomy_dir, taxon_ids):
+        """
+        Updates taxon_id and rank information for specified taxon_ids from the "nodes.dmp" file in the taxonomy
+        directory to the entries structure.
+
+        Parameters:
+            taxonomy_dir (str): The unzipped directory downloaded from NCBI taxonomy.
+            taxon_ids (list): List of taxon identifiers.
+        """
         if len(taxon_ids) == 0:
             return
 
@@ -85,6 +105,14 @@ class Taxonomy:
             sys.exit(4)
 
     def load_entries_from_names(self, taxonomy_dir, taxon_ids):
+        """
+        Updates name information for specified taxon_ids from the "names.dmp" file in the taxonomy
+        directory to the entries structure.
+
+        Parameters:
+            taxonomy_dir (str): The unzipped directory downloaded from NCBI taxonomy.
+            taxon_ids (list): List of taxon identifiers.
+        """
         if len(taxon_ids) == 0:
             return
 
@@ -108,6 +136,13 @@ class Taxonomy:
             sys.exit(4)
 
     def load_entries(self, taxonomy_dir, taxon_ids):
+        """
+        Generates information for specified taxon_ids in the self.entries dictionary (taxon_id, name and rank).
+
+        Parameters:
+            taxonomy_dir (str): The unzipped directory downloaded from NCBI taxonomy.
+            taxon_ids (list): List of taxon identifiers.
+        """
         self.load_entries_from_nodes(taxonomy_dir, taxon_ids)
         self.load_entries_from_names(taxonomy_dir, taxon_ids)
 
@@ -118,8 +153,11 @@ class Taxonomy:
         If include_unclassified is specified, there will be an entry from 0 to the input taxon_ids
 
         Parameters:
-            taxonomy_dir (str): The unzipped directory downloaded from NCBI taxonomy.
             taxon_ids (list/set): An iterable of taxon_ids to consider.
+            include_unclassified (bool): Should the "unclassified" key be included with each taxon?
+        Returns:
+            dict: A map from specified list of taxon_ids and their children, to a subset of the original taxon_ids
+                  ancestral to the key.
         """
         taxon_id_map = defaultdict(set)
 
