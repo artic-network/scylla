@@ -78,7 +78,10 @@ class KrakenAssignments:
             for line in kfile:
                 taxon_id, read_id = parse_kraken_assignment_line(line)
                 if taxon_id in taxon_id_map:
-                    read_map[read_id] = {taxon_id} #.update(taxon_id_map[taxon_id])
+                    if read_id in read_map and taxon_id != read_map[read_id]:
+                        del read_map[read_id]
+                    else:
+                        read_map[read_id].add(taxon_id)
                 elif parents:
                     # handle case where taxon_id has changed
                     current = taxon_id
@@ -86,6 +89,9 @@ class KrakenAssignments:
                         current = parents[current]
                         if current in taxon_id_map:
                             print(f"Add {taxon_id} to {current} list")
-                            read_map[read_id] = current #.update(taxon_id_map[current])
+                            if read_id in read_map and current != read_map[read_id]:
+                                del read_map[read_id]
+                            else:
+                                read_map[read_id].add(current)
         return read_map
 
