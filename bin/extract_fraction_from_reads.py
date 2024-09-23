@@ -28,7 +28,7 @@ def setup_prefixes(list_taxon_ids, entries, prefix, inverse=False, include_uncla
         outprefix[taxon_id] = taxon_name
 
     return outprefix
-  
+
 
 def extract_reads(
     read_map, taxon_id_map, entries, reads1, reads2, prefix, taxon_ids, exclude, include_unclassified
