@@ -214,8 +214,11 @@ def file_iterator(read_file, read_map, subtaxa_map, inverse, out_counts, quals, 
         file_index (int): 0 or 1, depending if processing forward or reverse read, index for the filenames list.
         out_handles (dict): {} if handles closed, Taxon ID to open handle if open.
         low_memory (bool): If True we expect to write directly to out handles, if False store records then write to file.
+    Returns:
+        int: Count of reads written to file.
     """
     reads_of_interest = set(read_map.keys())
+    count = 0
     out_records = None
     if not low_memory:
         out_records = defaultdict(list)
@@ -230,6 +233,7 @@ def file_iterator(read_file, read_map, subtaxa_map, inverse, out_counts, quals, 
                     update_summary_with_record(taxon, record, out_counts, quals, lens)
                 continue
             else:
+                count += 1
                 add_record("other", record, out_counts, quals, lens, filenames, file_index, out_handles=out_handles, out_records=out_records)
 
         elif not inverse:
@@ -237,13 +241,13 @@ def file_iterator(read_file, read_map, subtaxa_map, inverse, out_counts, quals, 
                 continue
             for k2_taxon in read_map[trimmed_name]:
                 for taxon in subtaxa_map[k2_taxon]:
-                    #print(trimmed_name, read_map[trimmed_name], subtaxa_map[k2_taxon], taxon)
+                    count += 1
                     add_record(taxon, record, out_counts, quals, lens, filenames, file_index, out_handles=out_handles, out_records=out_records)
 
     if not low_memory:
         save_records_to_file(out_records, filenames, file_index)
 
-    return
+    return count
 
 def process_read_files(
     prefixes: str,
@@ -281,11 +285,17 @@ def process_read_files(
 
     filenames, out_handles_1, out_handles_2 = setup_outfiles(fastq_2, prefixes, filetype, get_handles=get_handles)
 
-    file_iterator(read_file_1, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 0, out_handles_1, low_memory=get_handles)
+    forward_count = file_iterator(read_file_1, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 0, out_handles_1, low_memory=get_handles)
 
+    reverse_count = 0
     if fastq_2:
-        file_iterator(read_file_2, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 1, out_handles_2, low_memory=get_handles)
+        reverse_count = file_iterator(read_file_2, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 1, out_handles_2, low_memory=get_handles)
 
+        if forward_count != reverse_count and (forward_count == 0 or reverse_count == 0):
+            sys.stderr.write(
+                "ERROR: No reads found for one of the file pair: extracted %i an %i reads respectively" % (forward_count, reverse_count)
+            )
+            sys.exit(7)
     close_outfiles(out_handles_1, out_handles_2)
     return (out_counts, quals, lens, filenames)
 
