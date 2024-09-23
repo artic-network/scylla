@@ -34,9 +34,10 @@ process split_kreport {
 process extract_taxa_paired_reads {
     
     label "process_single"
-    label "process_high_memory"
+    label "process_more_memory"
 
-    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "retry"}
+    maxRetries 3
 
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
@@ -76,9 +77,10 @@ process extract_taxa_paired_reads {
 process extract_taxa_reads {
 
     label "process_single"
-    label "process_high_memory"
+    label "process_more_memory"
     
-    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "retry"}
+    maxRetries 3
 
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
@@ -117,9 +119,10 @@ process extract_taxa_reads {
 process extract_paired_virus_and_unclassified {
 
     label "process_single"
-    label "process_high_memory"
+    label "process_more_memory"
 
-    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "retry"}
+    maxRetries 3
 
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
@@ -146,9 +149,10 @@ process extract_paired_virus_and_unclassified {
 process extract_virus_and_unclassified {
 
     label "process_single"
-    label "process_high_memory"
+    label "process_more_memory"
 
-    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "retry"}
+    maxRetries 3
 
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
@@ -175,9 +179,10 @@ process extract_virus_and_unclassified {
 process extract_paired_virus {
 
     label 'process_single'
-    label 'process_high_memory'
+    label 'process_more_memory'
 
-    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'retry'}
+    maxRetries 3
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
@@ -203,9 +208,10 @@ process extract_paired_virus {
 process extract_virus {
 
     label 'process_single'
-    label 'process_high_memory'
+    label 'process_more_memory'
 
-    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'terminate'}
+    errorStrategy {task.exitStatus in 2..3 ? 'ignore' : 'retry'}
+    maxRetries 3
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
@@ -231,9 +237,10 @@ process extract_virus {
 process extract_paired_dehumanised {
 
     label "process_single"
-    label "process_high_memory"
+    label "process_more_memory"
 
-    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "retry"}
+    maxRetries 3
 
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
@@ -260,9 +267,10 @@ process extract_paired_dehumanised {
 process extract_dehumanised {
 
     label "process_single"
-    label "process_high_memory"
+    label "process_more_memory"
 
-    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "terminate"}
+    errorStrategy {task.exitStatus in 2..3 ? "ignore" : "retry"}
+    maxRetries 3
 
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
