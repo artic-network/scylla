@@ -121,8 +121,8 @@ class KrakenReport:
         self.domains = defaultdict(int)
         if file_name:
             self.load_df(file_name)
-            self.unclassified = self.entries[0].count
-            self.classified = self.entries[1].count
+            self.unclassified = self.entries["0"].count
+            self.classified = self.entries["1"].count
             self.total = self.classified + self.unclassified
 
     def print(self):
