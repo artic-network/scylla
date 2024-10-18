@@ -8,3 +8,4 @@
 7   No output files for one half of a read-pair
 8   Mismatching paired read FASTQ headers
 9   Kraken report formatting error
+10  No reads left after fastp, either no reads passed filtering or read files are misformatted
