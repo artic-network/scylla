@@ -6,7 +6,7 @@ process fastp_paired {
 
     container "${params.wf.container}:${params.wf.container_version}"
 
-    errorStrategy {task.exitStatus == 255 ? "ignore" : "terminate"}
+    errorStrategy {task.exitStatus in [255, 10] ? "ignore" : "terminate"}
 
     input:
         val unique_id
@@ -31,10 +31,14 @@ process fastp_paired {
 
     if [ -s ${unique_id}_1.fastp.fastq ]; then
         bgzip --threads $task.cpus -c ${unique_id}_1.fastp.fastq > ${unique_id}_1.fastp.fastq.gz
+    else
+        exit 10
     fi
 
     if [ -s ${unique_id}_2.fastp.fastq ]; then
         bgzip --threads $task.cpus -c ${unique_id}_2.fastp.fastq > ${unique_id}_2.fastp.fastq.gz
+    else
+        exit 10
     fi    
     """
 
@@ -48,7 +52,7 @@ process fastp_single {
 
     container "${params.wf.container}:${params.wf.container_version}"
 
-    errorStrategy {task.exitStatus == 255 ? "ignore" : "terminate"}
+    errorStrategy {task.exitStatus in [255, 10] ? "ignore" : "terminate"}
 
     input:
         val unique_id
@@ -73,6 +77,8 @@ process fastp_single {
 
     if [ -s ${unique_id}.fastp.fastq ]; then
         bgzip --threads $task.cpus -c ${unique_id}.fastp.fastq > ${unique_id}.fastp.fastq.gz
+    else
+        exit 10
     fi
     """
 }
