@@ -9,77 +9,8 @@ from collections import defaultdict
 import mappy as mp
 import argparse
 
-
-def load_from_taxonomy(taxonomy_dir):
-    taxonomy = os.path.join(taxonomy_dir, "nodes.dmp")
-    parents = {}
-    children = defaultdict(list)
-    try:
-        with open(taxonomy, "r") as f:
-            for line in f:
-                fields = line.split("\t|\t")
-                tax_id, parent_tax_id = int(fields[0]), int(fields[1])
-                parents[tax_id] = parent_tax_id
-                children[parent_tax_id].append(tax_id)
-    except:
-        sys.stderr.write(
-            "ERROR: Could not find taxonomy nodes.dmp file in %s" % taxonomy_dir
-        )
-        sys.exit(4)
-    return parents, children
-
-
-def parse_report_file(report_file, taxid_map):
-    entries = {}
-    counts = defaultdict(int)
-    # parses a kraken or bracken file
-    with open(report_file, "r") as f:
-        for line in f:
-            if line.startswith("% of Seqs"):
-                continue
-            try:
-                (
-                    percentage,
-                    num_clade_root,
-                    num_direct,
-                    raw_rank,
-                    ncbi,
-                    name,
-                ) = line.strip().split("\t")
-            except:
-                (
-                    percentage,
-                    num_clade_root,
-                    num_direct,
-                    ignore1,
-                    ignore2,
-                    raw_rank,
-                    ncbi,
-                    name,
-                ) = line.strip().split("\t")
-
-            ncbi = int(ncbi)
-            if ncbi not in taxid_map:
-                continue
-            percentage = float(percentage)
-            num_clade_root = int(num_clade_root)
-            num_direct = int(num_direct)
-            if num_direct > num_clade_root:
-                num_direct, num_clade_root = num_clade_root, num_direct
-            name = name.strip()
-            rank = raw_rank[0]
-
-            entries[ncbi] = {
-                "percentage": percentage,
-                "count": num_direct,
-                "count_descendants": num_clade_root,
-                "raw_rank": raw_rank,
-                "rank": rank,
-                "name": name,
-            }
-            counts[taxid_map[ncbi]] += num_direct
-
-    return entries, counts
+from report import KrakenReport
+from taxonomy import Taxonomy
 
 
 def load_hcid_dict(hcid_file):
@@ -88,6 +19,7 @@ def load_hcid_dict(hcid_file):
         hcid = json.load(f)
         for d in hcid:
             if d["taxon_id"]:
+                d["taxon_id"] = str(d["taxon_id"])
                 hcid_dict[d["taxon_id"]] = d
                 hcid_dict[d["taxon_id"]]["classified_count"] = 0
                 hcid_dict[d["taxon_id"]]["classified_parent_count"] = 0
@@ -95,10 +27,7 @@ def load_hcid_dict(hcid_file):
                 hcid_dict[d["taxon_id"]]["classified_parent_found"] = False
     return hcid_dict
 
-
-def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
-    parents, children = load_from_taxonomy(taxonomy_dir)
-
+def infer_taxid_map(hcid_dict, loaded_taxonomy):
     taxid_map = {}
     for d in hcid_dict:
         if not d:
@@ -109,28 +38,31 @@ def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
             lookup.extend(hcid_dict["alt_taxon_ids"])
         while len(lookup) > 0:
             child = lookup.pop()
-            if child in children:
-                lookup.extend(children[child])
+            if child in loaded_taxonomy.children:
+                lookup.extend(loaded_taxonomy.children[child])
             taxid_map[child] = d
-        if d in parents:
-            taxid_map[parents[d]] = parents[d]
+        if d in loaded_taxonomy.parents:
+            taxid_map[loaded_taxonomy.parents[d]] = loaded_taxonomy.parents[d]
+    return taxid_map
 
-    entries, counts = parse_report_file(kreport_file, taxid_map)
+def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
+    loaded_taxonomy = Taxonomy(taxonomy_dir)
+    taxid_map = infer_taxid_map(hcid_dict, loaded_taxonomy)
+
+    kraken_report = KrakenReport(kreport_file)
     for taxid in hcid_dict:
-        hcid_dict[taxid]["classified_count"] = counts[taxid]
-        if taxid in parents and parents[taxid] in entries:
+        hcid_dict[taxid]["classified_count"] = kraken_report.entries[taxid].count
+        if taxid in loaded_taxonomy.parents and loaded_taxonomy.parents[taxid] in kraken_report.entries:
             print(
                 taxid,
-                parents[taxid],
-                parents[taxid] in taxid_map,
-                parents[taxid] in entries,
+                loaded_taxonomy.parents[taxid],
+                loaded_taxonomy.parents[taxid] in taxid_map,
+                loaded_taxonomy.parents[taxid] in kraken_report.entries,
             )
-            hcid_dict[taxid]["classified_parent_count"] = entries[parents[taxid]][
-                "count_descendants"
-            ]
-        if counts[taxid] > hcid_dict[taxid]["min_count"]:
+            hcid_dict[taxid]["classified_parent_count"] = kraken_report.entries[loaded_taxonomy.parents[taxid]].count
+        if hcid_dict[taxid]["classified_count"] > hcid_dict[taxid]["min_count"]:
             hcid_dict[taxid]["classified_found"] = True
-        if counts[parents[taxid]] > hcid_dict[taxid]["min_count"]:
+        if hcid_dict[taxid]["classified_parent_count"] > hcid_dict[taxid]["min_count"]:
             hcid_dict[taxid]["classified_parent_found"] = True
 
 
