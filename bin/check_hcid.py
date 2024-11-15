@@ -117,7 +117,7 @@ def check_ref_coverage(hcid_dict, query, reference, preset):
                 hcid_dict[taxon]["mapped_required"] += 1
                 hcid_dict[taxon]["mapped_count"] += counts[ref]
             ref_covg = check_pileup(ref, ranges[ref], reference)
-            if ref_covg < 0.5:
+            if ref_covg < hcid_dict[taxon]["min_coverage"]:
                 hcid_dict[taxon]["mapped_found"] = False
             hcid_dict[taxon]["mapped_required_details"].append(
                 "%s:%i:%f" % (ref, counts[ref], ref_covg)
