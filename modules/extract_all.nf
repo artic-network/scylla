@@ -43,7 +43,7 @@ process extract_taxa_paired_reads {
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
-        tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport), val(min_reads), val(min_percent)
+        tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
         path taxonomy_dir
     output:
         tuple val(unique_id), path("*.fastq"), emit: reads
@@ -62,7 +62,7 @@ process extract_taxa_paired_reads {
             -p ${kreport} \
             --include_children \
             --min_count_descendants ${min_reads} \
-            --rank ${params.extract_rank} \
+            --rank ${taxon_rank} \
             --min_percent ${min_percent} \
             ${extra}
 
