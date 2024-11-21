@@ -8,9 +8,12 @@ from datetime import datetime
 from collections import defaultdict
 import mappy as mp
 import argparse
+import pyfastx
 
 from report import KrakenReport
 from taxonomy import Taxonomy
+from extract_utils import mean,median
+from assignment import trim_read_id
 
 
 def load_hcid_dict(hcid_file):
@@ -69,6 +72,7 @@ def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
 def map_to_refs(query, reference, preset):
     counts = defaultdict(int)
     ranges = defaultdict(list)
+    read_ids = defaultdict(list)
     a = mp.Aligner(reference, best_n=1, preset=preset)  # load or build index
     if not a:
         raise Exception("ERROR: failed to load/build index")
@@ -79,11 +83,12 @@ def map_to_refs(query, reference, preset):
         for hit in a.map(seq):  # traverse alignments
             counts[hit.ctg] += 1
             ranges[hit.ctg].append([hit.r_st, hit.r_en])
+            read_ids[hit.ctg].append(name)
             # print("{}\t{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
             break
         #if read_count % 1000000 == 0:
         #    break
-    return counts, ranges
+    return counts, ranges, read_ids
 
 
 def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
@@ -101,7 +106,7 @@ def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
 
 
 def check_ref_coverage(hcid_dict, query, reference, preset):
-    counts, ranges = map_to_refs(query, reference, preset)
+    counts, ranges, read_ids = map_to_refs(query, reference, preset)
 
     for taxon in hcid_dict:
         taxon_found = True
@@ -110,7 +115,9 @@ def check_ref_coverage(hcid_dict, query, reference, preset):
         hcid_dict[taxon]["mapped_required_details"] = []
         hcid_dict[taxon]["mapped_additional"] = 0
         hcid_dict[taxon]["mapped_found"] = True
+        hcid_dict[taxon]["mapped_read_ids"] = []
         for ref in hcid_dict[taxon]["required_refs"]:
+            hcid_dict[taxon]["mapped_read_ids"].extend(read_ids[ref])
             if counts[ref] < hcid_dict[taxon]["min_count"]:
                 hcid_dict[taxon]["mapped_found"] = False
             if counts[ref] > 0:
@@ -129,6 +136,7 @@ def check_ref_coverage(hcid_dict, query, reference, preset):
             hcid_dict[taxon]["mapped_required_details"]
         )
         for ref in hcid_dict[taxon]["additional_refs"]:
+            hcid_dict[taxon]["mapped_read_ids"].extend(read_ids[ref])
             if counts[ref] > 0:
                 hcid_dict[taxon]["mapped_additional"] += 1
                 hcid_dict[taxon]["mapped_count"] += counts[ref]
@@ -138,13 +146,23 @@ def check_ref_coverage(hcid_dict, query, reference, preset):
             ) / len(hcid_dict[taxon]["additional_refs"])
 
 
-def report_findings(hcid_dict, prefix):
+def report_findings(hcid_dict, read_file, prefix):
     found = []
     for taxid in hcid_dict:
         if hcid_dict[taxid]["mapped_found"] and (
             hcid_dict[taxid]["classified_found"]
             or hcid_dict[taxid]["classified_parent_found"]
         ):
+            quals = []
+            lens = []
+            with open("%s.reads.fq" % taxid, "w") as f_reads:
+                for record in pyfastx.Fastq(read_file, build_index=False):
+                    name, seq, qual = record
+                    trimmed_name = trim_read_id(name)
+                    if trimmed_name in hcid_dict[taxid]["mapped_read_ids"]:
+                        f_reads.write(f"@{name}\n{seq}\n+\n{qual}\n")
+                        quals.append(median([ord(x) - 33 for x in qual]))
+                        lens.append(len(seq))
             with open("%s.warning.json" % taxid, "w") as f_warn:
                 msg1 = f"WARNING: Found {hcid_dict[taxid]['classified_count']} classified reads ({hcid_dict[taxid]['mapped_count']} mapped reads) of {hcid_dict[taxid]['name']} and {hcid_dict[taxid]['classified_parent_count']} classified reads for the parent taxon.\n"
                 msg2 = f"Mapping details for required references (ref_accession:mapped_read_count:fraction_ref_covered) {hcid_dict[taxid]['mapped_required_details']}.\n"
@@ -153,9 +171,12 @@ def report_findings(hcid_dict, prefix):
                                 "taxid":taxid,
                                 "classified_count":hcid_dict[taxid]['classified_count'],
                                 "mapped_count":hcid_dict[taxid]['mapped_count'],
+                                "mapped_mean_quality": mean(quals),
+                                "mapped_mean_length": mean(lens),
                                 "mapped_details":f"ref_accession:mapped_read_count:fraction_ref_covered|{hcid_dict[taxid]['mapped_required_details']}"
                             }
                 json.dump(warning, f_warn, indent=4, sort_keys=False)
+
             found.append(taxid)
     keys = [
         "name",
@@ -244,7 +265,7 @@ def main():
     sys.stderr.write("Check mapped coverage\n")
     check_ref_coverage(hcid_dict, args.reads, args.ref_fasta, preset)
     sys.stderr.write("Report findings\n")
-    report_findings(hcid_dict, args.prefix)
+    report_findings(hcid_dict, args.reads, args.prefix)
 
     now = datetime.now()
     time = now.strftime("%m/%d/%Y, %H:%M:%S")
