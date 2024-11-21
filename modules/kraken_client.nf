@@ -56,6 +56,8 @@ process bracken {
     
     label "process_low"
 
+    errorStrategy {"ignore"}
+
     publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy"
 
     conda "bioconda::bracken=2.7"
@@ -148,14 +150,11 @@ workflow run_kraken_and_bracken {
         if (params.run_bracken) {
             bracken_length = determine_bracken_length(database)
             bracken(kraken2_client.out.report, database, bracken_length)
-            bracken_to_json(bracken.out.summary, taxonomy)
-            out_json = bracken_to_json.out
-            out_report = bracken.output.report
-        } else {
-            kraken_to_json(kraken2_client.out.report, taxonomy)
-            out_json = kraken_to_json.out
-            out_report = kraken2_client.out.report
+
         }
+        kraken_to_json(kraken2_client.out.report, taxonomy)
+        out_json = kraken_to_json.out
+        out_report = kraken2_client.out.report
     emit:
         assignments = kraken2_client.out.assignments
         kreport = out_report

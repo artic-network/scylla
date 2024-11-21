@@ -4,8 +4,8 @@ process check_hcid {
 
     label "process_single"
 
-    conda "bioconda::mappy=2.26"
-    container "biocontainers/mappy:2.26--py310h83093d7_1"
+    conda "bioconda::mappy=2.28 bioconda::pyfastx=2.1.0"
+    container "community.wave.seqera.io/library/mappy_pyfastx:b4cc4b80f5e5decf"
 
     publishDir "${params.outdir}/${unique_id}/qc/", mode: 'copy'
 
@@ -16,6 +16,7 @@ process check_hcid {
         path hcid_refs
     output:
         tuple val(unique_id), path("*.warning.json"), emit: warnings, optional: true
+        tuple val(unique_id), path("*.reads.fq"), emit: reads, optional: true
         tuple val(unique_id), path("hcid.counts.csv"), emit: counts
     script:
         preset = ""
