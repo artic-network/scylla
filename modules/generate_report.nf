@@ -13,7 +13,7 @@ process make_report {
     container "${params.wf.container}:${params.wf.container_version}"
     
     input:
-        tuple val(unique_id), path(stats), path(lineages), path(warnings)
+        tuple val(unique_id), path(stats), val(database_name), path(lineages), path(warnings)
         path template
     output:
         tuple val(unique_id), path("${unique_id}_report.html")
@@ -21,10 +21,10 @@ process make_report {
         report_name = "${unique_id}"
         if ( params.run_sourmash ){
             classifier = "Sourmash"
-            classification_database = "${params.sourmash_db_name}"
+            classification_database = "${database_name}"
         } else {
             classifier = "Kraken"
-            classification_database = "${params.database_set}"
+            classification_database = "${database_name}"
         }
     """
     make_report.py \

@@ -1,100 +1,120 @@
-include { run_kraken_and_bracken } from '../modules/kraken_client'
-include { unpack_database } from '../modules/kraken_server'
-include { unpack_taxonomy } from '../modules/kraken_server'
-include { start_server } from '../modules/kraken_server'
+include { kraken2_client } from '../modules/kraken_client'
+include { get_server } from '../modules/kraken_server'
 include { stop_server } from '../modules/kraken_server'
 
-workflow kraken_setup {
-    take:
-        raise_server
-    main:
-        // Check source param is valid if applicable
-        if (!params.database or !params.taxonomy) {
-            sources = params.database_sets
-            source_name = params.database_set
-            source_data = sources.get(source_name, false)
-            if (!sources.containsKey(source_name) || !source_data) {
-                keys = sources.keySet()
-                throw new Exception("Source $params.source is invalid, must be one of $keys")
-            }
-        }
 
-        // Grab taxonomy files
-        if (params.taxonomy) {
-            taxonomy = file(params.taxonomy, type: "dir", checkIfExists:true)
-        } else {
-            default_taxonomy = source_data.get("taxonomy", false)
-            if (!default_taxonomy) {
-                throw new Exception(
-                    "Error: Source $source_name does not include a taxonomy for "
-                    + "use with kraken, please choose another source or"
-                    + "provide a custom taxonomy.")
-            }
-            input_taxonomy = file("${params.store_dir}/${params.database_set}/taxonomy_dir")
-            if (input_taxonomy.isEmpty()) {
-                taxonomy = unpack_taxonomy(default_taxonomy)
-            } else {
-                taxonomy = input_taxonomy
-            }
-        }
+process determine_bracken_length {
+    label "process_low"
 
-        // Grab database files
-        if (params.database) {
-            database = file(params.database, type: "dir", checkIfExists:true)
-        } else {
-            default_database = source_data.get("database", false)
-            if (!default_database) {
-                throw new Exception(
-                    "Error: Source $source_name does not include a database for "
-                    + "use with kraken, please choose another source or "
-                    + "provide a custom database.")
-            }
+    conda "anaconda::sed=4.8"
+    container "${params.wf.container}:${params.wf.container_version}"
 
-            input_database = file("${params.store_dir}/kraken/${params.database_set}/database_dir")
-            if (input_database.isEmpty()) {
-                database = unpack_database(default_database)
-            } else {
-                database = input_database
-            }
-        }
-
-        if (raise_server) {
-            start_server(database)
-            server = start_server.out.server
-        } else {
-            server = null
-        }
-    emit:
-        database = database
-        taxonomy = taxonomy
-        server = server
+    input:
+        tuple val(database_name), path(database)
+    output:
+        env BRACKEN_LENGTH
+    """
+    if [[ -f "${database}"/database${params.bracken_length}mers.kmer_distrib ]]; then
+        BRACKEN_LENGTH="${params.bracken_length}"
+    else
+        cd "${database}"
+        BRACKEN_LENGTH=\$(ls -v1 *.kmer_distrib | tail -1 | sed -e "s@^database@@" -e "s@mers.kmer_distrib@@")
+        cd ..
+    fi
+    """
 }
 
-workflow kraken_end {
+// this fails if the kraken file input is empty - currently have no check that it is populated
+process bracken {
+
+    label "process_low"
+
+    errorStrategy {"ignore"}
+
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy"
+
+    conda "bioconda::bracken=2.7"
+    container "biocontainers/bracken:2.9--py39h1f90b4d_0"
+
+    input:
+        tuple val(unique_id), val(db_name), path(kraken_report)
+        tuple val(database_name), path(database)
+        val bracken_length
+    output:
+        tuple val(unique_id), path("${database_name}.bracken_report.txt"), path("${database_name}.bracken_summary.txt"), emit: summary
+        tuple val(unique_id), path("${database_name}.bracken_report.txt"), emit: report
+    """
+    bracken \
+          -d "${database}" \
+          -i "${kraken_report}" \
+          -r "${bracken_length}" \
+          -l "${params.bracken_level}" \
+          -o "${database_name}.bracken_summary.txt" \
+          -w "${database_name}.bracken_report.txt"
+    """
+}
+
+process kraken_to_json {
+
+    label "process_low"
+
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy"
+
+    conda "bioconda::taxonkit=0.15.1 python=3.10"
+    container "${params.wf.container}:${params.wf.container_version}"
+
+
+    input:
+        tuple val(unique_id), val(database_name), path(kraken_report)
+        path taxonomy_dir
+    output:
+       tuple val(unique_id), val(database_name), path("${database_name}.kraken.json")
+
+    """
+    cat "${kraken_report}" | cut -f5,3 | tail -n+3 > taxacounts.txt
+    cat "${kraken_report}" | cut -f5 | tail -n+3 > taxa.txt
+    taxonkit lineage --data-dir ${taxonomy_dir}  -R taxa.txt  > lineages.txt
+    aggregate_lineages_bracken.py \\
+            -i "lineages.txt" -b "taxacounts.txt" \\
+            -u "${kraken_report}" \\
+            -p "temp_kraken"
+    file1=`cat *.json`
+    echo "{"'"${database_name}"'": "\$file1"}" >> "${database_name}.kraken.json"
+    """
+}
+
+workflow run_kraken_and_bracken {
     take:
-        server
-        stop
+        fastq_ch
+        server_ch
+        database_ch
     main:
-        stop_server(server, stop)
+        kraken2_client(server_ch, fastq_ch)
+        if (params.run_bracken) {
+            bracken_length = determine_bracken_length(database_ch)
+            bracken(kraken2_client.out.report, database_ch, bracken_length)
+        }
+
+    emit:
+        assignments = kraken2_client.out.assignments
+        kreport = kraken2_client.out.report
 }
 
 workflow kraken_classify {
     take:
         fastq_ch
+        database_key
         raise_server
     main:
-        kraken_setup(raise_server)
+        get_server(database_key, raise_server)
 
-        run_kraken_and_bracken(fastq_ch, kraken_setup.out.database, kraken_setup.out.taxonomy)
+        run_kraken_and_bracken(fastq_ch, get_server.out.server, get_server.out.database)
 
         if (raise_server)
-            kraken_end(kraken_setup.out.server, run_kraken_and_bracken.out.kreport.collect())
-
+            stop_server(get_server.out.server, run_kraken_and_bracken.out.kreport.collect())
     emit:
         assignments = run_kraken_and_bracken.out.assignments
         kreport = run_kraken_and_bracken.out.kreport
-        json = run_kraken_and_bracken.out.json
-        taxonomy = kraken_setup.out.taxonomy
 }
 
 workflow {
@@ -118,6 +138,6 @@ workflow {
     }
 
     input_fastq.map { it -> [unique_id, it] }.set { fastq_ch }
-    kraken_classify(fastq_ch, "${params.raise_server}")
+    kraken_classify(fastq_ch, "default", params.raise_server)
 }
 

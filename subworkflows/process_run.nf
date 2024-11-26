@@ -1,6 +1,6 @@
 // workflow to run kraken, check for human, run qc checks and generate html report for a single sample fastq
 include { get_params_and_versions } from '../modules/get_params_and_versions'
-include { kraken_setup; kraken_end } from '../modules/kraken_classification'
+include { get_server; stop_server } from '../modules/kraken_server'
 include { classify_and_report } from '../subworkflows/classify_and_report'
 include { classify_virus_fastq } from '../modules/classify_novel_viruses'
 include { extract_all } from '../modules/extract_all'
@@ -57,7 +57,7 @@ workflow process_barcode {
         else
             raw_ch = barcode_ch
 
-        classify_and_report(raw_ch, barcode_ch, null)
+        classify_and_report(raw_ch, barcode_ch, "default", null)
         extract_all(raw_ch, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
         if ( params.classify_novel_viruses ){
             classify_virus_fastq(extract_all.out.virus)
@@ -79,12 +79,12 @@ workflow process_run {
             barcode_input = Channel.fromPath("${run_dir}/*", type: "dir", checkIfExists:true, maxDepth:1).map { [it.baseName, get_fq_files_in_dir(it)]}
         barcode_input.view()
         if (params.raise_server)
-            kraken_setup(params.raise_server)
+            get_server("default", params.raise_server)
 
         process_barcode(barcode_input)
         process_barcode.out.report
             .map{ barcode_id, barcode_report -> "barcode,filepath,sample_report\n${barcode_id},${barcode_id}/classifications/${params.database_set}.kraken_report.txt,${barcode_id}/${barcode_id}_report.html\n" }.collectFile(name: "${params.outdir}/${unique_id}/samples.csv", sort:true, keepHeader:true, skip:1)
 
         if (params.raise_server)
-            kraken_end(kraken_setup.out.server, process_barcode.out.report.collect())
+            stop_server(get_server.out.server, process_barcode.out.report.collect())
 }

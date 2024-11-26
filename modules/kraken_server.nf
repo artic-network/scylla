@@ -16,58 +16,11 @@
 // - this might all be considered a bit inefficient - but we are set
 //   up for real-time dynamism not speed
 //
-
-
-
-process unpack_database {
-    label "process_single"
-    storeDir "${params.store_dir}/kraken/${params.database_set}"
-    input:
-        path database
-    output:
-        path "database_dir"
-    """
-    if [[ "${database}" == *.tar.gz ]]
-    then
-        mkdir database_dir
-        tar xf "${database}" -C database_dir
-    elif [ -d "${database}" ]
-    then
-        mv "${database}" database_dir
-    else
-        echo "Error: database is neither .tar.gz nor a dir"
-        echo "Exiting".
-        exit 1
-    fi
-    """
-}
-
-process unpack_taxonomy {
-    label "process_single"
-    storeDir "${params.store_dir}"
-    input:
-        path taxonomy
-    output:
-        path "taxonomy_dir"
-    """
-    if [[ "${taxonomy}" == *.tar.gz ]]
-    then
-        mkdir taxonomy_dir
-        tar xf "${taxonomy}" -C taxonomy_dir
-    elif [ -d "${taxonomy}" ]
-    then
-        mv "${taxonomy}" taxonomy_dir
-    else
-        echo "Error: taxonomy is neither .tar.gz nor a dir"
-        echo "Exiting".
-        exit 1
-    fi
-    """
-}
+include { setup_database } from '../modules/setup_database'
 
 kraken_compute = params.kraken_clients == 1 ? 1 : params.kraken_clients - 1
 
-process kraken_server {
+process start_kraken_server {
     label "process_long"
     label "process_high_memory"
     cpus {
@@ -81,6 +34,7 @@ process kraken_server {
             1
         } else {
             // remove one thread for at least one client, and another for other business
+            log.info("Set kraken2 classification server threads to ${Math.min(params.threads, max_local_threads - 2)} to ensure a classification client can be run.")
             Math.min(params.threads, max_local_threads - 2)
         }
     }
@@ -89,16 +43,16 @@ process kraken_server {
     container "${params.wf.container}:${params.wf.container_version}"
     containerOptions {workflow.profile != "singularity" ? "--network host" : ""}
     input:
-        path database
+        tuple val(database_name), path(database), val(k2_host), val(k2_port)
     output:
-        val true
+        tuple val(database_name), val(k2_host), val(k2_port)
     script:
     """
     # we add one to requests to allow for stop signal
     kraken2_server \
         --max-requests ${kraken_compute + 1} --thread-pool ${task.cpus}\
-        --port ${params.k2_port} \
-        --host-ip ${params.k2_host} \
+        --port ${k2_port} \
+        --host-ip ${k2_host} \
         --db ./${database}/ \
         --confidence ${params.kraken_confidence}
     """
@@ -114,19 +68,11 @@ process stop_kraken_server {
     // errorStrategy = { task.exitStatus in [8, 14] && task.attempt < 3 ? 'retry' : 'ignore' }
     errorStrategy 'ignore'
     input:
-        val stop
+        tuple val (database_name), val(k2_host), val(k2_port)
+        val (stop)
     """
-    kraken2_client --port ${params.k2_port} --host-ip ${params.k2_host} --shutdown
+    kraken2_client --port ${k2_port} --host-ip ${k2_host} --shutdown
     """
-}
-
-workflow start_server {
-    take:
-        database
-    main:
-        kraken_server(database)
-    emit:
-        server = kraken_server.out
 }
 
 workflow stop_server {
@@ -134,37 +80,58 @@ workflow stop_server {
         server
         stop
     main:
-        stop_kraken_server(stop)
+        stop_kraken_server(server, stop)
+}
+
+workflow get_server_address {
+    take:
+        server_key
+    main:
+        kraken_servers = params.kraken_database
+        server_data = kraken_servers.get(server_key)
+        if (!kraken_servers.containsKey(server_key) || !server_data) {
+            keys = kraken_servers.keySet()
+            throw new Exception("Source $server_key is invalid, must be one of $keys")
+        }
+        name = server_data.get("name")
+        host = server_data.get("host")
+        port = server_data.get("port")
+        server_address = [name, host, port]
+        //println(server_address)
+    emit:
+        server_address = server_address
+}
+
+
+workflow get_server {
+    take:
+        database_key
+        raise_server
+    main:
+        setup_database(database_key)
+        get_server_address(database_key)
+        database_ch = setup_database.out.database
+        server_ch = get_server_address.out.server_address
+        if (raise_server){
+            println("Raising server for ${database_key}")
+            combined_ch = database_ch.combine(server_ch, by: 0)
+            //combined_ch.view()
+            start_kraken_server(combined_ch)
+        }
+    emit:
+        database = database_ch
+        server = server_ch
 }
 
 workflow {
     // Grab database files
-    if (params.database) {
-        database = file(params.database, type: "dir", checkIfExists:true)
-    } else {
-            sources = params.database_sets
-            source_name = params.database_set
-            source_data = sources.get(source_name, false)
-            if (!sources.containsKey(source_name) || !source_data) {
-                keys = sources.keySet()
-                throw new Exception("Source $params.source is invalid, must be one of $keys")
-            }
-
-            default_database = source_data.get("database", false)
-            if (!default_database) {
-                throw new Exception(
-                    "Error: Source $source_name does not include a database for "
-                    + "use with kraken, please choose another source or "
-                    + "provide a custom database.")
-            }
-
-            input_database = file("${params.store_dir}/${params.database_set}/database_dir")
-            if (input_database.isEmpty()) {
-                database = unpack_database(default_database)
-            } else {
-                database = input_database
-            }
-    }
-
-    start_server(params.database)
+    //get_server("default", true)
+    name = "PlusPF-8"
+    database_path = "store_dir/kraken/PlusPF-8/database_dir"
+    database = file(database_path, type: "dir", checkIfExists:true)
+    host = "localhost"
+    port = "8080"
+    //println([name, database, host, port])
+    //start_kraken_server([name, database, host, port])
+    get_server("default", true)
 }
