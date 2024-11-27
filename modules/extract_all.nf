@@ -425,6 +425,29 @@ workflow extract_fractions {
         virus = bgzip_extracted_taxa.out.virus
 }
 
+workflow extract_virus_fraction {
+    take:
+        fastq_ch
+        assignments_ch
+        kreport_ch
+        taxonomy_dir
+    main:
+         assignments_ch.combine(kreport_ch, by:[0,1]).set{ classify_ch }
+         fastq_ch.combine(classify_ch, by: 0)
+                 .set{ full_extract_ch }
+
+        if ( params.paired ){
+            extract_paired_virus_and_unclassified(full_extract_ch, taxonomy_dir)
+            extract_paired_virus_and_unclassified.out.reads.set{extracted_fractions}
+        } else {
+            extract_virus_and_unclassified(full_extract_ch, taxonomy_dir)
+            extract_virus_and_unclassified.out.reads.set{extracted_fractions}
+        }
+        bgzip_extracted_taxa(extracted_fractions, "read_fractions")
+    emit:
+        virus = bgzip_extracted_taxa.out.virus
+}
+
 
 workflow extract_all {
     take:

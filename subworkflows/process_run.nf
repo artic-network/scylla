@@ -57,7 +57,7 @@ workflow process_barcode {
         else
             raw_ch = barcode_ch
 
-        classify_and_report(raw_ch, barcode_ch, "default", null)
+        classify_and_report(raw_ch, barcode_ch, false)
         extract_all(raw_ch, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
         if ( params.classify_novel_viruses ){
             classify_virus_fastq(extract_all.out.virus)

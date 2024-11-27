@@ -122,7 +122,7 @@ def main():
 
     # Initialize kraken assignment file
     kraken_assignment = KrakenAssignments(args.kraken_assignment_file)
-    read_map = kraken_assignment.parse_kraken_assignment_file(taxon_id_map)
+    read_map = kraken_assignment.get_read_map(taxon_id_map)
 
     out_counts = extract_reads(
         read_map,
