@@ -275,7 +275,8 @@ def main():
     # Load kraken report entries
     sys.stderr.write("Loading kraken report\n")
     kraken_report = KrakenReport(args.report_file)
-    kraken_report.check_host({9606:args.max_human})
+    if args.max_human:
+        kraken_report.check_host({"9606":args.max_human})
 
     # Initialize kraken assignment file
     sys.stderr.write("Loading kraken assignments\n")
