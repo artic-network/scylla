@@ -48,7 +48,7 @@ def get_taxon_id_lists(
             continue
         if min_count_descendants and entry.count < min_count_descendants:
             continue
-        if min_percent and kraken_report.get_percentage(taxon) < min_percent:
+        if min_percent and kraken_report.get_percentage(taxon, denominator="classified") < min_percent:
             continue
         if len(names) > 0 and entry.name not in names and taxon not in names:
             continue
@@ -215,7 +215,7 @@ def main():
         dest="min_percent",
         required=False,
         type=float,
-        help="Minimum percentage of reads e.g 4",
+        help="Minimum percentage of classified reads e.g 4",
     )
     parser.add_argument(
         "--n",
