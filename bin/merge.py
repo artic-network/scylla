@@ -2,9 +2,11 @@
 
 from collections import defaultdict
 import sys
+import argparse
+from datetime import datetime
 
-from krakenpy.report import KrakenReport
-from krakenpy.assignment import KrakenAssignments
+from report import KrakenReport
+from assignment import KrakenAssignments
 
 def merge_all_assignments(list_assignment_files, output_file):
     kraken_assignments = KrakenAssignments(output_file)
@@ -65,3 +67,41 @@ def merge(kraken_assignment_files, kraken_report_files, out_prefix):
     print(f"Save results to {out_prefix}.kraken_assignments.tsv and {out_prefix}.kraken_report.txt")
     merged_assignments.save()
     merged_reports.save(f"{out_prefix}.kraken_report.txt")
+
+# Main method
+def main():
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-r",
+        dest="in_reports",
+        nargs ='+',
+        required=True,
+        help='A number of kraken reports for the same dataset ordered by preference (later=higher)'
+    )
+    parser.add_argument(
+            "-a",
+            dest="in_assignments",
+            nargs ='+',
+            required=True,
+            help='A number of kraken assignment files for the same dataset ordered by preference (later=higher)'
+        )
+
+    args = parser.parse_args()
+
+    # Start Program
+    now = datetime.now()
+    time = now.strftime("%m/%d/%Y, %H:%M:%S")
+    sys.stdout.write("PROGRAM START TIME: " + time + "\n")
+
+    merge(args.in_assignments, args.in_reports, "merged")
+
+    now = datetime.now()
+    time = now.strftime("%m/%d/%Y, %H:%M:%S")
+    sys.stdout.write("PROGRAM END TIME: " + time + "\n")
+
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
