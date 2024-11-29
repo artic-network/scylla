@@ -34,6 +34,11 @@ def get_taxon_id_lists(
     include_parents=False,
     include_children=False
 ):
+    """
+    Loops through the kraken report, and for each taxon_id in the report, if it meets the thresholds, a key is added to
+    lists_to_extract. The values in this dictionary are all taxon_ids which should be added to the file alongside the
+    key taxon_id (e.g. parents or children)
+    """
     lists_to_extract = defaultdict(set)
     for taxon in kraken_report.entries:
         entry = kraken_report.entries[taxon]
@@ -100,8 +105,8 @@ def extract_taxa(
     # open read files
     filetype, zipped = check_read_files(reads1)
 
+    # This inverts the lists_to_extract to identify for an assigned taxon_id, which taxon_id files it should be added to.
     subtaxa_map = defaultdict(set)
-
     for taxon, subtaxons in lists_to_extract.items():
         for subtaxa in subtaxons:
             subtaxa_map[subtaxa].add(taxon)

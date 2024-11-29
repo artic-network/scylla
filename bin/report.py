@@ -4,7 +4,6 @@ from collections import defaultdict
 import csv
 import sys
 
-
 class KrakenEntry:
     """
     A class representing a line in a kraken report.
@@ -16,7 +15,7 @@ class KrakenEntry:
         depth (int): The number of indentations this entry had in the kraken file (related to hierarchy).
         count (int): The count of reads assigned to this taxon and its descendants.
         ucount (int): The count of reads assigned specifically to this taxon.
-        domain (str): The domain this taxon is a member of.
+        domain (str): The domain this taxon is a member of (name not taxon_id).
         parent (str): The taxon id associated with the taxonomic parent.
         children (set): A set of taxon ids associated with the direct taxonomic children.
         sibling_rank (int): An integer representing the ranking among direct siblings (share the parent) based on count.
@@ -153,7 +152,7 @@ class KrakenReport:
         self.total = 0
         self.unclassified = 0
         self.classified = 0
-        self.domains = defaultdict(int)
+        self.domains = defaultdict(str) # maps name to taxon_id
         self.file_name = file_name
         if file_name:
             self.load_file(file_name)
@@ -189,13 +188,14 @@ class KrakenReport:
         """
         Rank siblings (share common parent) based on the number of classified reads (count including descendants). Lower
         rank means higher read count. Rank starts at 1, 2, 3, ...
+        Only operates below domain level
 
         Parameters:
             parent_id (str): taxon_id of parent.
             child_id (str): taxon_id of child.
         """
         for entry_id, entry in self.entries.items():
-            if entry.sibling_rank > 0 or entry.parent in [None, 1, 131567]:
+            if entry.sibling_rank > 0 or entry.parent is None:
                 continue
             if entry.rank in ["D", "R", "R1"]:
                 entry.set_sibling_rank(1)
@@ -215,9 +215,9 @@ class KrakenReport:
         for entry_id in self.entries:
             if self.entries[entry_id].sibling_rank == 0:
                 print(entry_id)
-                assert(entry_id == "0")
+                assert(entry_id in ["0","1"])
 
-    def check_report(self):
+    def check_report(self, file_name):
         """
         Check every line in the kraken report has the appropriate number of tab separated fields
 
@@ -228,12 +228,12 @@ class KrakenReport:
             report_has_header (bool): True if report includes the header line
             num_fields (int) number of fields in a line [6,8]
         """
-        with open(self.file_name, 'r') as handle:
+        with open(file_name, 'r') as handle:
             line = handle.readline()
             num_fields = len(line.split("\t"))
             if num_fields not in [6,8]:
                 sys.stderr.write(
-                    f"Kraken report file {self.file_name} badly formatted - must have 6 or 8 columns"
+                    f"Kraken report file {file_name} badly formatted - must have 6 or 8 columns"
                     )
                 sys.exit(9)
             if line.startswith("%"):
@@ -254,7 +254,7 @@ class KrakenReport:
         """
         csvfile = open(file_name, newline='')
         df = {}
-        report_has_header, num_fields = self.check_report()
+        report_has_header, num_fields = self.check_report(file_name)
         if report_has_header:
             df = csv.DictReader(csvfile, delimiter="\t")
         elif num_fields == 6:
@@ -272,9 +272,10 @@ class KrakenReport:
                 entry = KrakenEntry(row=row, domain=domain, hierarchy=hierarchy)
 
             except:
-                print(f"Found badly formatted row:\n{row}")
-                print(f"Quitting load of {file_name}")
-                break
+                sys.stderr.write(
+                    f"Found badly formatted row:\n{row}\n. Quitting load of {file_name}."
+                )
+                sys.exit(9)
 
             self.entries[entry.taxon_id] = entry
             hierarchy = entry.hierarchy.copy()
@@ -296,7 +297,7 @@ class KrakenReport:
         domains = []
         for entry_id, entry in self.entries.items():
             if entry.rank == "D":
-                domains.append(entry)
+                domains.append(entry_id)
                 entry.print()
         return domains
 
@@ -309,8 +310,8 @@ class KrakenReport:
         """
         tips = []
         for entry_id, entry in self.entries.items():
-            if len(entry.children) == 0:
-                tips.append(entry)
+            if len(entry.children) == 0 and entry_id != "0":
+                tips.append(entry_id)
                 entry.print()
         return tips
 
@@ -326,7 +327,7 @@ class KrakenReport:
         subset = []
         for entry_id, entry in self.entries.items():
             if entry.rank == rank:
-                subset.append(entry)
+                subset.append(entry_id)
                 entry.print()
         return subset
 
@@ -357,7 +358,7 @@ class KrakenReport:
         #print(f"{count}/{total} = {percentage:.2f}")
         return percentage
 
-    def to_source_target_df(self, max_rank=None, domain=None):
+    def to_source_target_df(self, out_file="source_target.csv", max_rank=None, domain=None):
         """
         Convert this KrakenReport to a CSV with "source", "target", "value", "percentage" columns. If max_rank given,
         the result is filtered to including only this number of top-ranking children for each parent. If domain is
@@ -373,15 +374,19 @@ class KrakenReport:
         records = []
         ignore = set()
         skip = set()
+        denominator = "total"
+
         for entry_id, entry in self.entries.items():
 
             # we don't want the connections to cellular organisms, root etc
-            if entry.sibling_rank == 0:
+            if entry.parent in [None, "0", "1", "131567"]:
                 continue
 
             # filter by domain where required
-            if domain and entry.domain != domain:
-                continue
+            if domain:
+                denominator = domain
+                if entry.domain != domain:
+                    continue
 
             # filter by rank when specified
             if max_rank:
@@ -393,7 +398,7 @@ class KrakenReport:
                     continue
 
             # filter if an intermediate rank
-            if entry.rank not in ["K", "D", "D1", "D2", "P", "C", "O", "F", "G", "S", "S1", "S2"]:
+            if entry.rank not in ["K", "D", "D1", "D2", "P", "C", "O", "F", "G", "G1", "S", "S1", "S2"]:
                 skip.add(entry_id)
                 continue
 
@@ -402,9 +407,9 @@ class KrakenReport:
                 index += 1
             source_id = entry.hierarchy[-index]
             records.append({"source": self.entries[source_id].name, "target": entry.name, "value": entry.count,
-                            "percentage": self.get_percentage(entry_id, denominator=domain)})
+                            "percentage": self.get_percentage(entry_id, denominator=denominator)})
 
-        with open("source_target.csv", 'w', newline='') as csvfile:
+        with open(f"{out_file}", 'w', newline='') as csvfile:
             fieldnames = ["source", "target", "value", "percentage"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
@@ -423,6 +428,8 @@ class KrakenReport:
             sample_id (str): (optional) A name to give this report in the dataframe.
             ranks (list): (optional) A list of strings corresponding to ranks to include.
         """
+        import pandas as pd
+
         if not ranks or len(ranks) == 0:
             taxon_ids = [e for e in self.entries.keys()]
         else:
@@ -527,7 +534,9 @@ class KrakenReport:
                 set_zeroes.add(taxon_id)
         for taxon_id in set_zeroes:
             entry = self.entries[taxon_id]
-            self.entries[entry.parent].children.remove(taxon_id)
+            if entry.parent in self.entries:
+                print(taxon_id, entry.parent, self.entries[entry.parent].children)
+                self.entries[entry.parent].children.remove(taxon_id)
             for child in entry.children:
                 if child in self.entries:
                     assert(child in set_zeroes)

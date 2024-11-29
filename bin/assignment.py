@@ -19,6 +19,34 @@ def trim_read_id(read_id):
 
     return read_id
 
+def get_mrca(taxon_id1, taxon_id2, parents):
+    if taxon_id1 == taxon_id2:
+        return taxon_id1
+    elif taxon_id1 == "0" or taxon_id2 == "0":
+        return "0"
+
+    ancestry1 = []
+    current = taxon_id1
+    while current in parents and current != "1":
+        ancestry1.append(current)
+        current = parents[current]
+    ancestry1.append(current)
+    ancestry1.reverse()
+
+    ancestry2 = []
+    current = taxon_id2
+    while current in parents and current != "1":
+        ancestry2.append(current)
+        current = parents[current]
+    ancestry2.append(current)
+    ancestry2.reverse()
+
+    index = min(len(ancestry1), len(ancestry2)) - 1
+    while index > 0 and ancestry1[index] != ancestry2[index]:
+        index -= 1
+    return ancestry1[index]
+
+
 class KrakenAssignmentEntry:
     """
     A class representing a line in a kraken assignment file.
@@ -124,37 +152,48 @@ class KrakenAssignments:
     def get_read_map(self, taxon_id_map, parents=None):
         """
         Parses the kraken assignment file and collects the read_ids associated with each of the
-        required taxon ids.
+        required taxon ids. If paired reads are provided, will consider the common ancestor of
+        the 2 assignments
 
         Parameters:
-            taxon_id_map (dict): A dict from a taxon id to a list of related taxon_ids.
+            taxon_id_map (iter): Iterable of taxon ids to identify reads for.
             parents (dict): A dict mapping taxon id to parent taxon id from NCBI Taxonomy
 
         Returns:
-            read_map (dict): A dict from read_id to a set of values from the taxon_id_map if the
-                             read_id was classified as the taxon_id.
+            read_map (dict): A dict from read_id to a taxon_id in the input iterable.
         """
-        read_map = defaultdict(set)
+        read_map = defaultdict(str)
+        extended_map = defaultdict(str)
+        comments = set()
         with open(self.file_name, "r") as kfile:
             for line in kfile:
                 assignment = KrakenAssignmentEntry(line)
                 taxon_id, read_id = assignment.taxon_id, assignment.read_id
-                if taxon_id in taxon_id_map:
-                    if read_id in read_map and taxon_id != read_map[read_id]:
+
+                corrected_taxon_id = taxon_id
+                if parents:
+                    while corrected_taxon_id in parents and corrected_taxon_id not in taxon_id_map and corrected_taxon_id != "1":
+                        corrected_taxon_id = parents[corrected_taxon_id]
+                        if corrected_taxon_id in taxon_id_map and corrected_taxon_id!= taxon_id:
+                            comments.add(f"Assign {taxon_id} to {corrected_taxon_id} list")
+
+                if read_id in extended_map:
+                    mrca_taxon_id = get_mrca(corrected_taxon_id, extended_map[read_id], parents)
+                    if mrca_taxon_id in taxon_id_map:
+                        if mrca_taxon_id != read_map[read_id]:
+                            comments.add(f"Reassign {extended_map[read_id]} (and {corrected_taxon_id}) to mrca {mrca_taxon_id} list")
+                            read_map[read_id] = mrca_taxon_id
+                    elif read_id in read_map:
+                        comments.add(f"MRCA {mrca_taxon_id} of {extended_map[read_id]} and {corrected_taxon_id} not in taxon_id_map")
                         del read_map[read_id]
-                    else:
-                        read_map[read_id].add(taxon_id)
-                elif parents:
-                    # handle case where taxon_id has changed
-                    current = taxon_id
-                    while current in parents and current not in taxon_id_map and current != "1":
-                        current = parents[current]
-                        if current in taxon_id_map:
-                            print(f"Add {taxon_id} to {current} list")
-                            if read_id in read_map and current != read_map[read_id]:
-                                del read_map[read_id]
-                            else:
-                                read_map[read_id].add(current)
+
+                elif corrected_taxon_id in taxon_id_map:
+                    if corrected_taxon_id != taxon_id:
+                        comments.add(f"Assign {taxon_id} to {corrected_taxon_id} list")
+                    read_map[read_id] = corrected_taxon_id
+                extended_map[read_id] = taxon_id
+        for c in comments:
+            print(c)
         return read_map
 
     def load_file(self, taxon_ids=None):

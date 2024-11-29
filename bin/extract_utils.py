@@ -229,7 +229,8 @@ def file_iterator(read_file, read_map, subtaxa_map, inverse, out_counts, quals, 
         trimmed_name = trim_read_id(name)
         if inverse:
             if trimmed_name in reads_of_interest:
-                for taxon in read_map[trimmed_name]:
+                taxon_id = read_map[trimmed_name]
+                for taxon in subtaxa_map[taxon_id]:
                     update_summary_with_record(taxon, record, out_counts, quals, lens)
                 continue
             else:
@@ -239,10 +240,10 @@ def file_iterator(read_file, read_map, subtaxa_map, inverse, out_counts, quals, 
         elif not inverse:
             if trimmed_name not in reads_of_interest:
                 continue
-            for k2_taxon in read_map[trimmed_name]:
-                for taxon in subtaxa_map[k2_taxon]:
-                    count += 1
-                    add_record(taxon, record, out_counts, quals, lens, filenames, file_index, out_handles=out_handles, out_records=out_records)
+            taxon_id = read_map[trimmed_name]
+            for taxon in subtaxa_map[taxon_id]:
+                count += 1
+                add_record(taxon, record, out_counts, quals, lens, filenames, file_index, out_handles=out_handles, out_records=out_records)
 
     if not low_memory:
         save_records_to_file(out_records, filenames, file_index)
