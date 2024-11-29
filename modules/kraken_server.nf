@@ -123,6 +123,26 @@ workflow get_server {
         server = server_ch
 }
 
+workflow get_default_server {
+    take:
+        raise_server
+    main:
+        get_server("default", raise_server)
+    emit:
+        database = get_server.out.database
+        server = get_server.out.server
+}
+
+workflow get_viral_server {
+    take:
+        raise_server
+    main:
+        get_server("viral", raise_server)
+    emit:
+        database = get_server.out.database
+        server = get_server.out.server
+}
+
 workflow {
     // Grab database files
     //get_server("default", true)
