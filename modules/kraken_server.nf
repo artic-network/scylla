@@ -75,14 +75,6 @@ process stop_kraken_server {
     """
 }
 
-workflow stop_server {
-    take:
-        server
-        stop
-    main:
-        stop_kraken_server(server, stop)
-}
-
 workflow get_server_address {
     take:
         server_key
@@ -141,6 +133,32 @@ workflow get_viral_server {
     emit:
         database = get_server.out.database
         server = get_server.out.server
+}
+
+workflow stop_server {
+    take:
+       server
+       stop
+    main:
+        stop_kraken_server(server, stop)
+}
+
+workflow stop_default_server {
+    take:
+       server
+       stop
+    main:
+        println("Stopping server for ${kraken_database.default.name}")
+        stop_kraken_server(server, stop)
+}
+
+workflow stop_viral_server {
+    take:
+       server
+       stop
+    main:
+        println("Stopping server for ${kraken_database.viral.name}")
+        stop_kraken_server(server, stop)
 }
 
 workflow {
