@@ -10,7 +10,7 @@ process check_hcid {
     publishDir "${params.outdir}/${unique_id}/qc/", mode: 'copy'
 
     input:
-        tuple val(unique_id), path(kreport), path(reads)
+        tuple val(unique_id), val(database_name), path(kreport), path(reads)
         path taxonomy
         path hcid_defs
         path hcid_refs
@@ -49,7 +49,7 @@ workflow check_hcid_status {
         check_hcid(input_ch, taxonomy, hcid_defs, hcid_refs)
 
         empty_file = file("$projectDir/resources/empty_file")
-        kreport_ch.map{unique_id, kreport -> [unique_id, empty_file]}
+        kreport_ch.map{unique_id, database_name, kreport -> [unique_id, empty_file]}
             .concat(check_hcid.out.warnings)
             .collectFile()
             .map{f -> [f.simpleName, f]}
@@ -65,7 +65,7 @@ workflow {
     if (unique_id == "null") {
        unique_id = "${fastq.simpleName}"
     }
-    kreport_ch = Channel.of([unique_id, kreport])
+    kreport_ch = Channel.of([unique_id, "default", kreport])
     fastq_ch = Channel.of([unique_id, fastq])
 
     taxonomy_dir = file(params.taxonomy, type: "dir", checkIfExists:true)

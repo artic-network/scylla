@@ -1,5 +1,5 @@
 // This file contains workflow to classify with sourmash
-include { unpack_taxonomy } from '../modules/kraken_server'
+include { unpack_taxonomy } from '../modules/setup_taxonomy'
 
 process unpack_database {
     label "process_single"

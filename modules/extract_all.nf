@@ -18,7 +18,7 @@ process split_kreport {
     publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", overwrite: false, pattern: "*.json"
 
     input:
-        tuple val(unique_id), path(kreport)
+        tuple val(unique_id), val(database_name), path(kreport)
     output:
         tuple val(unique_id), path("*.kreport_split.txt"), emit: reports
         tuple val(unique_id), path("*.json"), emit: json
@@ -43,7 +43,7 @@ process extract_taxa_paired_reads {
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
-        tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
+        tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
         path taxonomy_dir
     output:
         tuple val(unique_id), path("*.fastq"), emit: reads
@@ -86,7 +86,7 @@ process extract_taxa_reads {
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
-        tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
+        tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
         path taxonomy_dir
     output:
         tuple val(unique_id), path("*.f*q"), emit: reads
@@ -128,7 +128,7 @@ process extract_paired_virus_and_unclassified {
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
-        tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport)
+        tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
         path taxonomy_dir
     output:
         tuple val(unique_id), path("*.fastq"), emit: reads
@@ -158,7 +158,7 @@ process extract_virus_and_unclassified {
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
-        tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport)
+        tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
         path taxonomy_dir
     output:
         tuple val(unique_id), path("*.fastq"), emit: reads
@@ -188,7 +188,7 @@ process extract_paired_virus {
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
-        tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport)
+        tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
         path taxonomy_dir
     output:
         tuple val(unique_id), path("*.fastq"), emit: reads
@@ -217,7 +217,7 @@ process extract_virus {
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
-        tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport)
+        tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
         path taxonomy_dir
     output:
         tuple val(unique_id), path("*.fastq"), emit: reads
@@ -246,7 +246,7 @@ process extract_paired_dehumanised {
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
-        tuple val(unique_id), path(fastq1), path(fastq2), path(kraken_assignments), path(kreport)
+        tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
         path taxonomy_dir
     output:
         tuple val(unique_id), path("*.fastq"), emit: reads
@@ -276,7 +276,7 @@ process extract_dehumanised {
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
     input:
-        tuple val(unique_id), path(fastq), path(kraken_assignments), path(kreport)
+        tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
         path taxonomy_dir
     output:
         tuple val(unique_id), path("*.fastq"), emit: reads
@@ -359,8 +359,8 @@ workflow extract_taxa {
                     .map { unique_id, kreport, key -> [unique_id, kreport, thresholds.get(key,"false").get("taxon_rank","false"), thresholds.get(key,"false").get("min_reads","false"), thresholds.get(key,"false").get("min_percent","false")] }
                     .set{ kreport_params_ch }
 
-        fastq_ch.combine(assignments_ch, by: 0)
-                .combine(kreport_params_ch, by: 0)
+        assignments_ch.combine(kreport_params_ch, by:0).set{ classify_ch }
+        fastq_ch.combine(classify_ch, by: 0)
                 .set{ extract_ch }
 
         if ( params.paired ){
@@ -392,9 +392,9 @@ workflow extract_fractions {
         kreport_ch
         taxonomy_dir
     main:
-        fastq_ch.combine(assignments_ch, by: 0)
-                .combine(kreport_ch, by: 0)
-                .set{ full_extract_ch }
+         assignments_ch.combine(kreport_ch, by:[0,1]).set{ classify_ch }
+         fastq_ch.combine(classify_ch, by: 0)
+                 .set{ full_extract_ch }
 
         if ( params.paired ){
             extract_paired_dehumanised(full_extract_ch, taxonomy_dir)
@@ -425,6 +425,29 @@ workflow extract_fractions {
         virus = bgzip_extracted_taxa.out.virus
 }
 
+workflow extract_virus_fraction {
+    take:
+        fastq_ch
+        assignments_ch
+        kreport_ch
+        taxonomy_dir
+    main:
+         assignments_ch.combine(kreport_ch, by:[0,1]).set{ classify_ch }
+         fastq_ch.combine(classify_ch, by: 0)
+                 .set{ full_extract_ch }
+
+        if ( params.paired ){
+            extract_paired_virus_and_unclassified(full_extract_ch, taxonomy_dir)
+            extract_paired_virus_and_unclassified.out.reads.set{extracted_fractions}
+        } else {
+            extract_virus_and_unclassified(full_extract_ch, taxonomy_dir)
+            extract_virus_and_unclassified.out.reads.set{extracted_fractions}
+        }
+        bgzip_extracted_taxa(extracted_fractions, "read_fractions")
+    emit:
+        virus = bgzip_extracted_taxa.out.virus
+}
+
 
 workflow extract_all {
     take:
@@ -451,8 +474,8 @@ workflow {
     }
 
     fastq_ch = Channel.of([unique_id, fastq])
-    assignments_ch = Channel.of([unique_id, assignments])
-    kreport_ch = Channel.of([unique_id, kreport])
+    assignments_ch = Channel.of([unique_id, "Viral", assignments])
+    kreport_ch = Channel.of([unique_id, "Viral", kreport])
     taxonomy_dir = file(params.taxonomy, type: "dir", checkIfExists:true)
 
     extract_all(fastq_ch, assignments_ch, kreport_ch, taxonomy_dir)

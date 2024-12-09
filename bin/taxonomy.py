@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import sys
 from collections import defaultdict
@@ -23,6 +25,12 @@ class TaxonEntry:
         self.taxon_id = taxon_id
         self.name = name
         self.rank = rank
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
 
     def print(self):
         """
@@ -51,6 +59,12 @@ class Taxonomy:
         if taxonomy_dir and taxon_ids:
             self.load_entries(taxonomy_dir, taxon_ids)
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
+
     def load_parents_and_children(self, taxonomy_dir):
         """
         Loads the parent child relationships from the "nodes.dmp" file in the taxonomy directory.
@@ -60,6 +74,7 @@ class Taxonomy:
             taxonomy_dir (str): The unzipped directory downloaded from NCBI taxonomy.
         """
         taxonomy = os.path.join(taxonomy_dir, "nodes.dmp")
+
         try:
             with open(taxonomy, "r") as f:
                 for line in f:

@@ -34,6 +34,11 @@ def get_taxon_id_lists(
     include_parents=False,
     include_children=False
 ):
+    """
+    Loops through the kraken report, and for each taxon_id in the report, if it meets the thresholds, a key is added to
+    lists_to_extract. The values in this dictionary are all taxon_ids which should be added to the file alongside the
+    key taxon_id (e.g. parents or children)
+    """
     lists_to_extract = defaultdict(set)
     for taxon in kraken_report.entries:
         entry = kraken_report.entries[taxon]
@@ -43,7 +48,7 @@ def get_taxon_id_lists(
             continue
         if min_count_descendants and entry.count < min_count_descendants:
             continue
-        if min_percent and kraken_report.get_percentage(taxon) < min_percent:
+        if min_percent and kraken_report.get_percentage(taxon, denominator="classified") < min_percent:
             continue
         if len(names) > 0 and entry.name not in names and taxon not in names:
             continue
@@ -100,8 +105,8 @@ def extract_taxa(
     # open read files
     filetype, zipped = check_read_files(reads1)
 
+    # This inverts the lists_to_extract to identify for an assigned taxon_id, which taxon_id files it should be added to.
     subtaxa_map = defaultdict(set)
-
     for taxon, subtaxons in lists_to_extract.items():
         for subtaxa in subtaxons:
             subtaxa_map[subtaxa].add(taxon)
@@ -109,7 +114,7 @@ def extract_taxa(
         #    "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES for %s\n"
         #    % (len(lists_to_extract[taxon]), taxon)
         # )
-    read_map = kraken_assignment.parse_kraken_assignment_file(subtaxa_map)
+    read_map = kraken_assignment.get_read_map(subtaxa_map)
 
     prefixes = setup_prefixes(lists_to_extract, prefix)
     out_counts, quals, lens, filenames = process_read_files(
@@ -210,7 +215,7 @@ def main():
         dest="min_percent",
         required=False,
         type=float,
-        help="Minimum percentage of reads e.g 4",
+        help="Minimum percentage of classified reads e.g 4",
     )
     parser.add_argument(
         "--n",
@@ -275,7 +280,8 @@ def main():
     # Load kraken report entries
     sys.stderr.write("Loading kraken report\n")
     kraken_report = KrakenReport(args.report_file)
-    kraken_report.check_host({9606:args.max_human})
+    if args.max_human:
+        kraken_report.check_host({"9606":args.max_human})
 
     # Initialize kraken assignment file
     sys.stderr.write("Loading kraken assignments\n")
