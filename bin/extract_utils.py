@@ -356,3 +356,7 @@ def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens,
 
     with open(f"{prefix}_summary.json", "w") as f:
         json.dump(summary, f)
+
+    for taxon_id in quals:
+        if mean(quals[taxon_id]) > 60:
+            sys.exit(1, f"Mean quality score for taxon_id {taxon_id} is {mean(quals[taxon_id])} > 60. This seems unlikely! Please report this example to the DIPI group for investigation")
