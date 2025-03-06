@@ -17,7 +17,7 @@ process check_single_fastq {
 
     script:
     """
-    $launchDir/bin/check_reads.py --fastq ${fastq}
+    $projectDir/bin/check_reads.py --fastq ${fastq}
     """
 }
 
@@ -121,7 +121,7 @@ process paired_concatenate {
 
     script:
     """
-    $launchDir/bin/concatenate_reads.py --no-interleave \\
+    $projectDir/bin/concatenate_reads.py --no-interleave \\
         ${processed_fastq_1} ${processed_fastq_2} \\
         --strict \\
         > ${unique_id}.concatenated.fastq
