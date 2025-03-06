@@ -149,7 +149,7 @@ class KrakenAssignments:
         else:
             return False
 
-    def get_read_map(self, taxon_id_map, parents=None):
+    def get_read_map(self, taxon_id_map, parents={}):
         """
         Parses the kraken assignment file and collects the read_ids associated with each of the
         required taxon ids. If paired reads are provided, will consider the common ancestor of
