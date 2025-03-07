@@ -39,6 +39,9 @@ process extract_taxa_paired_reads {
     errorStrategy {task.exitStatus in 2..3 ? "ignore" : "retry"}
     maxRetries 3
 
+    publishDir "${params.outdir}/${unique_id}/qc", pattern: "total_length.json", mode: "copy"
+
+
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
@@ -48,6 +51,7 @@ process extract_taxa_paired_reads {
     output:
         tuple val(unique_id), path("*.fastq"), emit: reads
         tuple val(unique_id), path("${kreport}_summary.json"), emit: summary
+        tuple val(unique_id), path("total_length.json"), emit: length
     script:
         extra = ""
         if ( params.reject_human )
@@ -82,6 +86,8 @@ process extract_taxa_reads {
     errorStrategy {task.exitStatus in 2..3 ? "ignore" : "retry"}
     maxRetries 3
 
+    publishDir "${params.outdir}/${unique_id}/qc", pattern: "total_length.json", mode: "copy"
+
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
 
@@ -91,6 +97,7 @@ process extract_taxa_reads {
     output:
         tuple val(unique_id), path("*.f*q"), emit: reads
         tuple val(unique_id), path("${kreport}_summary.json"), emit: summary
+        tuple val(unique_id), path("total_length.json"), emit: length
     script:
         extra = ""
         if ( params.reject_human )

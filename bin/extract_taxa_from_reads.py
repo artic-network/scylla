@@ -117,11 +117,11 @@ def extract_taxa(
     read_map = kraken_assignment.get_read_map(subtaxa_map)
 
     prefixes = setup_prefixes(lists_to_extract, prefix)
-    out_counts, quals, lens, filenames = process_read_files(
+    out_counts, quals, lens, filenames, total_length = process_read_files(
         prefixes, filetype, read_map, subtaxa_map, reads1, reads2, inverse=False, get_handles=False
     )
 
-    generate_summary(lists_to_extract, kraken_report.entries, prefix, out_counts, quals, lens, filenames, short=False)
+    generate_summary(lists_to_extract, kraken_report.entries, prefix, out_counts, quals, lens, filenames, total_length, short=False)
     return out_counts
 
 def check_out_counts(out_counts, kraken_report):

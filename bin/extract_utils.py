@@ -219,6 +219,7 @@ def file_iterator(read_file, read_map, subtaxa_map, inverse, out_counts, quals, 
     """
     reads_of_interest = set(read_map.keys())
     count = 0
+    total_length = 0
     out_records = None
     if not low_memory:
         out_records = defaultdict(list)
@@ -226,6 +227,7 @@ def file_iterator(read_file, read_map, subtaxa_map, inverse, out_counts, quals, 
     sys.stderr.write(f"Reading in {read_file}\n")
     for record in pyfastx.Fastq(read_file, build_index=False):
         name, seq, qual = record
+        total_length += len(seq)
         trimmed_name = trim_read_id(name)
         if inverse:
             if trimmed_name in reads_of_interest:
@@ -248,7 +250,7 @@ def file_iterator(read_file, read_map, subtaxa_map, inverse, out_counts, quals, 
     if not low_memory:
         save_records_to_file(out_records, filenames, file_index)
 
-    return count
+    return count, total_length
 
 def process_read_files(
     prefixes: str,
@@ -286,22 +288,22 @@ def process_read_files(
 
     filenames, out_handles_1, out_handles_2 = setup_outfiles(read_file_2, prefixes, filetype, get_handles=get_handles)
 
-    forward_count = file_iterator(read_file_1, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 0, out_handles_1, low_memory=get_handles)
+    forward_count, total_length = file_iterator(read_file_1, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 0, out_handles_1, low_memory=get_handles)
 
     reverse_count = 0
     if read_file_2:
-        reverse_count = file_iterator(read_file_2, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 1, out_handles_2, low_memory=get_handles)
-
+        reverse_count, reverse_length = file_iterator(read_file_2, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 1, out_handles_2, low_memory=get_handles)
+        total_length += reverse_length
         if forward_count != reverse_count and (forward_count == 0 or reverse_count == 0):
             sys.stderr.write(
                 "ERROR: No reads found for one of the file pair: extracted %i an %i reads respectively" % (forward_count, reverse_count)
             )
             sys.exit(7)
     close_outfiles(out_handles_1, out_handles_2)
-    return (out_counts, quals, lens, filenames)
+    return (out_counts, quals, lens, filenames, total_length)
 
 
-def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens, filenames, include_unclassified=False, short=False):
+def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens, filenames, total_length, include_unclassified=False, short=False):
     """
     Generate a summary JSON file, including information about each taxon ID and corresponding read statistics.
 
@@ -334,6 +336,7 @@ def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens,
                     "num_reads": out_counts[taxon_id],
                     "avg_qual": mean(quals[taxon_id]),
                     "mean_len": mean(lens[taxon_id]),
+                    "total_len": sum(lens[taxon_id]),
                 },
                 "includes_unclassified": include_unclassified
             }
@@ -349,6 +352,7 @@ def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens,
                     "num_reads": out_counts[taxon_id],
                     "avg_qual": mean(quals[taxon_id]),
                     "mean_len": mean(lens[taxon_id]),
+                    "total_len": sum(lens[taxon_id]),
                 },
                 "includes_unclassified": include_unclassified
             }
@@ -356,6 +360,9 @@ def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens,
 
     with open(f"{prefix}_summary.json", "w") as f:
         json.dump(summary, f)
+
+    with open(f"total_length.json", "w") as f:
+        json.dump({"total_len": total_length}, f)
 
     for taxon_id in quals:
         if mean(quals[taxon_id]) > 60:
