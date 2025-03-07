@@ -148,7 +148,7 @@ workflow stop_default_server {
        server
        stop
     main:
-        println("Stopping server for ${kraken_database.default.name}")
+        println("Stopping server for ${params.kraken_database.default.name}")
         stop_kraken_server(server, stop)
 }
 
@@ -157,7 +157,7 @@ workflow stop_viral_server {
        server
        stop
     main:
-        println("Stopping server for ${kraken_database.viral.name}")
+        println("Stopping server for ${params.kraken_database.viral.name}")
         stop_kraken_server(server, stop)
 }
 
