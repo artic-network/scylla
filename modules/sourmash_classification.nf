@@ -169,26 +169,3 @@ workflow sourmash_classify {
         json = sourmash_to_json.out.json
 }
 
-workflow {
-    unique_id = "${params.unique_id}"
-
-    // check input fastq exists
-    if (params.fastq) {
-        fastq = file("${params.fastq}", type: "file", checkIfExists:true)
-        if (unique_id == "null") {
-            unique_id = "${fastq.simpleName}"
-        }
-        input_fastq = Channel.fromPath(fastq)
-    } else if (params.fastq_dir) {
-        fastqdir = file("${params.fastq_dir}", type: "dir", checkIfExists:true)
-        if (unique_id == "null") {
-            unique_id = "${fastqdir.simpleName}"
-        }
-        input_fastq = Channel.fromPath( fastqdir / "*.f*q*", type: "file")
-    } else {
-        exit 1, "One of fastq or fastq_dir need to be provided -- aborting"
-    }
-
-    Channel.of(unique_id).combine(input_fastq).set{ fastq_ch }
-    sourmash_classify(fastq_ch)
-}

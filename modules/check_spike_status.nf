@@ -60,19 +60,3 @@ workflow check_spike_status {
     emit:
         status_ch
 }
-
-workflow {
-    unique_id = "${params.unique_id}"
-    fastq = file(params.fastq, type: "file", checkIfExists:true)
-    kreport = file(params.kraken_report, type: "file", checkIfExists:true)
-    if (unique_id == "null") {
-       unique_id = "${fastq.simpleName}"
-    }
-    kreport_ch = Channel.of([unique_id, kreport])
-    fastq_ch = Channel.of([unique_id, fastq])
-
-    check_spike_status(kreport_ch, fastq_ch)
-}
-
-
-

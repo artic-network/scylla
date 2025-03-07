@@ -57,19 +57,3 @@ workflow check_hcid_status {
     emit:
         warning_ch
 }
-
-workflow {
-    unique_id = "${params.unique_id}"
-    fastq = file(params.fastq, type: "file", checkIfExists:true)
-    kreport = file(params.kraken_report, type: "file", checkIfExists:true)
-    if (unique_id == "null") {
-       unique_id = "${fastq.simpleName}"
-    }
-    kreport_ch = Channel.of([unique_id, "default", kreport])
-    fastq_ch = Channel.of([unique_id, fastq])
-
-    taxonomy_dir = file(params.taxonomy, type: "dir", checkIfExists:true)
-
-    check_hcid_status(kreport_ch, fastq_ch, taxonomy_dir)
-}
-

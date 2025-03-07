@@ -57,14 +57,3 @@ workflow qc_checks {
     emit:
         publish_stats.out
 }
-
-workflow {
-    unique_id = "${params.unique_id}"
-    fastq = file(params.fastq, type: "file", checkIfExists:true)
-    if (unique_id == "null") {
-       unique_id = "${fastq.simpleName}"
-    }
-
-    qc_ch = [unique_id, fastq]
-    qc_checks(qc_ch)
-}

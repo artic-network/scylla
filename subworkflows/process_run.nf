@@ -1,5 +1,5 @@
 // workflow to run kraken, check for human, run qc checks and generate html report for a single sample fastq
-include { get_params_and_versions } from '../modules/get_params_and_versions'
+include { get_params_and_versions } from '../modules/utils'
 include { get_default_server; get_viral_server; stop_default_server; stop_viral_server } from '../modules/kraken_server'
 include { classify_and_report } from '../subworkflows/classify_and_report'
 include { classify_virus_fastq } from '../modules/classify_novel_viruses'

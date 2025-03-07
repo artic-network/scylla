@@ -462,22 +462,3 @@ workflow extract_all {
         kraken_json = extract_taxa.out.kraken_json
         virus = extract_fractions.out.virus
 }
-
-
-workflow {
-    unique_id = "${params.unique_id}"
-    fastq = file(params.fastq, type: "file", checkIfExists:true)
-    assignments = file(params.kraken_assignments, type: "file", checkIfExists:true)
-    kreport = file(params.kraken_report, type: "file", checkIfExists:true)
-    if (unique_id == "null") {
-       unique_id = "${fastq.simpleName}"
-    }
-
-    fastq_ch = Channel.of([unique_id, fastq])
-    assignments_ch = Channel.of([unique_id, "Viral", assignments])
-    kreport_ch = Channel.of([unique_id, "Viral", kreport])
-    taxonomy_dir = file(params.taxonomy, type: "dir", checkIfExists:true)
-
-    extract_all(fastq_ch, assignments_ch, kreport_ch, taxonomy_dir)
-}
-

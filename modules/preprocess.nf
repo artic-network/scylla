@@ -177,14 +177,3 @@ workflow preprocess {
         processed_fastq = processed_fastq_ch
         combined_fastq = combined_fastq_ch
 }
-
-workflow {
-    unique_id = "${params.unique_id}"
-    if (unique_id == "null") {
-        unique_id = "unique_id"
-    }
-    println(workflow.projectDir)
-    println(workflow.launchDir)
-
-    preprocess(unique_id)
-}
