@@ -1,26 +1,3 @@
-process check_single_fastq {
-
-    label "process_low"
-
-    publishDir "${params.outdir}/${unique_id}/preprocess/*.fixed.*", mode: "copy"
-    publishDir "${params.outdir}/${unique_id}/preprocess/*.R*.fq", mode: "copy"
-
-    conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
-
-    input:
-        tuple val(unique_id), path(fastq)
-
-    output:
-        tuple val(unique_id), path("*.fixed.fq"), optional: true, emit: single_fastq
-        tuple val(unique_id), path("*.R1.fq"), path("*.R2.fq"), optional: true, emit: paired_fastq
-
-    script:
-    """
-    check_reads.py --fastq ${fastq}
-    """
-}
-
 process fastp_paired {
     
     label "process_medium"
@@ -152,7 +129,6 @@ workflow preprocess {
             fastq = file(params.fastq, type: "file", checkIfExists:true)
             input_ch = Channel.from([[unique_id, fastq]])
 
-            check_single_fastq(input_ch)
             fastp_single(input_ch)
 
             fastp_single.out.fastq
