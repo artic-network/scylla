@@ -141,7 +141,6 @@ workflow preprocess {
                 .set {fastq_ch}
             input_ch = fastq_ch.map{fastq -> [unique_id, fastq]}
 
-            check_single_fastq(input_ch)
             fastp_single(input_ch)
             fastp_single.out.fastq.map{ unique_id, fastq -> [unique_id + ".fq.gz", fastq]}
                 .collectFile()
