@@ -149,10 +149,7 @@ def check_ref_coverage(hcid_dict, query, reference, preset):
 def report_findings(hcid_dict, read_file, prefix):
     found = []
     for taxid in hcid_dict:
-        if hcid_dict[taxid]["mapped_found"] and (
-            hcid_dict[taxid]["classified_found"]
-            or hcid_dict[taxid]["classified_parent_found"]
-        ):
+        if hcid_dict[taxid]["mapped_found"] :
             quals = []
             lens = []
             with open("%s.reads.fq" % taxid, "w") as f_reads:
