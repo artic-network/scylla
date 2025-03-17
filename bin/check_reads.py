@@ -110,7 +110,7 @@ def check_fastq(read_file):
     else:
         sys.stderr.write(f"Input {num_seqs} sequences have resulted in out files with the following read counts: {out_prefix}.R1.fq : {counts['r1']}, {out_prefix}.R2.fq : {counts['r2']}\n")
 
-    return 1
+    return 11
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
