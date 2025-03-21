@@ -6,9 +6,9 @@ import json
 import csv
 from datetime import datetime
 from collections import defaultdict
-import mappy as mp
 import argparse
 import pyfastx
+from simplesam import Reader
 
 from report import KrakenReport
 from taxonomy import Taxonomy
@@ -69,37 +69,41 @@ def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
             hcid_dict[taxid]["classified_parent_found"] = True
 
 
-def map_to_refs(query, reference, preset):
+def map_to_refs(query, ref_sam):
     counts = defaultdict(int)
     ranges = defaultdict(list)
     read_ids = defaultdict(list)
-    a = mp.Aligner(reference, best_n=1, preset=preset)  # load or build index
-    if not a:
-        raise Exception("ERROR: failed to load/build index")
+
+    in_file = open(ref_sam, 'r')
+    in_sam = Reader(in_file)
 
     read_count = 0
-    for name, seq, qual in mp.fastx_read(query):  # read a fasta/q sequence
+    y = None
+    for x in in_sam:
+        if x.flag not in [0,16]:
+            continue
         read_count += 1
-        for hit in a.map(seq):  # traverse alignments
-            counts[hit.ctg] += 1
-            ranges[hit.ctg].append([hit.r_st, hit.r_en])
-            read_ids[hit.ctg].append(name)
-            # print("{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en))
-            break
-        #if read_count % 1000000 == 0:
-        #    break
+        counts[x.rname] += 1
+        ranges[x.rname].append(x.coords)
+        read_ids[x.rname].append(x.qname)
+        y = x
+
     return counts, ranges, read_ids
 
 
 def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
     if len(ref_ranges) == 0:
         return 0,[]
-    for name, seq, qual in mp.fastx_read(reference_file):
+    for name, seq in pyfastx.Fasta(reference_file, build_index=False):
         if name == ref:
             coverages = [0] * len(seq)
             for r in ref_ranges:
-                for i in range(r[0], r[1]):
-                    coverages[i] += 1
+                for i in r:
+                    try:
+                        coverages[i-1] += 1
+                    except:
+                        print("Out of range ", i, len(coverages))
+                        sys.exit()
             zeros = [i for i in coverages if i <= min_coverage]
             return float(len(seq) - len(zeros)) / len(seq), coverages
     return 0,[]
@@ -111,8 +115,8 @@ def coverage_hist(coverages):
             hist.append(len([i for i in coverages if i == j]))
     return hist
 
-def check_ref_coverage(hcid_dict, query, reference, preset):
-    counts, ranges, read_ids = map_to_refs(query, reference, preset)
+def check_ref_coverage(hcid_dict, query, reference, ref_sam):
+    counts, ranges, read_ids = map_to_refs(query, ref_sam)
 
     for taxon in hcid_dict:
         taxon_found = True
@@ -251,16 +255,13 @@ def main():
         help="Reference FASTA for each HCID",
     )
     parser.add_argument(
-            "--illumina",
-            action="store_true",
-            required=False,
-            help="Use the short read minimap preset",
+            "-s",
+            dest="ref_sam",
+            required=True,
+            help="Minimap2 SAM file of reads vs reference",
         )
 
     args = parser.parse_args()
-    preset = None
-    if args.illumina:
-        preset = "sr"
 
     # Start Program
     now = datetime.now()
@@ -272,7 +273,7 @@ def main():
     sys.stderr.write("Check kraken report for counts\n")
     check_report_for_hcid(hcid_dict, args.taxonomy, args.kreport_file)
     sys.stderr.write("Check mapped coverage\n")
-    check_ref_coverage(hcid_dict, args.reads, args.ref_fasta, preset)
+    check_ref_coverage(hcid_dict, args.reads, args.ref_fasta, args.ref_sam)
     sys.stderr.write("Report findings\n")
     report_findings(hcid_dict, args.reads, args.prefix)
 
