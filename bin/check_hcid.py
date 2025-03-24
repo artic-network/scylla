@@ -162,13 +162,30 @@ def check_ref_coverage(hcid_dict, query, reference, ref_sam):
 
 
 def report_findings(hcid_dict, read_file, prefix):
+    keys = [
+        "name",
+        "taxon_id",
+        "min_count",
+        "classified_count",
+        "classified_parent_count",
+        "mapped_count",
+        "mapped_required",
+        "mapped_required_details",
+        "mapped_additional",
+    ]
+    with open("%s.counts.csv" % prefix, "w") as f_counts:
+        w = csv.DictWriter(f_counts, keys)
+        w.writeheader()
+        for taxid in hcid_dict:
+            w.writerow({key: hcid_dict[taxid][key] for key in keys})
+
     found = []
     for taxid in hcid_dict:
         if hcid_dict[taxid]["mapped_found"] :
             quals = []
             lens = []
             with open("%s.reads.fq" % taxid, "w") as f_reads:
-                for record in pyfastx.Fastq(read_file, build_index=False):
+                for record in pyfastx.Fastq(read_file, build_index=True):
                     name, seq, qual = record
                     trimmed_name = trim_read_id(name)
                     if trimmed_name in hcid_dict[taxid]["mapped_read_ids"]:
@@ -189,24 +206,8 @@ def report_findings(hcid_dict, read_file, prefix):
                                 "mapped_coverage_hist":f"ref:[len_with_0_covg,len_with_1_covg,...]|{hcid_dict[taxid]['mapped_required_extended_details']}"
                             }
                 json.dump(warning, f_warn, indent=4, sort_keys=False)
-
             found.append(taxid)
-    keys = [
-        "name",
-        "taxon_id",
-        "min_count",
-        "classified_count",
-        "classified_parent_count",
-        "mapped_count",
-        "mapped_required",
-        "mapped_required_details",
-        "mapped_additional",
-    ]
-    with open("%s.counts.csv" % prefix, "w") as f_counts:
-        w = csv.DictWriter(f_counts, keys)
-        w.writeheader()
-        for taxid in hcid_dict:
-            w.writerow({key: hcid_dict[taxid][key] for key in keys})
+
     return found
 
 
