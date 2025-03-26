@@ -180,18 +180,18 @@ def report_findings(hcid_dict, read_file, prefix):
             w.writerow({key: hcid_dict[taxid][key] for key in keys})
 
     found = []
+    records = pyfastx.Fastq(read_file, key_func=lambda x: x.split()[1], build_index=True)
     for taxid in hcid_dict:
         if hcid_dict[taxid]["mapped_found"] :
             quals = []
             lens = []
             with open("%s.reads.fq" % taxid, "w") as f_reads:
-                for record in pyfastx.Fastq(read_file, build_index=True):
-                    name, seq, qual = record
-                    trimmed_name = trim_read_id(name)
-                    if trimmed_name in hcid_dict[taxid]["mapped_read_ids"]:
-                        f_reads.write(f"@{name}\n{seq}\n+\n{qual}\n")
-                        quals.append(median([ord(x) - 33 for x in qual]))
-                        lens.append(len(seq))
+                for mapped_name in hcid_dict[taxid]["mapped_read_ids"]:
+                    record = records[mapped_name]
+                    name, seq, qual = record.name, record.seq, record.qual
+                    f_reads.write(f"@{name}\n{seq}\n+\n{qual}\n")
+                    quals.append(median([ord(x) - 33 for x in qual]))
+                    lens.append(len(seq))
             with open("%s.warning.json" % taxid, "w") as f_warn:
                 msg1 = f"WARNING: Found {hcid_dict[taxid]['classified_count']} classified reads ({hcid_dict[taxid]['mapped_count']} mapped reads) of {hcid_dict[taxid]['name']} and {hcid_dict[taxid]['classified_parent_count']} classified reads for the parent taxon.\n"
                 msg2 = f"Mapping details for required references (ref_accession:mapped_read_count:fraction_ref_covered) {hcid_dict[taxid]['mapped_required_details']}.\n"
