@@ -1,7 +1,7 @@
 // module for other ingest qc checks
 process check_single_fastq {
 
-    label "process_low"
+    label "process_medium"
 
     publishDir "${params.outdir}/${unique_id}/preprocess/*.fixed.*", mode: "copy"
     publishDir "${params.outdir}/${unique_id}/preprocess/*.R*.fq", mode: "copy"
