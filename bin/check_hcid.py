@@ -180,7 +180,7 @@ def report_findings(hcid_dict, read_file, prefix):
             w.writerow({key: hcid_dict[taxid][key] for key in keys})
 
     found = []
-    records = pyfastx.Fastq(read_file, key_func=lambda x: x.split()[1], build_index=True)
+    records = pyfastx.Fastq(read_file, full_name=False, build_index=True)
     for taxid in hcid_dict:
         if hcid_dict[taxid]["mapped_found"] :
             quals = []
