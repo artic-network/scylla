@@ -94,7 +94,7 @@ def main():
         "--read_counts", help="JSON file of read_counts", required=False, type=Path
     )
     parser.add_argument(
-        "--warnings", help="text file containing any warnings", required=False, type=Path
+        "--warnings", help="text file containing any warnings", required=False, nargs='*', type=Path
     )
     parser.add_argument(
         "--sample_id", help="Unique ID of sample", required=False, default="sample"
@@ -128,10 +128,12 @@ def main():
         read_length_counts, read_length_step, read_quality_counts = [], 2, []
 
     warnings = ""
-    if args.warnings and os.path.getsize(args.warnings) > 0:
-        with open(args.warnings, "r") as f:
-            content = json.load(f)
-            warnings = content["msg"]
+    if len(args.warnings) > 0:
+        for warning_file in args.warnings:
+            if os.path.getsize(warning_file) > 0:
+                with open(warning_file, "r") as f:
+                    content = json.load(f)
+                    warnings += content["msg"]
 
     data_for_report = {"sankey_data": assignments, "read_length_data": read_length_counts, "read_length_step": read_length_step, "read_quality_data": read_quality_counts, "classifier": args.classifier, "classification_database": args.classification_database, "warnings": warnings}
 
