@@ -6,7 +6,6 @@ import json
 import csv
 from datetime import datetime
 from collections import defaultdict
-import argparse
 import pyfastx
 from simplesam import Reader
 
