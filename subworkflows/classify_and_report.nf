@@ -25,8 +25,10 @@ workflow classify_and_report {
         }
 
         kraken_to_json(classify.out.kreport, setup_taxonomy.out.taxonomy)
-        qc_checks.out.combine(kraken_to_json.out, by: 0)
-            .join(check_hcid_status.out).set { report_ch }
+        qc_checks.out
+            .join(kraken_to_json.out, failOnMismatch: true, failOnDuplicate: true)
+            .join(check_hcid_status.out, failOnMismatch: true, failOnDuplicate: true)
+            .set { report_ch }
         generate_report( report_ch )
     emit:
         assignments = classify.out.assignments
