@@ -4,7 +4,7 @@ process check_single_fastq {
     label "process_low"
 
     publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.fixed.*"
-    publishDir "${params.outdir}/${unique_id}/preprocess/*.R*.fq", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.R*.fq"
 
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
