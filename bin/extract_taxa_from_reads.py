@@ -42,15 +42,19 @@ def get_taxon_id_lists(
     lists_to_extract = defaultdict(set)
     for taxon in kraken_report.entries:
         entry = kraken_report.entries[taxon]
+        pass_count_thresh = True
+        pass_perc_thresh = True
         if len(target_ranks) > 0 and entry.rank not in target_ranks:
             continue
         if min_count and entry.ucount < min_count:
-            continue
+            pass_count_thresh = False
         if min_count_descendants and entry.count < min_count_descendants:
             continue
         if min_percent and kraken_report.get_percentage(taxon, denominator=entry.domain) < min_percent:
-            continue
+            pass_perc_thresh = False
         if len(names) > 0 and entry.name not in names and taxon not in names:
+            continue
+        if not pass_count_thresh and not pass_perc_thresh:
             continue
 
         lists_to_extract[taxon].add(taxon)
