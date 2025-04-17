@@ -1,6 +1,6 @@
 // module to make a single sample report during ingest containing kraken summary and qc stats
 process make_report {
-    
+
     label "process_single"
     label "process_more_memory"
 
@@ -8,30 +8,36 @@ process make_report {
     maxRetries 3
 
     publishDir "${params.outdir}/${unique_id}/", mode: 'copy'
-    
+
     conda "anaconda::Mako=1.2.3"
     container "${params.wf.container}:${params.wf.container_version}"
-    
+
     input:
-        tuple val(unique_id), path(stats), val(database_name), path(lineages), path(warnings)
-        path template
+    tuple val(unique_id), path(stats), val(database_name), path(lineages), path(warnings)
+    path template
+
     output:
-        tuple val(unique_id), path("${unique_id}_report.html")
+    tuple val(unique_id), path("${unique_id}_report.html")
+
     script:
-        report_name = "${unique_id}"
-        if ( params.run_sourmash ){
-            classifier = "Sourmash"
-            classification_database = "${database_name}"
-        } else {
-            classifier = "Kraken"
-            classification_database = "${database_name}"
-        }
+    report_name = "${unique_id}"
+    if (params.run_sourmash) {
+        classifier = "Sourmash"
+        classification_database = "${database_name}"
+    }
+    else {
+        classifier = "Kraken"
+        classification_database = "${database_name}"
+    }
+
+    warning_arg = warnings ? "--warnings ${warnings}" : ""
+
     """
     make_report.py \
         --prefix "${report_name}" \
         --read_counts ${stats} \
         --assignments ${lineages} \
-        --warnings ${warnings} \
+        ${warning_arg} \
         --version "${workflow.manifest.version}" \
         --classifier "${classifier}" \
         --classification_database "${classification_database}" \
@@ -41,12 +47,14 @@ process make_report {
 
 workflow generate_report {
     take:
-        report_ch
-    main:
-        // Acquire report template
-        template = file("$baseDir/bin/scylla.mako.html")
+    report_ch
 
-        make_report(report_ch, template)
+    main:
+    // Acquire report template
+    template = file("${baseDir}/bin/scylla.mako.html")
+
+    make_report(report_ch, template)
+
     emit:
-        make_report.out
+    make_report.out
 }

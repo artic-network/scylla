@@ -3,8 +3,8 @@ process check_single_fastq {
 
     label "process_medium"
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/*.fixed.*", mode: "copy"
-    publishDir "${params.outdir}/${unique_id}/preprocess/*.R*.fq", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.fixed.*"
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.R*.fastq"
 
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
@@ -13,8 +13,8 @@ process check_single_fastq {
         tuple val(unique_id), path(fastq)
 
     output:
-        tuple val(unique_id), path("*.fixed.fq"), optional: true, emit: single_fastq
-        tuple val(unique_id), path("*.R1.fq"), path("*.R2.fq"), optional: true, emit: paired_fastq
+        tuple val(unique_id), path("*.fixed.fastq"), optional: true, emit: single_fastq
+        tuple val(unique_id), path("*.R1.fastq"), path("*.R2.fastq"), optional: true, emit: paired_fastq
 
     script:
     """

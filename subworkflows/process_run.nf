@@ -77,7 +77,6 @@ workflow process_run {
             barcode_input = Channel.fromFilePairs("${run_dir}/*_R{1,2}*.f*q*", type: "file", checkIfExists:true)
         else
             barcode_input = Channel.fromPath("${run_dir}/*", type: "dir", checkIfExists:true, maxDepth:1).map { [it.baseName, get_fq_files_in_dir(it)]}
-        barcode_input.view()
 
         if (params.raise_server){
             get_default_server(params.raise_server)
