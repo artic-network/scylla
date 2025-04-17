@@ -61,7 +61,7 @@ def check_fastq(read_file):
     if is_duplicates:
         sys.stderr.write(f"Position of first duplicate: {min_duplicate}\n")
         position = 0
-        with open(f"{out_prefix}.fixed.fq", "w") as r:
+        with open(f"{out_prefix}.fixed.fastq", "w") as r:
             for record in pyfastx.Fastq(read_file, build_index=False):
                 name, seq, qual = record
                 if position < min_duplicate:
@@ -75,8 +75,8 @@ def check_fastq(read_file):
                     break
 
     elif is_interleaved:
-        with open(f"{out_prefix}.R1.fq", "w") as r1, \
-             open(f"{out_prefix}.R2.fq", "w") as r2:
+        with open(f"{out_prefix}.R1.fastq", "w") as r1, \
+             open(f"{out_prefix}.R2.fastq", "w") as r2:
              last = None
              for record in pyfastx.Fastq(read_file, build_index=False):
                  name, seq, qual = record
@@ -91,8 +91,8 @@ def check_fastq(read_file):
 
     elif is_concat:
         position = 0
-        with open(f"{out_prefix}.R1.fq", "w") as r1, \
-             open(f"{out_prefix}.R2.fq", "w") as r2:
+        with open(f"{out_prefix}.R1.fastq", "w") as r1, \
+             open(f"{out_prefix}.R2.fastq", "w") as r2:
              out_handle = r1
              key = "r1"
              for record in pyfastx.Fastq(read_file, build_index=False):
@@ -106,9 +106,9 @@ def check_fastq(read_file):
                      key = "r2"
 
     if is_duplicates:
-        sys.stderr.write(f"Input {num_seqs} sequences have resulted in out file with the following read counts: {out_prefix}.fixed.fq : {counts['r']}\n")
+        sys.stderr.write(f"Input {num_seqs} sequences have resulted in out file with the following read counts: {out_prefix}.fixed.fastq : {counts['r']}\n")
     else:
-        sys.stderr.write(f"Input {num_seqs} sequences have resulted in out files with the following read counts: {out_prefix}.R1.fq : {counts['r1']}, {out_prefix}.R2.fq : {counts['r2']}\n")
+        sys.stderr.write(f"Input {num_seqs} sequences have resulted in out files with the following read counts: {out_prefix}.R1.fastq : {counts['r1']}, {out_prefix}.R2.fastq : {counts['r2']}\n")
 
     return 11
 
