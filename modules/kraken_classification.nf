@@ -116,28 +116,3 @@ workflow kraken_classify {
         assignments = run_kraken_and_bracken.out.assignments
         kreport = run_kraken_and_bracken.out.kreport
 }
-
-workflow {
-    unique_id = "${params.unique_id}"
-
-    // check input fastq exists
-    if (params.fastq) {
-        fastq = file("${params.fastq}", type: "file", checkIfExists:true)
-        if (unique_id == "null") {
-            unique_id = "${fastq.simpleName}"
-        }
-        input_fastq = Channel.fromPath(fastq)
-    } else if (params.fastq_dir) {
-        fastqdir = file("${params.fastq_dir}", type: "dir", checkIfExists:true)
-        if (unique_id == "null") {
-            unique_id = "${fastqdir.simpleName}"
-        }
-        input_fastq = Channel.fromPath( fastqdir / "*.f*q*", type: "file")
-    } else {
-        exit 1, "One of fastq or fastq_dir need to be provided -- aborting"
-    }
-
-    input_fastq.map { it -> [unique_id, it] }.set { fastq_ch }
-    kraken_classify(fastq_ch, "default", params.raise_server)
-}
-

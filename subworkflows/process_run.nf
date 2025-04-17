@@ -1,5 +1,5 @@
 // workflow to run kraken, check for human, run qc checks and generate html report for a single sample fastq
-include { get_params_and_versions } from '../modules/get_params_and_versions'
+include { get_params_and_versions } from '../modules/utils'
 include { get_default_server; get_viral_server; stop_default_server; stop_viral_server } from '../modules/kraken_server'
 include { classify_and_report } from '../subworkflows/classify_and_report'
 include { classify_virus_fastq } from '../modules/classify_novel_viruses'
@@ -77,7 +77,6 @@ workflow process_run {
             barcode_input = Channel.fromFilePairs("${run_dir}/*_R{1,2}*.f*q*", type: "file", checkIfExists:true)
         else
             barcode_input = Channel.fromPath("${run_dir}/*", type: "dir", checkIfExists:true, maxDepth:1).map { [it.baseName, get_fq_files_in_dir(it)]}
-        barcode_input.view()
 
         if (params.raise_server){
             get_default_server(params.raise_server)

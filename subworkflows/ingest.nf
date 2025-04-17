@@ -1,5 +1,5 @@
 // workflow to run kraken, check for human, run qc checks and generate html report for a single sample fastq
-include { get_params_and_versions } from '../modules/get_params_and_versions'
+include { get_params_and_versions } from '../modules/utils'
 include { preprocess } from '../modules/preprocess'
 include { classify_and_report } from '../subworkflows/classify_and_report'
 include { extract_all } from '../modules/extract_all'

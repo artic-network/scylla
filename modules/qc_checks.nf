@@ -1,4 +1,27 @@
 // module for other ingest qc checks
+process check_single_fastq {
+
+    label "process_low"
+
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.fixed.*"
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.R*.fastq"
+
+    conda "bioconda::pyfastx=2.01"
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+
+    input:
+        tuple val(unique_id), path(fastq)
+
+    output:
+        tuple val(unique_id), path("*.fixed.fastq"), optional: true, emit: single_fastq
+        tuple val(unique_id), path("*.R1.fastq"), path("*.R2.fastq"), optional: true, emit: paired_fastq
+
+    script:
+    """
+    check_reads.py --fastq ${fastq}
+    """
+}
+
 
 process read_stats {
     
@@ -47,6 +70,7 @@ workflow qc_checks {
                     .collate( 2 )
                     .set{ fastq_ch }
         } else {
+            check_single_fastq(input_ch)
             fastq_ch = input_ch
         }
         read_stats(fastq_ch)
@@ -56,15 +80,4 @@ workflow qc_checks {
         publish_stats(stats_ch)
     emit:
         publish_stats.out
-}
-
-workflow {
-    unique_id = "${params.unique_id}"
-    fastq = file(params.fastq, type: "file", checkIfExists:true)
-    if (unique_id == "null") {
-       unique_id = "${fastq.simpleName}"
-    }
-
-    qc_ch = [unique_id, fastq]
-    qc_checks(qc_ch)
 }

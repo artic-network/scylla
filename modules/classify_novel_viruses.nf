@@ -148,39 +148,3 @@ workflow classify_virus_fastq {
             error "Invalid classifier: ${params.classifier} - must be either 'virbot' or 'genomad'"
         }
 }
-
-workflow classify_novel_viruses {
-    take:
-        unique_id
-    main:
-        if (params.paired){
-            fastq1 = file("${params.fastq1}", type: "file", checkIfExists:true)
-            fastq2 = file("${params.fastq2}", type: "file", checkIfExists:true)
-            fastq_ch = Channel.of([unique_id, fastq1, fastq2])
-        } else if (params.fastq){
-            fastq = file("${params.fastq}", type: "file", checkIfExists:true)
-            fastq_ch = Channel.of([unique_id, fastq])
-        } else if (params.fastq_dir) {
-            fastqdir = file("${params.fastq_dir}", type: "dir", checkIfExists:true)
-            Channel.fromPath( fastqdir / "*.f*q*", type: "file")
-                .set {input_fastq_ch}
-            fastq_ch = Channel.of([unique_id, input_fastq_ch])
-        }
-        classify_virus_fastq(fastq_ch)
-}
-
-workflow {
-    if (params.paired){
-        fastq = file("${params.fastq1}", type: "file", checkIfExists:true)
-        fastq2 = file("${params.fastq2}", type: "file", checkIfExists:true)
-    } else {
-        fastq = file("${params.fastq}", type: "file", checkIfExists:true)
-    }
-    unique_id = "${params.unique_id}"
-    if ("${params.unique_id}" == "null") {
-        unique_id = "${fastq.simpleName}"
-    }
-
-    classify_novel_viruses(unique_id)
-}
-

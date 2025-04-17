@@ -42,15 +42,19 @@ def get_taxon_id_lists(
     lists_to_extract = defaultdict(set)
     for taxon in kraken_report.entries:
         entry = kraken_report.entries[taxon]
+        pass_count_thresh = True
+        pass_perc_thresh = True
         if len(target_ranks) > 0 and entry.rank not in target_ranks:
             continue
         if min_count and entry.ucount < min_count:
-            continue
+            pass_count_thresh = False
         if min_count_descendants and entry.count < min_count_descendants:
             continue
-        if min_percent and kraken_report.get_percentage(taxon, denominator="classified") < min_percent:
-            continue
+        if min_percent and kraken_report.get_percentage(taxon, denominator=entry.domain) < min_percent:
+            pass_perc_thresh = False
         if len(names) > 0 and entry.name not in names and taxon not in names:
+            continue
+        if not pass_count_thresh and not pass_perc_thresh:
             continue
 
         lists_to_extract[taxon].add(taxon)
@@ -117,11 +121,11 @@ def extract_taxa(
     read_map = kraken_assignment.get_read_map(subtaxa_map)
 
     prefixes = setup_prefixes(lists_to_extract, prefix)
-    out_counts, quals, lens, filenames = process_read_files(
+    out_counts, quals, lens, filenames, total_length = process_read_files(
         prefixes, filetype, read_map, subtaxa_map, reads1, reads2, inverse=False, get_handles=False
     )
 
-    generate_summary(lists_to_extract, kraken_report.entries, prefix, out_counts, quals, lens, filenames, short=False)
+    generate_summary(lists_to_extract, kraken_report.entries, prefix, out_counts, quals, lens, filenames, total_length, short=False)
     return out_counts
 
 def check_out_counts(out_counts, kraken_report):

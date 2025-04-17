@@ -148,7 +148,7 @@ workflow stop_default_server {
        server
        stop
     main:
-        println("Stopping server for ${kraken_database.default.name}")
+        println("Stopping server for ${params.kraken_database.default.name}")
         stop_kraken_server(server, stop)
 }
 
@@ -157,19 +157,10 @@ workflow stop_viral_server {
        server
        stop
     main:
-        println("Stopping server for ${kraken_database.viral.name}")
+        println("Stopping server for ${params.kraken_database.viral.name}")
         stop_kraken_server(server, stop)
 }
 
 workflow {
-    // Grab database files
-    //get_server("default", true)
-    name = "PlusPF-8"
-    database_path = "store_dir/kraken/PlusPF-8/database_dir"
-    database = file(database_path, type: "dir", checkIfExists:true)
-    host = "localhost"
-    port = "8080"
-    //println([name, database, host, port])
-    //start_kraken_server([name, database, host, port])
     get_server("default", true)
 }

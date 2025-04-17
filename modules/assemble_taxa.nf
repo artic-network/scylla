@@ -106,7 +106,7 @@ process assemble_megahit_paired {
     script:
     """
     megahit -1 ${fastq_1} -2 ${fastq_2} \
-            -m 0.5 --min-contig-len 150 --presets meta-sensitive -t 8 -o megahit
+            -m 0.5 --min-contig-len 150 --presets meta-sensitive -t ${task.cpus} -o megahit
     """
 }
 

@@ -1,6 +1,7 @@
 include { ingest } from './subworkflows/ingest'
-include { classify_novel_viruses } from './modules/classify_novel_viruses'
 include { process_run } from './subworkflows/process_run'
+include { run_module } from './subworkflows/run_module'
+
 
 workflow {
     if (params.output)
@@ -17,7 +18,13 @@ workflow {
         } else if (params.fastq_dir) {
             fastq_dir = file(params.fastq_dir, type: "dir", checkIfExists:true)
             unique_id = "${fastq_dir.simpleName}"
-        } else if (params.paired && params.fastq1 && params.fastq2) {
+        } else if (params.paired || (params.fastq1 && params.fastq2)) {
+            if (! params.paired){
+                exit 1, "Please run with --paired"
+            }
+            if (! params.fastq1 || ! params.fastq2){
+                exit 1, "Both --fastq1 and --fastq2 must be provided"
+            }
             fastq1 = file(params.fastq1, type: "file", checkIfExists:true)
             unique_id = "${fastq1.simpleName}"
         } else if (params.run_dir) {
@@ -29,10 +36,10 @@ workflow {
     }
 
     // check input fastq exists and run fastp
-    if (params.run_dir)
+    if (params.module) {
+        run_module(unique_id)
+    } else if (params.run_dir)
         process_run(unique_id)
-    else if (params.classify_novel_viruses)
-        classify_novel_viruses(unique_id)
     else
         ingest(unique_id)
 }
