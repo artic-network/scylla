@@ -4,10 +4,14 @@ include { unpack_taxonomy } from '../modules/setup_taxonomy'
 process unpack_database {
     label "process_single"
     storeDir "${params.store_dir}/centrifuge"
+
     input:
-        path database
+    path database
+
     output:
-        path "database_dir", emit: database
+    path "database_dir", emit: database
+
+    script:
     """
     if [[ "${database}" == *.tar.gz ]]
     then
@@ -32,11 +36,13 @@ process centrifuge {
     publishDir "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     input:
-        tuple val(unique_id), path(fastq)
-        path database
+    tuple val(unique_id), path(fastq)
+    path database
+
     output:
-        tuple val(unique_id), path("centrifuge_assignments.tsv"), emit: assignments
-        tuple val(unique_id), path("centrifuge_summary.tsv"), emit: summary
+    tuple val(unique_id), path("centrifuge_assignments.tsv"), emit: assignments
+    tuple val(unique_id), path("centrifuge_summary.tsv"), emit: summary
+
     script:
     """
     centrifuge -x "${database}/${params.centrifuge_db_name}" -U ${fastq} \
@@ -53,10 +59,12 @@ process centrifuge_report {
     publishDir "${params.outdir}/${unique_id}/classifications", mode: 'copy'
 
     input:
-        tuple val(unique_id), path(assignments)
-        path database
+    tuple val(unique_id), path(assignments)
+    path database
+
     output:
-        tuple val(unique_id), path("centrifuge.kreport.txt"), emit: kreport
+    tuple val(unique_id), path("centrifuge.kreport.txt"), emit: kreport
+
     script:
     """
     centrifuge-kreport -x "${database}/${params.centrifuge_db_name}" ${assignments} > centrifuge.kreport.txt
@@ -65,23 +73,27 @@ process centrifuge_report {
 
 workflow centrifuge_classify {
     take:
-        fastq_ch
-    main:
-        if (params.centrifuge_database) {
-                database = file("${params.centrifuge_database}/database_dir", type: "dir", checkIfExists:true)
-        } else {
-            stored_database = file("${params.store_dir}/centrifuge/database_dir", type: "dir")
-            if (stored_database.isEmpty()) {
-                remote = file("${params.centrifuge_remote}", checkIfExists:true)
-                unpack_database(remote)
-                database = unpack_database.out.database
-            } else {
-                database = file("${params.store_dir}/centrifuge/database_dir", type: "dir", checkIfExists:true)
-            }
-        }
+    fastq_ch
 
-        centrifuge(fastq_ch, database)
-        centrifuge_report(centrifuge.out.assignments, database)
+    main:
+    if (params.centrifuge_database) {
+        database = file("${params.centrifuge_database}/database_dir", type: "dir", checkIfExists: true)
+    }
+    else {
+        stored_database = file("${params.store_dir}/centrifuge/database_dir", type: "dir")
+        if (stored_database.isEmpty()) {
+            remote = file("${params.centrifuge_remote}", checkIfExists: true)
+            unpack_database(remote)
+            database = unpack_database.out.database
+        }
+        else {
+            database = file("${params.store_dir}/centrifuge/database_dir", type: "dir", checkIfExists: true)
+        }
+    }
+
+    centrifuge(fastq_ch, database)
+    centrifuge_report(centrifuge.out.assignments, database)
+
     emit:
-        kreport = centrifuge_report.out.kreport
+    kreport = centrifuge_report.out.kreport
 }

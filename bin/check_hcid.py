@@ -12,7 +12,7 @@ import pyfastx
 
 from report import KrakenReport
 from taxonomy import Taxonomy
-from extract_utils import mean,median
+from extract_utils import mean, median
 from assignment import trim_read_id
 
 
@@ -29,6 +29,7 @@ def load_hcid_dict(hcid_file):
                 hcid_dict[d["taxon_id"]]["classified_found"] = False
                 hcid_dict[d["taxon_id"]]["classified_parent_found"] = False
     return hcid_dict
+
 
 def infer_taxid_map(hcid_dict, loaded_taxonomy):
     taxid_map = {}
@@ -48,6 +49,7 @@ def infer_taxid_map(hcid_dict, loaded_taxonomy):
             taxid_map[loaded_taxonomy.parents[d]] = loaded_taxonomy.parents[d]
     return taxid_map
 
+
 def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
     loaded_taxonomy = Taxonomy(taxonomy_dir)
     taxid_map = infer_taxid_map(hcid_dict, loaded_taxonomy)
@@ -55,14 +57,19 @@ def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
     kraken_report = KrakenReport(kreport_file)
     for taxid in hcid_dict:
         hcid_dict[taxid]["classified_count"] = kraken_report.entries[taxid].count
-        if taxid in loaded_taxonomy.parents and loaded_taxonomy.parents[taxid] in kraken_report.entries:
+        if (
+            taxid in loaded_taxonomy.parents
+            and loaded_taxonomy.parents[taxid] in kraken_report.entries
+        ):
             print(
                 taxid,
                 loaded_taxonomy.parents[taxid],
                 loaded_taxonomy.parents[taxid] in taxid_map,
                 loaded_taxonomy.parents[taxid] in kraken_report.entries,
             )
-            hcid_dict[taxid]["classified_parent_count"] = kraken_report.entries[loaded_taxonomy.parents[taxid]].count
+            hcid_dict[taxid]["classified_parent_count"] = kraken_report.entries[
+                loaded_taxonomy.parents[taxid]
+            ].count
         if hcid_dict[taxid]["classified_count"] > hcid_dict[taxid]["min_count"]:
             hcid_dict[taxid]["classified_found"] = True
         if hcid_dict[taxid]["classified_parent_count"] > hcid_dict[taxid]["min_count"]:
@@ -86,14 +93,14 @@ def map_to_refs(query, reference, preset):
             read_ids[hit.ctg].append(name)
             # print("{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en))
             break
-        #if read_count % 1000000 == 0:
+        # if read_count % 1000000 == 0:
         #    break
     return counts, ranges, read_ids
 
 
 def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
     if len(ref_ranges) == 0:
-        return 0,[]
+        return 0, []
     for name, seq, qual in mp.fastx_read(reference_file):
         if name == ref:
             coverages = [0] * len(seq)
@@ -102,7 +109,8 @@ def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
                     coverages[i] += 1
             zeros = [i for i in coverages if i <= min_coverage]
             return float(len(seq) - len(zeros)) / len(seq), coverages
-    return 0,[]
+    return 0, []
+
 
 def coverage_hist(coverages):
     hist = []
@@ -110,6 +118,7 @@ def coverage_hist(coverages):
         for j in range(max(coverages)):
             hist.append(len([i for i in coverages if i == j]))
     return hist
+
 
 def check_ref_coverage(hcid_dict, query, reference, preset):
     counts, ranges, read_ids = map_to_refs(query, reference, preset)
@@ -136,7 +145,9 @@ def check_ref_coverage(hcid_dict, query, reference, preset):
             hcid_dict[taxon]["mapped_required_details"].append(
                 "%s:%i:%f" % (ref, counts[ref], ref_covg)
             )
-            hcid_dict[taxon]["mapped_required_extended_details"].append(f"{ref}:{coverage_hist(coverages)}")
+            hcid_dict[taxon]["mapped_required_extended_details"].append(
+                f"{ref}:{coverage_hist(coverages)}"
+            )
         hcid_dict[taxon]["mapped_required"] = float(
             hcid_dict[taxon]["mapped_required"]
         ) / len(hcid_dict[taxon]["required_refs"])
@@ -160,7 +171,7 @@ def check_ref_coverage(hcid_dict, query, reference, preset):
 def report_findings(hcid_dict, read_file, prefix):
     found = []
     for taxid in hcid_dict:
-        if hcid_dict[taxid]["mapped_found"] :
+        if hcid_dict[taxid]["mapped_found"]:
             quals = []
             lens = []
             with open("%s.reads.fq" % taxid, "w") as f_reads:
@@ -174,16 +185,16 @@ def report_findings(hcid_dict, read_file, prefix):
             with open("%s.warning.json" % taxid, "w") as f_warn:
                 msg1 = f"WARNING: Found {hcid_dict[taxid]['classified_count']} classified reads ({hcid_dict[taxid]['mapped_count']} mapped reads) of {hcid_dict[taxid]['name']} and {hcid_dict[taxid]['classified_parent_count']} classified reads for the parent taxon.\n"
                 msg2 = f"Mapping details for required references (ref_accession:mapped_read_count:fraction_ref_covered) {hcid_dict[taxid]['mapped_required_details']}.\n"
-                warning =   {
-                                "msg":msg1+msg2,
-                                "taxid":taxid,
-                                "classified_count":hcid_dict[taxid]['classified_count'],
-                                "mapped_count":hcid_dict[taxid]['mapped_count'],
-                                "mapped_mean_quality": mean(quals),
-                                "mapped_mean_length": mean(lens),
-                                "mapped_details":f"ref_accession:mapped_read_count:fraction_ref_covered|{hcid_dict[taxid]['mapped_required_details']}",
-                                "mapped_coverage_hist":f"ref:[len_with_0_covg,len_with_1_covg,...]|{hcid_dict[taxid]['mapped_required_extended_details']}"
-                            }
+                warning = {
+                    "msg": msg1 + msg2,
+                    "taxid": taxid,
+                    "classified_count": hcid_dict[taxid]["classified_count"],
+                    "mapped_count": hcid_dict[taxid]["mapped_count"],
+                    "mapped_mean_quality": mean(quals),
+                    "mapped_mean_length": mean(lens),
+                    "mapped_details": f"ref_accession:mapped_read_count:fraction_ref_covered|{hcid_dict[taxid]['mapped_required_details']}",
+                    "mapped_coverage_hist": f"ref:[len_with_0_covg,len_with_1_covg,...]|{hcid_dict[taxid]['mapped_required_extended_details']}",
+                }
                 json.dump(warning, f_warn, indent=4, sort_keys=False)
 
             found.append(taxid)
@@ -251,11 +262,11 @@ def main():
         help="Reference FASTA for each HCID",
     )
     parser.add_argument(
-            "--illumina",
-            action="store_true",
-            required=False,
-            help="Use the short read minimap preset",
-        )
+        "--illumina",
+        action="store_true",
+        required=False,
+        help="Use the short read minimap preset",
+    )
 
     args = parser.parse_args()
     preset = None

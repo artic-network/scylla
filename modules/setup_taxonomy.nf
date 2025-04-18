@@ -1,10 +1,14 @@
 process unpack_taxonomy {
     label "process_single"
     storeDir "${params.store_dir}"
+
     input:
-        path taxonomy
+    path taxonomy
+
     output:
-        path "taxonomy_dir"
+    path "taxonomy_dir"
+
+    script:
     """
     if [[ "${taxonomy}" == *.tar.gz ]]
     then
@@ -24,22 +28,24 @@ process unpack_taxonomy {
 
 workflow setup_taxonomy {
     main:
-        if (params.taxonomy) {
-            taxonomy = file(params.taxonomy, type: "dir", checkIfExists:true)
-        } else {
-            input_taxonomy = file("${params.store_dir}/taxonomy_dir")
-            if (input_taxonomy.isEmpty()) {
-                taxonomy = unpack_taxonomy(params.default_taxonomy)
-            } else {
-                taxonomy = input_taxonomy
-            }
+    if (params.taxonomy) {
+        taxonomy = file(params.taxonomy, type: "dir", checkIfExists: true)
+    }
+    else {
+        input_taxonomy = file("${params.store_dir}/taxonomy_dir")
+        if (input_taxonomy.isEmpty()) {
+            taxonomy = unpack_taxonomy(params.default_taxonomy)
         }
+        else {
+            taxonomy = input_taxonomy
+        }
+    }
+
     emit:
-        taxonomy = taxonomy
+    taxonomy = taxonomy
 }
 
 
 workflow {
     setup_taxonomy()
 }
-
