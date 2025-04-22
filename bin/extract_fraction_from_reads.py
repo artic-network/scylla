@@ -15,7 +15,10 @@ from report import KrakenReport
 from assignment import KrakenAssignments
 from taxonomy import Taxonomy
 
-def setup_prefixes(list_taxon_ids, entries, prefix, inverse=False, include_unclassified=False):
+
+def setup_prefixes(
+    list_taxon_ids, entries, prefix, inverse=False, include_unclassified=False
+):
     outprefix = {}
     if inverse:
         return {"other": prefix}
@@ -31,15 +34,49 @@ def setup_prefixes(list_taxon_ids, entries, prefix, inverse=False, include_uncla
 
 
 def extract_reads(
-    read_map, taxon_id_map, entries, reads1, reads2, prefix, taxon_ids, exclude, include_unclassified
+    read_map,
+    taxon_id_map,
+    entries,
+    reads1,
+    reads2,
+    prefix,
+    taxon_ids,
+    exclude,
+    include_unclassified,
 ):
     # check read files
     filetype, zipped = check_read_files(reads1)
 
-    prefixes = setup_prefixes(taxon_ids, entries, prefix, inverse=exclude, include_unclassified=include_unclassified)
-    out_counts, quals, lens, filenames, total_length = process_read_files(prefixes, filetype, read_map, taxon_id_map, reads1, reads2, inverse=exclude, get_handles=True)
+    prefixes = setup_prefixes(
+        taxon_ids,
+        entries,
+        prefix,
+        inverse=exclude,
+        include_unclassified=include_unclassified,
+    )
+    out_counts, quals, lens, filenames, total_length = process_read_files(
+        prefixes,
+        filetype,
+        read_map,
+        taxon_id_map,
+        reads1,
+        reads2,
+        inverse=exclude,
+        get_handles=True,
+    )
 
-    generate_summary(taxon_ids, entries, prefix, out_counts, quals, lens, filenames, total_length, include_unclassified=(include_unclassified != exclude), short=True)
+    generate_summary(
+        taxon_ids,
+        entries,
+        prefix,
+        out_counts,
+        quals,
+        lens,
+        filenames,
+        total_length,
+        include_unclassified=(include_unclassified != exclude),
+        short=True,
+    )
 
     return out_counts
 
@@ -105,7 +142,7 @@ def main():
         dest="exclude",
         action="store_true",
         default=False,
-        help="List of taxonomy ID[s] or names to exclude (space-delimited) from outputs"
+        help="List of taxonomy ID[s] or names to exclude (space-delimited) from outputs",
     )
     parser.set_defaults(append=False)
 
@@ -117,7 +154,9 @@ def main():
     sys.stderr.write("PROGRAM START TIME: " + time + "\n")
 
     loaded_taxonomy = Taxonomy(args.taxonomy)
-    taxon_id_map = loaded_taxonomy.get_taxon_id_map(args.taxid, args.include_unclassified)
+    taxon_id_map = loaded_taxonomy.get_taxon_id_map(
+        args.taxid, args.include_unclassified
+    )
     loaded_taxonomy.load_entries(args.taxonomy, taxon_id_map.keys())
 
     # Initialize kraken assignment file
@@ -133,7 +172,7 @@ def main():
         args.prefix,
         args.taxid,
         args.exclude,
-        args.include_unclassified
+        args.include_unclassified,
     )
 
     now = datetime.now()

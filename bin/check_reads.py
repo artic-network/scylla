@@ -7,6 +7,7 @@ import sys
 
 from assignment import trim_read_id
 
+
 def check_fastq(read_file):
     is_duplicates = True
     is_interleaved = False
@@ -25,7 +26,7 @@ def check_fastq(read_file):
         trimmed_name = trim_read_id(name)
 
         if name in seen_names:
-            assert(trimmed_name not in differences)
+            assert trimmed_name not in differences
             differences[trimmed_name] = position - positions[trimmed_name]
         elif trimmed_name in seen_trimmed:
             differences[trimmed_name] = position - positions[trimmed_name]
@@ -54,7 +55,9 @@ def check_fastq(read_file):
         # otherwise assume concatenated file
         is_concat = True
 
-    sys.stderr.write(f"Found evidence of interleaving: {is_interleaved}, concatenation: {is_concat}, duplicates: {is_duplicates}.\nSplitting out reads\n")
+    sys.stderr.write(
+        f"Found evidence of interleaving: {is_interleaved}, concatenation: {is_concat}, duplicates: {is_duplicates}.\nSplitting out reads\n"
+    )
     out_prefix = read_file.split("/")[-1].split(".")[0]
 
     counts = defaultdict(int)
@@ -69,48 +72,55 @@ def check_fastq(read_file):
                     counts["r"] += 1
                 else:
                     trimmed_name = trim_read_id(name)
-                    assert(trimmed_name in differences)
+                    assert trimmed_name in differences
                 position += 1
                 if position >= min_duplicate:
                     break
 
     elif is_interleaved:
-        with open(f"{out_prefix}.R1.fastq", "w") as r1, \
-             open(f"{out_prefix}.R2.fastq", "w") as r2:
-             last = None
-             for record in pyfastx.Fastq(read_file, build_index=False):
-                 name, seq, qual = record
-                 trimmed_name = trim_read_id(name)
-                 if last and trimmed_name == last:
-                     r2.write(f"@{name}\n{seq}\n+\n{qual}\n")
-                     counts["r2"] += 1
-                 else:
-                     r1.write(f"@{name}\n{seq}\n+\n{qual}\n")
-                     counts["r1"] += 1
-                 last = trimmed_name
+        with open(f"{out_prefix}.R1.fastq", "w") as r1, open(
+            f"{out_prefix}.R2.fastq", "w"
+        ) as r2:
+            last = None
+            for record in pyfastx.Fastq(read_file, build_index=False):
+                name, seq, qual = record
+                trimmed_name = trim_read_id(name)
+                if last and trimmed_name == last:
+                    r2.write(f"@{name}\n{seq}\n+\n{qual}\n")
+                    counts["r2"] += 1
+                else:
+                    r1.write(f"@{name}\n{seq}\n+\n{qual}\n")
+                    counts["r1"] += 1
+                last = trimmed_name
 
     elif is_concat:
         position = 0
-        with open(f"{out_prefix}.R1.fastq", "w") as r1, \
-             open(f"{out_prefix}.R2.fastq", "w") as r2:
-             out_handle = r1
-             key = "r1"
-             for record in pyfastx.Fastq(read_file, build_index=False):
-                 name, seq, qual = record
-                 trimmed_name = trim_read_id(name)
-                 out_handle.write(f"@{name}\n{seq}\n+\n{qual}\n")
-                 counts[key] += 1
-                 position += 1
-                 if position >= min_duplicate:
-                     out_handle = r2
-                     key = "r2"
+        with open(f"{out_prefix}.R1.fastq", "w") as r1, open(
+            f"{out_prefix}.R2.fastq", "w"
+        ) as r2:
+            out_handle = r1
+            key = "r1"
+            for record in pyfastx.Fastq(read_file, build_index=False):
+                name, seq, qual = record
+                trimmed_name = trim_read_id(name)
+                out_handle.write(f"@{name}\n{seq}\n+\n{qual}\n")
+                counts[key] += 1
+                position += 1
+                if position >= min_duplicate:
+                    out_handle = r2
+                    key = "r2"
 
     if is_duplicates:
-        sys.stderr.write(f"Input {num_seqs} sequences have resulted in out file with the following read counts: {out_prefix}.fixed.fastq : {counts['r']}\n")
+        sys.stderr.write(
+            f"Input {num_seqs} sequences have resulted in out file with the following read counts: {out_prefix}.fixed.fastq : {counts['r']}\n"
+        )
     else:
-        sys.stderr.write(f"Input {num_seqs} sequences have resulted in out files with the following read counts: {out_prefix}.R1.fastq : {counts['r1']}, {out_prefix}.R2.fastq : {counts['r2']}\n")
+        sys.stderr.write(
+            f"Input {num_seqs} sequences have resulted in out files with the following read counts: {out_prefix}.R1.fastq : {counts['r1']}, {out_prefix}.R2.fastq : {counts['r2']}\n"
+        )
 
     return 11
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -124,4 +134,3 @@ if __name__ == "__main__":
 
     exit_code = check_fastq(args.fastq)
     sys.exit(exit_code)
-

@@ -4,6 +4,7 @@ from collections import defaultdict
 import csv
 import sys
 
+
 class KrakenEntry:
     """
     A class representing a line in a kraken report.
@@ -21,6 +22,7 @@ class KrakenEntry:
         sibling_rank (int): An integer representing the ranking among direct siblings (share the parent) based on count.
         hierarchy (list): An ordered list of taxon ids representing the parents to taxonomic root.
     """
+
     def __init__(self, row=None, domain=None, hierarchy=[]):
         """
         Initializes an KrakenEntry object.
@@ -55,7 +57,8 @@ class KrakenEntry:
         Print the attributes of KrakenEntry as a string
         """
         print(
-            f"{self.taxon_id},{self.name},{self.rank},{self.depth},{self.count},{self.ucount},{self.domain},{self.parent},{self.children},{self.sibling_rank},{self.hierarchy}")
+            f"{self.taxon_id},{self.name},{self.rank},{self.depth},{self.count},{self.ucount},{self.domain},{self.parent},{self.children},{self.sibling_rank},{self.hierarchy}"
+        )
 
     def parse_depth(self, name):
         """
@@ -91,7 +94,7 @@ class KrakenEntry:
         self.ucount = int(row["Taxonomies"])  # unique_count
         if self.count < self.ucount:
             self.count, self.ucount = self.ucount, self.count
-        self.hierarchy = self.hierarchy[:self.depth]
+        self.hierarchy = self.hierarchy[: self.depth]
 
     def add_parent(self, parent):
         assert self.parent == None or parent == self.parent
@@ -120,14 +123,15 @@ class KrakenEntry:
             self.rank = new_entry.rank
         assert self.depth == new_entry.depth
 
-        #self.count += new_entry.count
-        #self.ucount += new_entry.ucount
+        # self.count += new_entry.count
+        # self.ucount += new_entry.ucount
 
         assert self.domain == new_entry.domain
         assert self.parent == new_entry.parent
         self.children.update(new_entry.children)
 
         assert self.hierarchy == new_entry.hierarchy
+
 
 class KrakenReport:
     """
@@ -141,6 +145,7 @@ class KrakenReport:
         domains (int): A dict with keys for names of domains and values for associated taxon id.
         file_name (Path): File path for report
     """
+
     def __init__(self, file_name=None):
         """
         Initializes an KrakenReport object.
@@ -152,7 +157,7 @@ class KrakenReport:
         self.total = 0
         self.unclassified = 0
         self.classified = 0
-        self.domains = defaultdict(str) # maps name to taxon_id
+        self.domains = defaultdict(str)  # maps name to taxon_id
         self.file_name = file_name
         if file_name:
             self.load_file(file_name)
@@ -170,7 +175,9 @@ class KrakenReport:
         """
         Print the attributes of KrakenEntry as a string
         """
-        print(f"Report has {len(self.entries)} taxon entries corresponding to {self.classified} classified and {self.unclassified} unclassified reads.")
+        print(
+            f"Report has {len(self.entries)} taxon entries corresponding to {self.classified} classified and {self.unclassified} unclassified reads."
+        )
 
     def add_parent_child(self, parent_id, child_id):
         """
@@ -202,7 +209,10 @@ class KrakenReport:
             elif len(self.entries[entry.parent].children) == 1:
                 entry.set_sibling_rank(1)
             else:
-                sibling_dict = {i: self.entries[i].count for i in self.entries[entry.parent].children}
+                sibling_dict = {
+                    i: self.entries[i].count
+                    for i in self.entries[entry.parent].children
+                }
                 sorted_counts = sorted(sibling_dict.values(), reverse=True)
                 for i, c in sibling_dict.items():
                     rank = sorted_counts.index(c) + 1
@@ -215,7 +225,7 @@ class KrakenReport:
         for entry_id in self.entries:
             if self.entries[entry_id].sibling_rank == 0:
                 print(entry_id)
-                assert(entry_id in ["0","1"])
+                assert entry_id in ["0", "1"]
 
     def check_report(self, file_name):
         """
@@ -228,13 +238,13 @@ class KrakenReport:
             report_has_header (bool): True if report includes the header line
             num_fields (int) number of fields in a line [6,8]
         """
-        with open(file_name, 'r') as handle:
+        with open(file_name, "r") as handle:
             line = handle.readline()
             num_fields = len(line.split("\t"))
-            if num_fields not in [6,8]:
+            if num_fields not in [6, 8]:
                 sys.stderr.write(
                     f"Kraken report file {file_name} badly formatted - must have 6 or 8 columns"
-                    )
+                )
                 sys.exit(9)
             if line.startswith("%"):
                 return True, num_fields
@@ -252,15 +262,39 @@ class KrakenReport:
             report_has_header (bool): True if report includes the header line
             num_fields (int) number of fields in a line [6,8]
         """
-        csvfile = open(file_name, newline='')
+        csvfile = open(file_name, newline="")
         df = {}
         report_has_header, num_fields = self.check_report(file_name)
         if report_has_header:
             df = csv.DictReader(csvfile, delimiter="\t")
         elif num_fields == 6:
-            df = csv.DictReader(csvfile, delimiter="\t", fieldnames=["% of Seqs","Clades","Taxonomies","Rank","Taxonomy ID","Scientific Name"])
+            df = csv.DictReader(
+                csvfile,
+                delimiter="\t",
+                fieldnames=[
+                    "% of Seqs",
+                    "Clades",
+                    "Taxonomies",
+                    "Rank",
+                    "Taxonomy ID",
+                    "Scientific Name",
+                ],
+            )
         elif num_fields == 8:
-            df = csv.DictReader(csvfile, delimiter="\t", fieldnames=["% of Seqs","Clades","Taxonomies","Read Minimizers", "Taxon Minimizers", "Rank","Taxonomy ID","Scientific Name"])
+            df = csv.DictReader(
+                csvfile,
+                delimiter="\t",
+                fieldnames=[
+                    "% of Seqs",
+                    "Clades",
+                    "Taxonomies",
+                    "Read Minimizers",
+                    "Taxon Minimizers",
+                    "Rank",
+                    "Taxonomy ID",
+                    "Scientific Name",
+                ],
+            )
 
         hierarchy = []
         domain = None
@@ -350,15 +384,20 @@ class KrakenReport:
         else:
             print(f"Not a valid denominator {denominator}")
 
-        if denominator not in ["classified", "total"] and self.entries[taxon_id].domain != denominator:
+        if (
+            denominator not in ["classified", "total"]
+            and self.entries[taxon_id].domain != denominator
+        ):
             return 0.0
 
         count = self.entries[taxon_id].count
-        percentage = float(count)/float(total)*100
-        #print(f"{count}/{total} = {percentage:.2f}")
+        percentage = float(count) / float(total) * 100
+        # print(f"{count}/{total} = {percentage:.2f}")
         return percentage
 
-    def to_source_target_df(self, out_file="source_target.csv", max_rank=None, domain=None):
+    def to_source_target_df(
+        self, out_file="source_target.csv", max_rank=None, domain=None
+    ):
         """
         Convert this KrakenReport to a CSV with "source", "target", "value", "percentage" columns. If max_rank given,
         the result is filtered to including only this number of top-ranking children for each parent. If domain is
@@ -398,7 +437,21 @@ class KrakenReport:
                     continue
 
             # filter if an intermediate rank
-            if entry.rank not in ["K", "D", "D1", "D2", "P", "C", "O", "F", "G", "G1", "S", "S1", "S2"]:
+            if entry.rank not in [
+                "K",
+                "D",
+                "D1",
+                "D2",
+                "P",
+                "C",
+                "O",
+                "F",
+                "G",
+                "G1",
+                "S",
+                "S1",
+                "S2",
+            ]:
                 skip.add(entry_id)
                 continue
 
@@ -406,10 +459,18 @@ class KrakenReport:
             while index < len(entry.hierarchy) and entry.hierarchy[-index] in skip:
                 index += 1
             source_id = entry.hierarchy[-index]
-            records.append({"source": self.entries[source_id].name, "target": entry.name, "value": entry.count,
-                            "percentage": self.get_percentage(entry_id, denominator=denominator)})
+            records.append(
+                {
+                    "source": self.entries[source_id].name,
+                    "target": entry.name,
+                    "value": entry.count,
+                    "percentage": self.get_percentage(
+                        entry_id, denominator=denominator
+                    ),
+                }
+            )
 
-        with open(f"{out_file}", 'w', newline='') as csvfile:
+        with open(f"{out_file}", "w", newline="") as csvfile:
             fieldnames = ["source", "target", "value", "percentage"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
@@ -433,8 +494,12 @@ class KrakenReport:
         if not ranks or len(ranks) == 0:
             taxon_ids = [e for e in self.entries.keys()]
         else:
-            taxon_ids = [e for e in self.entries.keys() if self.entries[e].rank in ranks]
-        return pd.DataFrame({sample_id: [self.entries[e].count for e in taxon_ids]}, index=taxon_ids)
+            taxon_ids = [
+                e for e in self.entries.keys() if self.entries[e].rank in ranks
+            ]
+        return pd.DataFrame(
+            {sample_id: [self.entries[e].count for e in taxon_ids]}, index=taxon_ids
+        )
 
     def check_host(self, host_dict):
         """
@@ -447,7 +512,7 @@ class KrakenReport:
             if host_id in self.entries and self.entries[host_id].count > max_host_count:
                 sys.stderr.write(
                     f"ERROR: found {self.entries[host_id].count} reads corresponding to host {self.entries[host_id].name} with taxon_id {host_id}, max allowed is {max_host_count}\n"
-                    )
+                )
                 sys.exit(2)
 
     def update_entry(self, new_entry):
@@ -458,7 +523,7 @@ class KrakenReport:
         Parameters:
             new_entry (KrakenEntry): A new kraken entry object.
         """
-        #print(f"updating {new_entry.taxon_id}")
+        # print(f"updating {new_entry.taxon_id}")
         if new_entry.taxon_id in self.entries:
             self.entries[new_entry.taxon_id].update(new_entry)
         else:
@@ -478,18 +543,22 @@ class KrakenReport:
             mrca_taxon_id
         """
         i = 0
-        assert(taxon_id_1 in self.entries and taxon_id_2  in self.entries)
+        assert taxon_id_1 in self.entries and taxon_id_2 in self.entries
         if taxon_id_1 == "0":
-            #print(f"MRCA of old {taxon_id_1} and new {taxon_id_2} is {taxon_id_1}")
+            # print(f"MRCA of old {taxon_id_1} and new {taxon_id_2} is {taxon_id_1}")
             return taxon_id_1
 
         entry1 = self.entries[taxon_id_1]
         entry2 = self.entries[taxon_id_2]
-        while i < len(entry1.hierarchy) and i < len(entry2.hierarchy) and entry1.hierarchy[i]==entry2.hierarchy[i]:
-            if i == len(entry1.hierarchy)-1 or i == len(entry2.hierarchy)-1:
+        while (
+            i < len(entry1.hierarchy)
+            and i < len(entry2.hierarchy)
+            and entry1.hierarchy[i] == entry2.hierarchy[i]
+        ):
+            if i == len(entry1.hierarchy) - 1 or i == len(entry2.hierarchy) - 1:
                 break
-            i+=1
-        #print(f"MRCA of old {taxon_id_1} and new {taxon_id_2} is {entry1.hierarchy[i]}")
+            i += 1
+        # print(f"MRCA of old {taxon_id_1} and new {taxon_id_2} is {entry1.hierarchy[i]}")
         return entry1.hierarchy[i]
 
     def update_counts(self, changes):
@@ -501,18 +570,22 @@ class KrakenReport:
         """
         for old_taxon_id in changes:
             for new_taxon_id in changes[old_taxon_id]:
-                print(f"Moving {changes[old_taxon_id][new_taxon_id]} counts from {old_taxon_id} to {new_taxon_id}")
+                print(
+                    f"Moving {changes[old_taxon_id][new_taxon_id]} counts from {old_taxon_id} to {new_taxon_id}"
+                )
                 self.entries[old_taxon_id].ucount -= changes[old_taxon_id][new_taxon_id]
                 self.entries[old_taxon_id].count -= changes[old_taxon_id][new_taxon_id]
-                assert(self.entries[old_taxon_id].ucount >= 0)
+                assert self.entries[old_taxon_id].ucount >= 0
 
                 mrca = self.get_mrca(old_taxon_id, new_taxon_id)
 
                 if old_taxon_id != "0":
                     for taxon_id in reversed(self.entries[old_taxon_id].hierarchy):
                         if taxon_id != mrca:
-                            self.entries[taxon_id].count -= changes[old_taxon_id][new_taxon_id]
-                            assert (self.entries[taxon_id].count >= 0)
+                            self.entries[taxon_id].count -= changes[old_taxon_id][
+                                new_taxon_id
+                            ]
+                            assert self.entries[taxon_id].count >= 0
                         elif taxon_id == mrca:
                             break
 
@@ -520,7 +593,9 @@ class KrakenReport:
                 self.entries[new_taxon_id].count += changes[old_taxon_id][new_taxon_id]
                 for taxon_id in reversed(self.entries[new_taxon_id].hierarchy):
                     if taxon_id != mrca:
-                        self.entries[taxon_id].count += changes[old_taxon_id][new_taxon_id]
+                        self.entries[taxon_id].count += changes[old_taxon_id][
+                            new_taxon_id
+                        ]
                     elif taxon_id == mrca:
                         break
 
@@ -539,7 +614,7 @@ class KrakenReport:
                 self.entries[entry.parent].children.remove(taxon_id)
             for child in entry.children:
                 if child in self.entries:
-                    assert(child in set_zeroes)
+                    assert child in set_zeroes
             del self.entries[taxon_id]
 
     def update(self, new_report, changes):
@@ -563,7 +638,9 @@ class KrakenReport:
             self.total = self.classified + self.unclassified
             print(f"Merged report has {self.entries.keys()} keys")
         else:
-            print(f"New report has {len(new_report.entries)} items and existing report has {len(self.entries)} items")
+            print(
+                f"New report has {len(new_report.entries)} items and existing report has {len(self.entries)} items"
+            )
             for taxon_id, new_entry in new_report.entries.items():
                 self.update_entry(new_entry)
             self.update_counts(changes)
@@ -571,20 +648,27 @@ class KrakenReport:
             self.set_sibling_ranks()
             self.unclassified = self.entries["0"].count
             self.classified = self.entries["1"].count if "1" in self.entries else 0
-            assert(self.total == self.classified + self.unclassified)
+            assert self.total == self.classified + self.unclassified
 
-    def save(self, file_name = None):
+    def save(self, file_name=None):
         """
-            Save the KrakenReport object in kraken report format
+        Save the KrakenReport object in kraken report format
         """
         if not file_name:
             file_name = self.file_name
         with open(file_name, "w") as out:
-            fieldnames = ["% of Seqs", "Clades", "Taxonomies", "Rank", "Taxonomy ID", "Scientific Name"]
-            header = '\t'.join(fieldnames)
+            fieldnames = [
+                "% of Seqs",
+                "Clades",
+                "Taxonomies",
+                "Rank",
+                "Taxonomy ID",
+                "Scientific Name",
+            ]
+            header = "\t".join(fieldnames)
             out.write(f"{header}\n")
             for taxon_id, entry in self.entries.items():
-                name_buff = "  "*entry.depth
+                name_buff = "  " * entry.depth
                 percentage = self.get_percentage(taxon_id, "total")
                 line = f"{percentage:6.2f}\t{entry.count}\t{entry.ucount}\t{entry.rank}\t{entry.taxon_id}\t{name_buff}{entry.name}"
                 out.write(f"{line}\n")

@@ -4,11 +4,15 @@ include { unpack_taxonomy } from '../modules/setup_taxonomy'
 process unpack_database {
     label "process_single"
     storeDir "${params.store_dir}/sourmash"
+
     input:
-        val database
+    val database
+
     output:
-        path "database_dir", emit: database
-        path "lineages_dir", emit: lineages
+    path "database_dir", emit: database
+    path "lineages_dir", emit: lineages
+
+    script:
     """
     mkdir database_dir
     cd database_dir
@@ -39,9 +43,11 @@ process sourmash_sketch_dna {
     container "biocontainers/sourmash:4.8.4--hdfd78af_0"
 
     input:
-        tuple val(unique_id), path(fastq)
+    tuple val(unique_id), path(fastq)
+
     output:
-        tuple val(unique_id), path("${unique_id}.dna.sig.zip")
+    tuple val(unique_id), path("${unique_id}.dna.sig.zip")
+
     script:
     """
     sourmash sketch dna ${fastq} -p k=${params.sourmash_k},dna,scaled=1000,abund \
@@ -58,12 +64,14 @@ process sourmash_gather {
     container "biocontainers/sourmash:4.8.4--hdfd78af_0"
 
     input:
-        tuple val(unique_id), path(sketch)
-        val dbs
-        path database
+    tuple val(unique_id), path(sketch)
+    val dbs
+    path database
+
     output:
-        tuple val(unique_id), path("${unique_id}.k${params.sourmash_k}.gather.csv"), emit: gather_csv
-        tuple val(unique_id), path("${unique_id}.k${params.sourmash_k}.gather.txt"), emit: gather_txt
+    tuple val(unique_id), path("${unique_id}.k${params.sourmash_k}.gather.csv"), emit: gather_csv
+    tuple val(unique_id), path("${unique_id}.k${params.sourmash_k}.gather.txt"), emit: gather_txt
+
     script:
     """
     sourmash gather ${sketch} database_dir/${params.sourmash_db_name}-{${dbs}}-k${params.sourmash_k}.zip --dna --ksize ${params.sourmash_k} \
@@ -82,12 +90,14 @@ process sourmash_tax_metagenome {
     publishDir "${params.outdir}/${unique_id}/classifications", mode: 'copy', pattern: '*.csv'
 
     input:
-        tuple val(unique_id), path(gather_csv)
-        val dbs
-        path lineages
+    tuple val(unique_id), path(gather_csv)
+    val dbs
+    path lineages
+
     output:
-        tuple val(unique_id), path("sourmash.k${params.sourmash_k}.unformatted.kreport.txt"), emit: kreport
-        path "sourmash.k${params.sourmash_k}.summarized.csv", emit: summary
+    tuple val(unique_id), path("sourmash.k${params.sourmash_k}.unformatted.kreport.txt"), emit: kreport
+    path "sourmash.k${params.sourmash_k}.summarized.csv", emit: summary
+
     script:
     """
     sourmash tax metagenome -g ${gather_csv} \
@@ -108,14 +118,15 @@ process sourmash_to_json {
     conda "bioconda::biopython=1.78 anaconda::Mako=1.2.3"
     container "${params.wf.container}:${params.wf.container_version}"
 
-
     input:
-        tuple val(unique_id), path(kraken_report)
-        path taxonomy_dir
-    output:
-       tuple val(unique_id), path("Sourmash.kraken.json"), emit: json
-       tuple val(unique_id), path("sourmash.k${params.sourmash_k}.kreport.txt"), emit: kreport
+    tuple val(unique_id), path(kraken_report)
+    path taxonomy_dir
 
+    output:
+    tuple val(unique_id), path("Sourmash.kraken.json"), emit: json
+    tuple val(unique_id), path("sourmash.k${params.sourmash_k}.kreport.txt"), emit: kreport
+
+    script:
     """
     reformat_sourmash_kreport.py -r ${kraken_report} -t ${taxonomy_dir} -o "sourmash.k${params.sourmash_k}.kreport.txt"
 
@@ -133,39 +144,42 @@ process sourmash_to_json {
 
 workflow sourmash_classify {
     take:
-        fastq_ch
+    fastq_ch
+
     main:
-        if (params.sourmash_database) {
-                database = file("${params.sourmash_database}/database_dir", type: "dir", checkIfExists:true)
-                lineages = file("${params.sourmash_database}/lineages_dir", type: "dir", checkIfExists:true)
-        } else {
-            stored_database = file("${params.store_dir}/sourmash/database_dir", type: "dir")
-            if (stored_database.isEmpty()) {
-                unpack_database("${params.sourmash_remote}")
-                database = unpack_database.out.database
-                lineages = unpack_database.out.database
-            } else {
-                database = file("${params.store_dir}/sourmash/database_dir", type: "dir", checkIfExists:true)
-                lineages = file("${params.store_dir}/sourmash/lineages_dir", type: "dir", checkIfExists:true)
-            }
+    if (params.sourmash_database) {
+        database = file("${params.sourmash_database}/database_dir", type: "dir", checkIfExists: true)
+        lineages = file("${params.sourmash_database}/lineages_dir", type: "dir", checkIfExists: true)
+    }
+    else {
+        stored_database = file("${params.store_dir}/sourmash/database_dir", type: "dir")
+        if (stored_database.isEmpty()) {
+            unpack_database("${params.sourmash_remote}")
+            database = unpack_database.out.database
+            lineages = unpack_database.out.database
         }
-
-        input_taxonomy = file("${params.store_dir}/${params.database_set}/taxonomy_dir")
-        if (input_taxonomy.isEmpty()) {
-            default_taxonomy = file("${params.default_taxonomy}", checkIfExists:true)
-            taxonomy = unpack_taxonomy(default_taxonomy)
-        } else {
-            taxonomy = input_taxonomy
+        else {
+            database = file("${params.store_dir}/sourmash/database_dir", type: "dir", checkIfExists: true)
+            lineages = file("${params.store_dir}/sourmash/lineages_dir", type: "dir", checkIfExists: true)
         }
+    }
 
-        include_dbs = "${params.sourmash_db_includes}".split(' ').join(',')
-        sourmash_sketch_dna(fastq_ch)
-        sourmash_gather(sourmash_sketch_dna.out, include_dbs, database)
-        sourmash_tax_metagenome(sourmash_gather.out.gather_csv, include_dbs, lineages)
-        sourmash_to_json(sourmash_tax_metagenome.out.kreport, taxonomy)
+    input_taxonomy = file("${params.store_dir}/${params.database_set}/taxonomy_dir")
+    if (input_taxonomy.isEmpty()) {
+        default_taxonomy = file("${params.default_taxonomy}", checkIfExists: true)
+        taxonomy = unpack_taxonomy(default_taxonomy)
+    }
+    else {
+        taxonomy = input_taxonomy
+    }
+
+    include_dbs = "${params.sourmash_db_includes}".split(' ').join(',')
+    sourmash_sketch_dna(fastq_ch)
+    sourmash_gather(sourmash_sketch_dna.out, include_dbs, database)
+    sourmash_tax_metagenome(sourmash_gather.out.gather_csv, include_dbs, lineages)
+    sourmash_to_json(sourmash_tax_metagenome.out.kreport, taxonomy)
 
     emit:
-        kreport = sourmash_to_json.out.kreport
-        json = sourmash_to_json.out.json
+    kreport = sourmash_to_json.out.kreport
+    json    = sourmash_to_json.out.json
 }
-

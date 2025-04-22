@@ -30,10 +30,12 @@ process run_virbot {
     publishDir "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "discovered_contigs.fa" : "tax_assignments.tsv" }
 
     input:
-        tuple val(unique_id), val(taxon), path(contigs)
+    tuple val(unique_id), val(taxon), path(contigs)
+
     output:
-        path "virbot/output.vb.fasta"
-        path "pos_contig_score.tsv"
+    path "virbot/output.vb.fasta"
+    path "pos_contig_score.tsv"
+
     script:
     """
     virbot --input "${contigs}" --output virbot
@@ -48,8 +50,10 @@ process download_genomad_database {
     container "biocontainers/genomad:1.7.1--pyhdfd78af_0"
 
     storeDir "${params.store_dir}/"
+
     output:
-        path "genomad_db"
+    path "genomad_db"
+
     script:
     """
     genomad download-database .
@@ -64,10 +68,12 @@ process run_genomad {
     container "biocontainers/genomad:1.7.1--pyhdfd78af_0"
 
     input:
-        tuple val(unique_id), val(taxon), path(contigs)
-        path genomad_db
+    tuple val(unique_id), val(taxon), path(contigs)
+    path genomad_db
+
     output:
-        tuple val(unique_id), val(taxon), path("genomad/filtered_contigs_summary/filtered_contigs_virus.fna"), path("tax_assignments.tsv")
+    tuple val(unique_id), val(taxon), path("genomad/filtered_contigs_summary/filtered_contigs_virus.fna"), path("tax_assignments.tsv")
+
     script:
     """
     genomad end-to-end -t ${task.cpus} --disable-find-proviruses --relaxed \
@@ -89,11 +95,13 @@ process filter_short_contigs {
 
     conda "bioconda::bbmap"
     container "biocontainers/bbmap:39.01--h5c4e2a8_0"
- 
+
     input:
-        tuple val(unique_id), val(taxon), path(contigs)
+    tuple val(unique_id), val(taxon), path(contigs)
+
     output:
-        tuple val(unique_id), val(taxon), path("filtered_contigs.fa")
+    tuple val(unique_id), val(taxon), path("filtered_contigs.fa")
+
     script:
     """
     reformat.sh in=${contigs} out=filtered_contigs.fa minlength=2000
@@ -111,9 +119,11 @@ process select_Riboviria {
     publishDir "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', saveAs: { it == "RNA_viral_contigs.fa" ? "discovered_contigs.fa" : "tax_assignments.tsv" }
 
     input:
-        tuple val(unique_id), val(taxon), path(contigs), path(tax_assignments)
+    tuple val(unique_id), val(taxon), path(contigs), path(tax_assignments)
+
     output:
-        tuple val(unique_id), val(taxon), path("RNA_viral_contigs.fa"), path(tax_assignments)
+    tuple val(unique_id), val(taxon), path("RNA_viral_contigs.fa"), path(tax_assignments)
+
     script:
     """
     awk '{print \$1}' ${tax_assignments} > names.txt
@@ -123,28 +133,33 @@ process select_Riboviria {
 
 workflow classify_virus_fastq {
     take:
-        fastq_ch
-    main:
-        if (params.paired) {
-            taxon_fastq_ch = fastq_ch.map { it -> [it[0], "viruses", it[1], it[2]]}
-        } else {
-            taxon_fastq_ch = fastq_ch.map { it -> [it[0], "viruses", it[1]]}
-        }
-        assemble_taxa(taxon_fastq_ch)
+    fastq_ch
 
-        if ( params.classifier == 'virbot' ) {
-            run_virbot(assemble_taxa.out.contigs)
-        } else if ( params.classifier == 'genomad' ) {
-            if (! params.genomad_db) {
-                genomad_db_ch = download_genomad_database()
-            } else {
-                Channel.of(file(${params.genomad_db}, type: "dir", checkIfExists:true))
-                    .set {genomad_db_ch}
-            }
-            filter_short_contigs(assemble_taxa.out.contigs)
-            run_genomad(filter_short_contigs.out, genomad_db_ch)
-            select_Riboviria(run_genomad.out)
-        } else {
-            error "Invalid classifier: ${params.classifier} - must be either 'virbot' or 'genomad'"
+    main:
+    if (params.paired) {
+        taxon_fastq_ch = fastq_ch.map { it -> [it[0], "viruses", it[1], it[2]] }
+    }
+    else {
+        taxon_fastq_ch = fastq_ch.map { it -> [it[0], "viruses", it[1]] }
+    }
+    assemble_taxa(taxon_fastq_ch)
+
+    if (params.classifier == 'virbot') {
+        run_virbot(assemble_taxa.out.contigs)
+    }
+    else if (params.classifier == 'genomad') {
+        if (!params.genomad_db) {
+            genomad_db_ch = download_genomad_database()
         }
+        else {
+            Channel.of(file("${params.genomad_db}", type: "dir", checkIfExists: true))
+                .set { genomad_db_ch }
+        }
+        filter_short_contigs(assemble_taxa.out.contigs)
+        run_genomad(filter_short_contigs.out, genomad_db_ch)
+        select_Riboviria(run_genomad.out)
+    }
+    else {
+        error("Invalid classifier: ${params.classifier} - must be either 'virbot' or 'genomad'")
+    }
 }

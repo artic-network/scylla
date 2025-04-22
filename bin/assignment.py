@@ -19,6 +19,7 @@ def trim_read_id(read_id):
 
     return read_id
 
+
 def get_mrca(taxon_id1, taxon_id2, parents):
     if taxon_id1 == taxon_id2:
         return taxon_id1
@@ -58,6 +59,7 @@ class KrakenAssignmentEntry:
         length (int): Length of read in bp
         kmer_string (str): space separated string representing the taxon_ids matched along the read
     """
+
     def __init__(self, line=None):
         """
         Initializes an KrakenAssignmentEntry object.
@@ -72,6 +74,7 @@ class KrakenAssignmentEntry:
         self.kmer_string = ""
         if line is not None:
             self.add_line(line)
+
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.__dict__ == other.__dict__
@@ -92,10 +95,12 @@ class KrakenAssignmentEntry:
                 f"Kraken assignment line {line} badly formatted - must have 5 fields"
             )
             sys.exit(11)
-        self.classified, self.read_id, self.taxon_id, length, self.kmer_string = line.strip().split("\t")
+        self.classified, self.read_id, self.taxon_id, length, self.kmer_string = (
+            line.strip().split("\t")
+        )
         self.length = int(length)
 
-        #if "taxid" in self.taxon_id:
+        # if "taxid" in self.taxon_id:
         #    temp = self.taxon_id.split("taxid ")[-1]
         #    self.taxon_id = temp[:-1] // can't remember where this came from so leave it out
 
@@ -106,16 +111,22 @@ class KrakenAssignmentEntry:
 
     def declassify(self):
         """
-            Changes the classified status of KrakenAssignmentEntry to unclassified
+        Changes the classified status of KrakenAssignmentEntry to unclassified
         """
         self.classified = "U"
         self.taxon_id = "0"
 
     def get_line(self):
         """
-            Get string representation of KrakenAssignmentEntry
+        Get string representation of KrakenAssignmentEntry
         """
-        fields = [self.classified, self.read_id, self.taxon_id, str(self.length), self.kmer_string]
+        fields = [
+            self.classified,
+            self.read_id,
+            self.taxon_id,
+            str(self.length),
+            self.kmer_string,
+        ]
         return "\t".join(fields)
 
     def print(self):
@@ -133,6 +144,7 @@ class KrakenAssignments:
         file_name (str): Name of file to parse.
         load (bool): If set loads the contents of the file into memory
     """
+
     def __init__(self, assignment_file, load=False):
         """
         Initializes an KrakenAssignments object.
@@ -172,19 +184,34 @@ class KrakenAssignments:
 
                 corrected_taxon_id = taxon_id
                 if parents:
-                    while corrected_taxon_id in parents and corrected_taxon_id not in taxon_id_map and corrected_taxon_id != "1":
+                    while (
+                        corrected_taxon_id in parents
+                        and corrected_taxon_id not in taxon_id_map
+                        and corrected_taxon_id != "1"
+                    ):
                         corrected_taxon_id = parents[corrected_taxon_id]
-                        if corrected_taxon_id in taxon_id_map and corrected_taxon_id!= taxon_id:
-                            comments.add(f"Assign {taxon_id} to {corrected_taxon_id} list")
+                        if (
+                            corrected_taxon_id in taxon_id_map
+                            and corrected_taxon_id != taxon_id
+                        ):
+                            comments.add(
+                                f"Assign {taxon_id} to {corrected_taxon_id} list"
+                            )
 
                 if read_id in extended_map:
-                    mrca_taxon_id = get_mrca(corrected_taxon_id, extended_map[read_id], parents)
+                    mrca_taxon_id = get_mrca(
+                        corrected_taxon_id, extended_map[read_id], parents
+                    )
                     if mrca_taxon_id in taxon_id_map:
                         if mrca_taxon_id != read_map[read_id]:
-                            comments.add(f"Reassign {extended_map[read_id]} (and {corrected_taxon_id}) to mrca {mrca_taxon_id} list")
+                            comments.add(
+                                f"Reassign {extended_map[read_id]} (and {corrected_taxon_id}) to mrca {mrca_taxon_id} list"
+                            )
                             read_map[read_id] = mrca_taxon_id
                     elif read_id in read_map:
-                        comments.add(f"MRCA {mrca_taxon_id} of {extended_map[read_id]} and {corrected_taxon_id} not in taxon_id_map")
+                        comments.add(
+                            f"MRCA {mrca_taxon_id} of {extended_map[read_id]} and {corrected_taxon_id} not in taxon_id_map"
+                        )
                         del read_map[read_id]
 
                 elif corrected_taxon_id in taxon_id_map:
@@ -207,7 +234,11 @@ class KrakenAssignments:
             for line in kfile:
                 assignment = KrakenAssignmentEntry(line)
                 if (taxon_ids and assignment.taxon_id in taxon_ids) or not taxon_ids:
-                    if assignment.read_id in self.entries and assignment.taxon_id != self.entries[assignment.read_id].taxon_id:
+                    if (
+                        assignment.read_id in self.entries
+                        and assignment.taxon_id
+                        != self.entries[assignment.read_id].taxon_id
+                    ):
                         self.entries[assignment.read_id].declassify()
                     else:
                         self.entries[assignment.read_id] = assignment
@@ -220,7 +251,7 @@ class KrakenAssignments:
             new_assignments (KrakenAssignments): A new loaded KrakenAssignments object.
         """
         if not changes:
-            changes = defaultdict(lambda : defaultdict(int))
+            changes = defaultdict(lambda: defaultdict(int))
 
         if len(self.entries) == 0:
             self.entries = new_assignments.entries
@@ -231,9 +262,11 @@ class KrakenAssignments:
                 self.entries[read_id] = entry
                 changes["0"][entry.taxon_id] += 1
 
-            elif (read_id in self.entries
-                  and entry.classified == "C"
-                  and entry.taxon_id != self.entries[read_id].taxon_id):
+            elif (
+                read_id in self.entries
+                and entry.classified == "C"
+                and entry.taxon_id != self.entries[read_id].taxon_id
+            ):
                 old_taxon_id = self.entries[read_id].taxon_id
                 new_taxon_id = entry.taxon_id
                 self.entries[read_id] = entry
@@ -243,9 +276,8 @@ class KrakenAssignments:
 
     def save(self):
         """
-            Save the KrakenAssignments object in kraken assignment format
+        Save the KrakenAssignments object in kraken assignment format
         """
         with open(self.file_name, "w") as out:
             for taxon_id, entry in self.entries.items():
                 out.write(f"{entry.get_line()}\n")
-

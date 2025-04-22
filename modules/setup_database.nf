@@ -6,6 +6,8 @@ process unpack_database {
         path(database_path)
     output:
         tuple val(database_name), path("database_dir")
+
+    script:
     """
     if [[ "${database_path}" == *.tar.gz ]]
     then

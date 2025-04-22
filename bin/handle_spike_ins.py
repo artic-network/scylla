@@ -8,6 +8,7 @@ import os
 from collections import defaultdict
 import mappy as mp
 
+
 def parse_spike_in_refs(ref_file, ref_dir):
     ref_dict = {}
     with open(ref_file, "r") as f:
@@ -23,6 +24,7 @@ def parse_spike_in_refs(ref_file, ref_dir):
         if ref_dict[key]["taxa"]:
             ref_dict[key]["taxa"] = [str(s) for s in ref_dict[key]["taxa"]]
     return ref_dict
+
 
 def expand_spike_in_input(list_spike_ins, spike_in_dict):
     spike_taxids = []
@@ -40,10 +42,13 @@ def expand_spike_in_input(list_spike_ins, spike_in_dict):
             sys.stdout.write(f"Spike in {spike} given as additional reference file\n")
             spike_refs.append(spike)
         else:
-            str_list_keys = ','.join(spike_in_dict.keys())
-            sys.stdout.write(f"Spike in {spike} does not correspond to named spike_ins [{str_list_keys}] and is not a taxid or a reference fasta\n")
+            str_list_keys = ",".join(spike_in_dict.keys())
+            sys.stdout.write(
+                f"Spike in {spike} does not correspond to named spike_ins [{str_list_keys}] and is not a taxid or a reference fasta\n"
+            )
             sys.exit(6)
     return spike_taxids, spike_refs
+
 
 def parse_depth(name):
     parse_name = name.split(" ")
@@ -54,6 +59,7 @@ def parse_depth(name):
         depth += 1
     depth = int(depth / 2)
     return depth
+
 
 def save_file(name, lines, header):
     if len(lines) == 0:
@@ -116,7 +122,7 @@ def parse_report_file(report_file, spike_in, save_json):
                 "rank": rank,
                 "name": name,
                 "taxid": ncbi,
-                "is_spike_in": False
+                "is_spike_in": False,
             }
 
             while depth <= max_depth:
@@ -136,20 +142,25 @@ def parse_report_file(report_file, spike_in, save_json):
                 entries[ncbi]["is_spike_in"] = True
 
     if save_json:
-        with open(report_file.replace(".filtered", "").replace(".txt", ".json"), "w") as outfile:
+        with open(
+            report_file.replace(".filtered", "").replace(".txt", ".json"), "w"
+        ) as outfile:
             json.dump(entries, outfile, indent=4, sort_keys=False)
 
     spike_entries = defaultdict(lambda: defaultdict(str))
     for taxid in entries:
         if entries[taxid]["is_spike_in"]:
-            spike_entries[taxid]["name"]= entries[taxid]["name"]
-            spike_entries[taxid]["human_readable"]= entries[taxid]["name"]
-            spike_entries[taxid]["taxid"]= entries[taxid]["taxid"]
-            spike_entries[taxid]["classified_percentage"]= entries[taxid]["percentage"]
-            spike_entries[taxid]["classified_count"]= entries[taxid]["count_descendants"]
+            spike_entries[taxid]["name"] = entries[taxid]["name"]
+            spike_entries[taxid]["human_readable"] = entries[taxid]["name"]
+            spike_entries[taxid]["taxid"] = entries[taxid]["taxid"]
+            spike_entries[taxid]["classified_percentage"] = entries[taxid]["percentage"]
+            spike_entries[taxid]["classified_count"] = entries[taxid][
+                "count_descendants"
+            ]
             spike_entries[taxid].setdefault("mapped_count", 0)
             spike_entries[taxid].setdefault("mapped_percentage", 0.0)
     return spike_entries
+
 
 def map_to_refs(query, reference, counts, preset):
     a = mp.Aligner(reference, best_n=1, preset=preset)  # load or build index
@@ -163,10 +174,11 @@ def map_to_refs(query, reference, counts, preset):
             counts[hit.ctg] += 1
             # print("{}\t{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
             break
-        #if read_count % 1000000 == 0:
+        # if read_count % 1000000 == 0:
         #    break
     counts["total"] = read_count
     return a.seq_names
+
 
 def identify_spike_map_counts(query, spike_refs, preset):
     map_counts = defaultdict(int)
@@ -175,7 +187,10 @@ def identify_spike_map_counts(query, spike_refs, preset):
         map_ids[reference] = map_to_refs(query, reference, map_counts, preset)
     return map_counts, map_ids
 
-def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries, map_counts, map_ids):
+
+def combine_report_and_map_counts(
+    list_spike_ins, spike_in_dict, report_entries, map_counts, map_ids
+):
     spike_summary = defaultdict(lambda: {})
     for spike in list_spike_ins:
         spike_dict = defaultdict(lambda: {})
@@ -184,7 +199,7 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
 
             if spike_in_dict[spike]["ref"]:
                 for long_name in map_ids[spike_in_dict[spike]["ref"]]:
-                    name, taxid, taxon_name = long_name.split('|')
+                    name, taxid, taxon_name = long_name.split("|")
                     taxon_name = taxon_name.replace("_", " ")
 
                     entry = report_entries.get(taxid)
@@ -196,7 +211,9 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
                         spike_dict[name].setdefault("classified_count", 0)
                         spike_dict[name].setdefault("classified_percentage", 0.0)
                     spike_dict[name]["mapped_count"] = map_counts[long_name]
-                    spike_dict[name]["mapped_percentage"] = float(map_counts[long_name])/map_counts["total"]*100
+                    spike_dict[name]["mapped_percentage"] = (
+                        float(map_counts[long_name]) / map_counts["total"] * 100
+                    )
             else:
                 for taxid in spike_in_dict[spike]["taxa"]:
                     entry = report_entries.get(taxid)
@@ -210,7 +227,7 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
         elif spike.endswith("f*a") or spike.endswith("f*a.gz"):
             spike_name = spike.split("/")[-1].split(".")[0]
             for long_name in map_ids[spike]:
-                name, taxid, taxon_name = long_name.split('|')
+                name, taxid, taxon_name = long_name.split("|")
                 taxon_name = taxon_name.replace("_", " ")
 
                 entry = report_entries.get(taxid)
@@ -222,11 +239,14 @@ def combine_report_and_map_counts(list_spike_ins, spike_in_dict, report_entries,
                     spike_dict[name].setdefault("classified_count", 0)
                     spike_dict[name].setdefault("classified_percentage", 0.0)
                 spike_dict[name]["mapped_count"] = map_counts[long_name]
-                spike_dict[name]["mapped_percentage"] = float(map_counts[long_name])/map_counts["total"]*100
+                spike_dict[name]["mapped_percentage"] = (
+                    float(map_counts[long_name]) / map_counts["total"] * 100
+                )
         spike_summary[spike_name].update(spike_dict)
     with open("spike_count_summary.json", "w") as outfile:
         json.dump(spike_summary, outfile, indent=4, sort_keys=False)
     return spike_summary
+
 
 def check_spike_summary(spike_summary):
     check = {}
@@ -244,13 +264,13 @@ def check_spike_summary(spike_summary):
             found_mapped = False
             classified_count = spike_summary[spike][ref].get("classified_count")
             mapped_count = spike_summary[spike][ref].get("mapped_count")
-            if (classified_count and int(classified_count) > 0):
+            if classified_count and int(classified_count) > 0:
                 found_classified = True
                 found_classified_any = True
             else:
                 found_classified_all = False
 
-            if (mapped_count and int(mapped_count) > 0):
+            if mapped_count and int(mapped_count) > 0:
                 found_mapped = True
                 found_mapped_any = True
             else:
@@ -278,7 +298,7 @@ def check_spike_summary(spike_summary):
         if found_classified_all:
             print(f"Spike {spike} found all refs by classification")
         elif found_classified_any:
-             print(f"Spike {spike} found some refs by classification")
+            print(f"Spike {spike} found some refs by classification")
         else:
             print(f"Spike {spike} failed by classification")
 
@@ -292,6 +312,7 @@ def check_spike_summary(spike_summary):
     with open("spike_summary.json", "w") as outfile:
         json.dump(check, outfile, indent=4, sort_keys=False)
     return check
+
 
 # Main method
 def main():
@@ -358,12 +379,18 @@ def main():
     spike_in_dict = parse_spike_in_refs(args.spike_in_dict, args.spike_in_ref_dir)
     spike_taxids, spike_refs = expand_spike_in_input(spike_ins, spike_in_dict)
 
-    spike_kraken_entries = parse_report_file(args.report_file, spike_taxids, args.save_json)
+    spike_kraken_entries = parse_report_file(
+        args.report_file, spike_taxids, args.save_json
+    )
 
     if len(spike_taxids) > 0 or len(spike_refs) > 0:
-        map_counts, map_ids = identify_spike_map_counts(args.fastq_file, spike_refs, preset)
+        map_counts, map_ids = identify_spike_map_counts(
+            args.fastq_file, spike_refs, preset
+        )
 
-        spike_summary = combine_report_and_map_counts(spike_ins, spike_in_dict, spike_kraken_entries, map_counts, map_ids)
+        spike_summary = combine_report_and_map_counts(
+            spike_ins, spike_in_dict, spike_kraken_entries, map_counts, map_ids
+        )
         check_spike_summary(spike_summary)
 
     now = datetime.now()
