@@ -84,15 +84,14 @@ def map_to_refs(query, ref_sam):
     in_sam = Reader(in_file)
 
     read_count = 0
-    y = None
-    for x in in_sam:
-        if x.flag not in [0,16]:
+    for sam_record in in_sam:
+        # Only include first entry from each read
+        if sam_record.flag not in [0,16]:
             continue
         read_count += 1
-        counts[x.rname] += 1
-        ranges[x.rname].append(x.coords)
-        read_ids[x.rname].append(x.qname)
-        y = x
+        counts[sam_record.rname] += 1
+        ranges[sam_record.rname].append(sam_record.coords)
+        read_ids[sam_record.rname].append(sam_record.qname)
 
     return counts, ranges, read_ids
 
