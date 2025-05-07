@@ -1,7 +1,8 @@
 // module for other ingest qc checks
 process check_single_fastq {
 
-    label "process_medium"
+    label "process_single"
+    label "process_more_memory"
 
     publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.fixed.*"
     publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.R*.fastq"
@@ -25,7 +26,7 @@ process check_single_fastq {
 
 process read_stats {
 
-    label "process_medium"
+    label "process_low"
 
     conda "nanoporetech::fastcat=0.15.1"
     container "${params.wf.container}:${params.wf.container_version}"
@@ -46,7 +47,7 @@ process read_stats {
 
 process publish_stats {
 
-    label "process_low"
+    label "process_single"
 
     publishDir "${params.outdir}/${unique_id}/qc", mode: 'copy'
 
