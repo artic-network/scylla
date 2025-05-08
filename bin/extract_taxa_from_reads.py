@@ -22,6 +22,7 @@ from report import KrakenReport
 from assignment import KrakenAssignments
 from taxonomy import Taxonomy
 
+
 def get_taxon_id_lists(
     kraken_report,
     loaded_taxonomy,
@@ -32,20 +33,33 @@ def get_taxon_id_lists(
     min_percent=None,
     top_n=None,
     include_parents=False,
-    include_children=False
+    include_children=False,
 ):
+    """
+    Loops through the kraken report, and for each taxon_id in the report, if it meets the thresholds, a key is added to
+    lists_to_extract. The values in this dictionary are all taxon_ids which should be added to the file alongside the
+    key taxon_id (e.g. parents or children)
+    """
     lists_to_extract = defaultdict(set)
     for taxon in kraken_report.entries:
         entry = kraken_report.entries[taxon]
+        pass_count_thresh = True
+        pass_perc_thresh = True
         if len(target_ranks) > 0 and entry.rank not in target_ranks:
             continue
         if min_count and entry.ucount < min_count:
-            continue
+            pass_count_thresh = False
         if min_count_descendants and entry.count < min_count_descendants:
             continue
-        if min_percent and kraken_report.get_percentage(taxon) < min_percent:
-            continue
+        if (
+            min_percent
+            and kraken_report.get_percentage(taxon, denominator=entry.domain)
+            < min_percent
+        ):
+            pass_perc_thresh = False
         if len(names) > 0 and entry.name not in names and taxon not in names:
+            continue
+        if not pass_count_thresh and not pass_perc_thresh:
             continue
 
         lists_to_extract[taxon].add(taxon)
@@ -85,14 +99,14 @@ def get_taxon_id_lists(
 
 def setup_prefixes(lists_to_extract, prefix=None):
     outprefix = {}
-    #if prefix:
+    # if prefix:
     #    for taxid in lists_to_extract:
     #        outprefix[taxid] =  f"{prefix}_{taxid}"
-    #else:
+    # else:
     for taxid in lists_to_extract:
-        outprefix[taxid] =  f"{taxid}"
+        outprefix[taxid] = f"{taxid}"
     return outprefix
-  
+
 
 def extract_taxa(
     kraken_report, lists_to_extract, kraken_assignment, reads1, reads2, prefix
@@ -100,8 +114,8 @@ def extract_taxa(
     # open read files
     filetype, zipped = check_read_files(reads1)
 
+    # This inverts the lists_to_extract to identify for an assigned taxon_id, which taxon_id files it should be added to.
     subtaxa_map = defaultdict(set)
-
     for taxon, subtaxons in lists_to_extract.items():
         for subtaxa in subtaxons:
             subtaxa_map[subtaxa].add(taxon)
@@ -109,15 +123,33 @@ def extract_taxa(
         #    "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES for %s\n"
         #    % (len(lists_to_extract[taxon]), taxon)
         # )
-    read_map = kraken_assignment.parse_kraken_assignment_file(subtaxa_map)
+    read_map = kraken_assignment.get_read_map(subtaxa_map)
 
     prefixes = setup_prefixes(lists_to_extract, prefix)
-    out_counts, quals, lens, filenames = process_read_files(
-        prefixes, filetype, read_map, subtaxa_map, reads1, reads2, inverse=False, get_handles=False
+    out_counts, quals, lens, filenames, total_length = process_read_files(
+        prefixes,
+        filetype,
+        read_map,
+        subtaxa_map,
+        reads1,
+        reads2,
+        inverse=False,
+        get_handles=False,
     )
 
-    generate_summary(lists_to_extract, kraken_report.entries, prefix, out_counts, quals, lens, filenames, short=False)
+    generate_summary(
+        lists_to_extract,
+        kraken_report.entries,
+        prefix,
+        out_counts,
+        quals,
+        lens,
+        filenames,
+        total_length,
+        short=False,
+    )
     return out_counts
+
 
 def check_out_counts(out_counts, kraken_report):
     for taxon_id in out_counts:
@@ -126,6 +158,7 @@ def check_out_counts(out_counts, kraken_report):
                 f"Did not correctly extract all reads for {taxon_id}, found {out_counts[taxon_id]} whilst the kraken report contains {kraken_report.entries[taxon_id].count}"
             )
             sys.exit(2)
+
 
 # Main method
 def main():
@@ -210,7 +243,7 @@ def main():
         dest="min_percent",
         required=False,
         type=float,
-        help="Minimum percentage of reads e.g 4",
+        help="Minimum percentage of classified reads e.g 4",
     )
     parser.add_argument(
         "--n",
@@ -275,7 +308,8 @@ def main():
     # Load kraken report entries
     sys.stderr.write("Loading kraken report\n")
     kraken_report = KrakenReport(args.report_file)
-    kraken_report.check_host({9606:args.max_human})
+    if args.max_human:
+        kraken_report.check_host({"9606": args.max_human})
 
     # Initialize kraken assignment file
     sys.stderr.write("Loading kraken assignments\n")
@@ -292,7 +326,7 @@ def main():
         min_percent=args.min_percent,
         top_n=args.top_n,
         include_parents=args.include_parents,
-        include_children=args.include_children
+        include_children=args.include_children,
     )
 
     sys.stderr.write("Extracting reads from file\n")
@@ -302,7 +336,7 @@ def main():
         kraken_assignment,
         args.reads1,
         args.reads2,
-        args.prefix
+        args.prefix,
     )
 
     now = datetime.now()

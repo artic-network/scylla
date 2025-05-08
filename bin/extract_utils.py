@@ -76,6 +76,7 @@ def check_read_files(reads):
         sys.exit(5)
     return filetype, zipped
 
+
 def setup_outfiles(fastq_2, prefixes, filetype, get_handles=True):
     """
     Sets up the output filenames, optionally opening them and returning handles.
@@ -116,6 +117,7 @@ def setup_outfiles(fastq_2, prefixes, filetype, get_handles=True):
                     out_handles_1[key] = open(f"{prefix}.{filetype}", "w")
     return filenames, out_handles_1, out_handles_2
 
+
 def close_outfiles(out_handles_1, out_handles_2):
     """
     Checks each handle in the dictionary and closes if it is open.
@@ -128,6 +130,7 @@ def close_outfiles(out_handles_1, out_handles_2):
         out_handles_1[handle].close()
     for handle in out_handles_2:
         out_handles_2[handle].close()
+
 
 def update_summary_with_record(taxon_id, record, out_counts, quals, lens):
     """
@@ -145,7 +148,19 @@ def update_summary_with_record(taxon_id, record, out_counts, quals, lens):
     quals[taxon_id].append(median([ord(x) - 33 for x in qual]))
     lens[taxon_id].append(len(seq))
 
-def add_record(taxon_id, record, out_counts, quals, lens, filenames, file_index, out_handles={}, out_records={}, buffer_record_size=None):
+
+def add_record(
+    taxon_id,
+    record,
+    out_counts,
+    quals,
+    lens,
+    filenames,
+    file_index,
+    out_handles={},
+    out_records={},
+    buffer_record_size=None,
+):
     """
     Add the record to the required out file and update the summary statistics with it. If out_handles has open
     out_handles, reads will be written directly to the handle. If not it will be stored in memory in the out_records. If
@@ -180,6 +195,7 @@ def add_record(taxon_id, record, out_counts, quals, lens, filenames, file_index,
             del out_records[taxon_id]
             out_records[taxon_id].append(record)
 
+
 def save_records_to_file(out_records, filenames, file_index):
     """
     Save the records to file.
@@ -197,7 +213,20 @@ def save_records_to_file(out_records, filenames, file_index):
                 f.write(f"@{name}\n{seq}\n+\n{qual}\n")
     del out_records
 
-def file_iterator(read_file, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, file_index, out_handles, low_memory=False):
+
+def file_iterator(
+    read_file,
+    read_map,
+    subtaxa_map,
+    inverse,
+    out_counts,
+    quals,
+    lens,
+    filenames,
+    file_index,
+    out_handles,
+    low_memory=False,
+):
     """
     Iterate through the read_file file and add the read to the appropriate file or handle.
 
@@ -219,6 +248,7 @@ def file_iterator(read_file, read_map, subtaxa_map, inverse, out_counts, quals, 
     """
     reads_of_interest = set(read_map.keys())
     count = 0
+    total_length = 0
     out_records = None
     if not low_memory:
         out_records = defaultdict(list)
@@ -226,28 +256,51 @@ def file_iterator(read_file, read_map, subtaxa_map, inverse, out_counts, quals, 
     sys.stderr.write(f"Reading in {read_file}\n")
     for record in pyfastx.Fastq(read_file, build_index=False):
         name, seq, qual = record
+        total_length += len(seq)
         trimmed_name = trim_read_id(name)
         if inverse:
             if trimmed_name in reads_of_interest:
-                for taxon in read_map[trimmed_name]:
+                taxon_id = read_map[trimmed_name]
+                for taxon in subtaxa_map[taxon_id]:
                     update_summary_with_record(taxon, record, out_counts, quals, lens)
                 continue
             else:
                 count += 1
-                add_record("other", record, out_counts, quals, lens, filenames, file_index, out_handles=out_handles, out_records=out_records)
+                add_record(
+                    "other",
+                    record,
+                    out_counts,
+                    quals,
+                    lens,
+                    filenames,
+                    file_index,
+                    out_handles=out_handles,
+                    out_records=out_records,
+                )
 
         elif not inverse:
             if trimmed_name not in reads_of_interest:
                 continue
-            for k2_taxon in read_map[trimmed_name]:
-                for taxon in subtaxa_map[k2_taxon]:
-                    count += 1
-                    add_record(taxon, record, out_counts, quals, lens, filenames, file_index, out_handles=out_handles, out_records=out_records)
+            taxon_id = read_map[trimmed_name]
+            for taxon in subtaxa_map[taxon_id]:
+                count += 1
+                add_record(
+                    taxon,
+                    record,
+                    out_counts,
+                    quals,
+                    lens,
+                    filenames,
+                    file_index,
+                    out_handles=out_handles,
+                    out_records=out_records,
+                )
 
     if not low_memory:
         save_records_to_file(out_records, filenames, file_index)
 
-    return count
+    return count, total_length
+
 
 def process_read_files(
     prefixes: str,
@@ -257,7 +310,7 @@ def process_read_files(
     read_file_1: Path,
     read_file_2: Path = None,
     inverse: bool = False,
-    get_handles: bool = False
+    get_handles: bool = False,
 ) -> tuple[dict, dict, dict, dict]:
     """
     Iterate through (paired/unpaired) read_files and save the relevant reads, collecting summary statistics for these reads.
@@ -283,24 +336,64 @@ def process_read_files(
     quals = defaultdict(list)
     lens = defaultdict(list)
 
-    filenames, out_handles_1, out_handles_2 = setup_outfiles(read_file_2, prefixes, filetype, get_handles=get_handles)
+    filenames, out_handles_1, out_handles_2 = setup_outfiles(
+        read_file_2, prefixes, filetype, get_handles=get_handles
+    )
 
-    forward_count = file_iterator(read_file_1, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 0, out_handles_1, low_memory=get_handles)
+    forward_count, total_length = file_iterator(
+        read_file_1,
+        read_map,
+        subtaxa_map,
+        inverse,
+        out_counts,
+        quals,
+        lens,
+        filenames,
+        0,
+        out_handles_1,
+        low_memory=get_handles,
+    )
 
     reverse_count = 0
     if read_file_2:
-        reverse_count = file_iterator(read_file_2, read_map, subtaxa_map, inverse, out_counts, quals, lens, filenames, 1, out_handles_2, low_memory=get_handles)
-
-        if forward_count != reverse_count and (forward_count == 0 or reverse_count == 0):
+        reverse_count, reverse_length = file_iterator(
+            read_file_2,
+            read_map,
+            subtaxa_map,
+            inverse,
+            out_counts,
+            quals,
+            lens,
+            filenames,
+            1,
+            out_handles_2,
+            low_memory=get_handles,
+        )
+        total_length += reverse_length
+        if forward_count != reverse_count and (
+            forward_count == 0 or reverse_count == 0
+        ):
             sys.stderr.write(
-                "ERROR: No reads found for one of the file pair: extracted %i an %i reads respectively" % (forward_count, reverse_count)
+                "ERROR: No reads found for one of the file pair: extracted %i an %i reads respectively"
+                % (forward_count, reverse_count)
             )
             sys.exit(7)
     close_outfiles(out_handles_1, out_handles_2)
-    return (out_counts, quals, lens, filenames)
+    return (out_counts, quals, lens, filenames, total_length)
 
 
-def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens, filenames, include_unclassified=False, short=False):
+def generate_summary(
+    lists_to_extract,
+    entries,
+    prefix,
+    out_counts,
+    quals,
+    lens,
+    filenames,
+    total_length,
+    include_unclassified=False,
+    short=False,
+):
     """
     Generate a summary JSON file, including information about each taxon ID and corresponding read statistics.
 
@@ -327,31 +420,43 @@ def generate_summary(lists_to_extract, entries, prefix, out_counts, quals, lens,
 
         if short:
             summary.append(
-            {
-                "filenames": filenames[taxon_id],
-                "qc_metrics": {
-                    "num_reads": out_counts[taxon_id],
-                    "avg_qual": mean(quals[taxon_id]),
-                    "mean_len": mean(lens[taxon_id]),
-                },
-                "includes_unclassified": include_unclassified
-            }
+                {
+                    "filenames": filenames[taxon_id],
+                    "qc_metrics": {
+                        "num_reads": out_counts[taxon_id],
+                        "avg_qual": mean(quals[taxon_id]),
+                        "mean_len": mean(lens[taxon_id]),
+                        "total_len": sum(lens[taxon_id]),
+                    },
+                    "includes_unclassified": include_unclassified,
+                }
             )
         else:
             summary.append(
-            {
-                "human_readable": entries[taxon_id].name,
-                "taxon_id": taxon_id,
-                "tax_level": entries[taxon_id].rank,
-                "filenames": filenames[taxon_id],
-                "qc_metrics": {
-                    "num_reads": out_counts[taxon_id],
-                    "avg_qual": mean(quals[taxon_id]),
-                    "mean_len": mean(lens[taxon_id]),
-                },
-                "includes_unclassified": include_unclassified
-            }
+                {
+                    "human_readable": entries[taxon_id].name,
+                    "taxon_id": taxon_id,
+                    "tax_level": entries[taxon_id].rank,
+                    "filenames": filenames[taxon_id],
+                    "qc_metrics": {
+                        "num_reads": out_counts[taxon_id],
+                        "avg_qual": mean(quals[taxon_id]),
+                        "mean_len": mean(lens[taxon_id]),
+                        "total_len": sum(lens[taxon_id]),
+                    },
+                    "includes_unclassified": include_unclassified,
+                }
             )
 
     with open(f"{prefix}_summary.json", "w") as f:
         json.dump(summary, f)
+
+    with open(f"total_length.json", "w") as f:
+        json.dump({"total_len": total_length}, f)
+
+    for taxon_id in quals:
+        if mean(quals[taxon_id]) > 60:
+            sys.exit(
+                1,
+                f"Mean quality score for taxon_id {taxon_id} is {mean(quals[taxon_id])} > 60. This seems unlikely! Please report this example to the DIPI group for investigation",
+            )

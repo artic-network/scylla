@@ -1,6 +1,9 @@
+#!/usr/bin/env python
+
 import os
 import sys
 from collections import defaultdict
+
 
 class TaxonEntry:
     """
@@ -11,6 +14,7 @@ class TaxonEntry:
         name (string): The scientific name associated with this taxon.
         rank (str): A letter coding the rank of this taxon.
     """
+
     def __init__(self, taxon_id="0", name="unclassified", rank="U"):
         """
         Initializes an TaxonEntry object.
@@ -24,12 +28,17 @@ class TaxonEntry:
         self.name = name
         self.rank = rank
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
+
     def print(self):
         """
         Print the attributes of TaxonEntry as a string
         """
-        print(
-            f"{self.taxon_id},{self.name},{self.rank}")
+        print(f"{self.taxon_id},{self.name},{self.rank}")
 
 
 class Taxonomy:
@@ -41,6 +50,7 @@ class Taxonomy:
         children (dict): A dict with keys for taxon_ids and values for sets of direct child taxon id.
         entries (dict): A dict with keys for taxon_ids and values for TaxonEntry representing that taxon.
     """
+
     def __init__(self, taxonomy_dir=None, taxon_ids=None):
         self.parents = defaultdict(str)
         self.children = defaultdict(set)
@@ -51,6 +61,12 @@ class Taxonomy:
         if taxonomy_dir and taxon_ids:
             self.load_entries(taxonomy_dir, taxon_ids)
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
+
     def load_parents_and_children(self, taxonomy_dir):
         """
         Loads the parent child relationships from the "nodes.dmp" file in the taxonomy directory.
@@ -60,6 +76,7 @@ class Taxonomy:
             taxonomy_dir (str): The unzipped directory downloaded from NCBI taxonomy.
         """
         taxonomy = os.path.join(taxonomy_dir, "nodes.dmp")
+
         try:
             with open(taxonomy, "r") as f:
                 for line in f:
@@ -99,9 +116,7 @@ class Taxonomy:
                     self.entries[taxon_id].taxon_id = taxon_id
                     self.entries[taxon_id].rank = rank
         except:
-            sys.stderr.write(
-                f"ERROR: Badly formatted nodes.dmp file in {taxonomy}"
-            )
+            sys.stderr.write(f"ERROR: Badly formatted nodes.dmp file in {taxonomy}")
             sys.exit(4)
 
     def load_entries_from_names(self, taxonomy_dir, taxon_ids):
@@ -127,12 +142,13 @@ class Taxonomy:
                 for line in f:
                     fields = [i.lstrip() for i in line.split("\t|")]
                     taxon_id, name, name_type = fields[0], fields[1], fields[3]
-                    if taxon_id in taxon_ids and ("scientific name" in name_type or self.entries[taxon_id].name == "unclassified"):
+                    if taxon_id in taxon_ids and (
+                        "scientific name" in name_type
+                        or self.entries[taxon_id].name == "unclassified"
+                    ):
                         self.entries[taxon_id].name = name
         except:
-            sys.stderr.write(
-                f"ERROR: Badly formatted names.dmp file in {taxonomy}"
-            )
+            sys.stderr.write(f"ERROR: Badly formatted names.dmp file in {taxonomy}")
             sys.exit(4)
 
     def load_entries(self, taxonomy_dir, taxon_ids):
