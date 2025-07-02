@@ -4,6 +4,8 @@ process check_single_fastq {
     label "process_single"
     label "process_more_memory"
 
+    errorStrategy { task.exitStatus == 11 ? "ignore" : "terminate" }
+
     publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.fixed.*"
     publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.R*.fastq"
 
