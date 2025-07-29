@@ -19,26 +19,26 @@ There is the option to perform _de novo_ viral assembly and classification using
 
 This pipeline can be run on a single fastq/pair of fastq files, or a directory of fastq files (which will be concatenated), or a demultiplexed directory of barcode subdirectories. 
 
-On personal computers we recommend running with the `--local` flag to ensure more reasonable resource requirements. 
+On personal computers we recommend running with the `local` profile to ensure more reasonable resource requirements. 
 
 ### Example command
-These examples use the `--local` flag to set resource requirements for a laptop. This will use a smaller kraken database, and therefore when working on a cluster we recommend you remove this flag.
+These examples use the `local` profile to set resource requirements for a laptop. This will use a smaller kraken database, and therefore when working on a cluster we recommend you remove this profile.
 
 1. Run in mSCAPE ingest mode (assumes input is a single sample, allows single/paired fastq file input).
 ```
-nextflow run main.nf --fastq test/test_data/barcode01/barcode01.fq.gz -profile docker --local
+nextflow run main.nf --fastq test/test_data/barcode01/barcode01.fq.gz -profile docker,local
 ```
 or
 ```
-nextflow run main.nf --fastq1 test/test_data/illumina/barcode02_R1.fq.gz --fastq2 test/test_data/illumina/barcode02_R2.fq.gz --paired -profile docker --local```
+nextflow run main.nf --fastq1 test/test_data/illumina/barcode02_R1.fq.gz --fastq2 test/test_data/illumina/barcode02_R2.fq.gz --paired -profile docker,local
 ```
 
 2. Run on a demultiplexed run directory (providing a `run_dir`). This must either contain a subdirectory per barcode, or pairs of files with names in the format `*_R{1,2}*.f*q*`.
 ```
-nextflow run main.nf --run_dir test/test_data [--paired] -profile docker --local
+nextflow run main.nf --run_dir test/test_data [--paired] -profile docker,local
 ```
 
 3. Run a module independently of the main workflow. Supported modules are [preprocess, qc_checks, centrifuge_classification, kraken_classification, sourmash_classification, check_hcid_status, check_spike_status, extract_all, classify_novel_viruses].
 ```
-nextflow run main.nf --module preprocess --fastq test/test_data/barcode01/barcode01.fq.gz -profile docker --local
+nextflow run main.nf --module preprocess --fastq test/test_data/barcode01/barcode01.fq.gz -profile docker,local
 ```
