@@ -67,6 +67,51 @@ process publish_stats {
     """
 }
 
+process get_total_length {
+
+    label "process_single"
+    label "process_more_memory"
+
+    publishDir "${params.outdir}/${unique_id}/qc", pattern: "total_length.json", mode: "copy"
+
+    conda "bioconda::pyfastx=2.01"
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+
+    input:
+    tuple val(unique_id), path(fastq)
+
+    output:
+    tuple val(unique_id), path("total_length.json"), emit: length
+
+    script:
+    """
+    get_total_length.py -s ${fastq}
+    """
+}
+
+process get_total_length_paired {
+
+    label "process_single"
+    label "process_more_memory"
+
+    publishDir "${params.outdir}/${unique_id}/qc", pattern: "total_length.json", mode: "copy"
+
+    conda "bioconda::pyfastx=2.01"
+    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+
+    input:
+    tuple val(unique_id), path(fastq1), path(fastq2)
+
+    output:
+    tuple val(unique_id), path("total_length.json"), emit: length
+
+    script:
+    """
+    get_total_length.py -s1 ${fastq1} -s2 ${fastq2}
+    """
+}
+
+
 workflow qc_checks {
     take:
     input_ch
@@ -78,10 +123,12 @@ workflow qc_checks {
             .flatten()
             .collate(2)
             .set { fastq_ch }
+        get_total_length_paired(input_ch)
     }
     else {
         check_single_fastq(input_ch)
         fastq_ch = input_ch
+        get_total_length(input_ch)
     }
     read_stats(fastq_ch)
     read_stats.out
