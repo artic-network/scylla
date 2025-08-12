@@ -88,7 +88,7 @@ process extract_taxa_reads {
     maxRetries 3
 
     conda "bioconda::pyfastx=2.1.0"
-    container "biocontainers/2.2.0--py39h0699b22_1"
+    container "biocontainers/pyfastx:2.1.0--py311h384fd50_4"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
