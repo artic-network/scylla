@@ -1,17 +1,10 @@
 #!/usr/bin/env python
 
 import sys
-import os
-import gzip
-import pyfastx
 import argparse
-import json
 from datetime import datetime
-from collections import defaultdict
-from pathlib import Path
 
 from extract_utils import *
-from report import KrakenReport
 from assignment import KrakenAssignments
 from taxonomy import Taxonomy
 
