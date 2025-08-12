@@ -42,7 +42,7 @@ process extract_taxa_paired_reads {
     maxRetries 3
 
     conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    container "biocontainers/pyfastx:2.2.0--py39h3d4b85c_0"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
@@ -88,7 +88,7 @@ process extract_taxa_reads {
     maxRetries 3
 
     conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    container "biocontainers/pyfastx:2.2.0--py39h3d4b85c_0"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
@@ -133,7 +133,7 @@ process extract_paired_virus_and_unclassified {
     maxRetries 3
 
     conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    container "biocontainers/pyfastx:2.2.0--py39h3d4b85c_0"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
@@ -165,7 +165,7 @@ process extract_virus_and_unclassified {
     maxRetries 3
 
     conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    container "biocontainers/pyfastx:2.2.0--py39h3d4b85c_0"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
@@ -197,7 +197,7 @@ process extract_paired_virus {
     maxRetries 3
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    container "biocontainers/pyfastx:2.2.0--py39h3d4b85c_0"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
@@ -228,7 +228,7 @@ process extract_virus {
     maxRetries 3
 
     conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    container "biocontainers/pyfastx:2.2.0--py39h3d4b85c_0"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
