@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import sys
-import os
 import argparse
 import json
 import csv
@@ -9,9 +8,10 @@ from collections import defaultdict
 import pyfastx
 from simplesam import Reader
 
+import statistics as stats
+
 from report import KrakenReport
 from taxonomy import Taxonomy
-from extract_utils import mean, median
 from assignment import trim_read_id
 
 
@@ -80,13 +80,13 @@ def map_to_refs(query, ref_sam):
     ranges = defaultdict(list)
     read_ids = defaultdict(list)
 
-    in_file = open(ref_sam, 'r')
+    in_file = open(ref_sam, "r")
     in_sam = Reader(in_file)
 
     read_count = 0
     for sam_record in in_sam:
         # Only include first entry from each read
-        if sam_record.flag not in [0,16]:
+        if sam_record.flag not in [0, 16]:
             continue
         read_count += 1
         counts[sam_record.rname] += 1
@@ -98,7 +98,7 @@ def map_to_refs(query, ref_sam):
 
 def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
     if len(ref_ranges) == 0:
-        return 0,[]
+        return 0, []
     for name, seq in pyfastx.Fasta(reference_file, build_index=False):
 
         if name == ref:
@@ -106,7 +106,7 @@ def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
             for r in ref_ranges:
                 for i in r:
                     try:
-                        coverages[i-1] += 1
+                        coverages[i - 1] += 1
                     except:
                         print("Out of range ", i, len(coverages))
                         sys.exit()
@@ -122,9 +122,9 @@ def coverage_hist(coverages):
             hist.append(len([i for i in coverages if i == j]))
     return hist
 
+
 def check_ref_coverage(hcid_dict, query, reference, ref_sam):
     counts, ranges, read_ids = map_to_refs(query, ref_sam)
-
 
     for taxon in hcid_dict:
         taxon_found = True
@@ -198,10 +198,9 @@ def report_findings(hcid_dict, read_file, prefix):
             with open("%s.reads.fq" % taxid, "w") as f_reads:
                 for mapped_name in hcid_dict[taxid]["mapped_read_ids"]:
                     record = records[mapped_name]
-                    name, seq, qual = record.name, record.seq, record.qual
-                    f_reads.write(f"@{name}\n{seq}\n+\n{qual}\n")
-                    quals.append(median([ord(x) - 33 for x in qual]))
-                    lens.append(len(seq))
+                    f_reads.write(record.raw)
+                    quals.append(stats.fmean(record.quali) if record.quali else 0)
+                    lens.append(len(record.seq))
             with open("%s.warning.json" % taxid, "w") as f_warn:
                 msg1 = f"WARNING: Found {hcid_dict[taxid]['classified_count']} classified reads ({hcid_dict[taxid]['mapped_count']} mapped reads) of {hcid_dict[taxid]['name']} and {hcid_dict[taxid]['classified_parent_count']} classified reads for the parent taxon.\n"
                 msg2 = f"Mapping details for required references (ref_accession:mapped_read_count:fraction_ref_covered) {hcid_dict[taxid]['mapped_required_details']}.\n"
@@ -210,8 +209,8 @@ def report_findings(hcid_dict, read_file, prefix):
                     "taxid": taxid,
                     "classified_count": hcid_dict[taxid]["classified_count"],
                     "mapped_count": hcid_dict[taxid]["mapped_count"],
-                    "mapped_mean_quality": mean(quals),
-                    "mapped_mean_length": mean(lens),
+                    "mapped_mean_quality": stats.fmean(quals) if quals else 0,
+                    "mapped_mean_length": stats.fmean(lens) if lens else 0,
                     "mapped_details": f"ref_accession:mapped_read_count:fraction_ref_covered|{hcid_dict[taxid]['mapped_required_details']}",
                     "mapped_coverage_hist": f"ref:[len_with_0_covg,len_with_1_covg,...]|{hcid_dict[taxid]['mapped_required_extended_details']}",
                 }
@@ -266,11 +265,11 @@ def main():
         help="Reference FASTA for each HCID",
     )
     parser.add_argument(
-            "-s",
-            dest="ref_sam",
-            required=True,
-            help="Minimap2 SAM file of reads vs reference",
-        )
+        "-s",
+        dest="ref_sam",
+        required=True,
+        help="Minimap2 SAM file of reads vs reference",
+    )
 
     args = parser.parse_args()
 
