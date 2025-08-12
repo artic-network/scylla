@@ -11,6 +11,17 @@ import statistics as stats
 from assignment import trim_read_id
 
 
+def record_to_fastq_entry(record):
+    """
+    Converts a record to a FASTQ entry string.
+
+    Args:
+        record (tuple): A tuple containing (name, seq, qual).
+    """
+    name, seq, qual = record
+    return f"@{name}\n{seq}\n+\n{qual}\n"
+
+
 def check_read_files(reads):
     """
     Takes a read filename and checks if the file is zipped, a FASTA or FASTQ format.
@@ -109,12 +120,14 @@ def update_summary_with_record(taxon_id, record, out_counts, quals, lens):
         lens (dict): Taxon ID to list of read lengths for that taxon.
     """
     out_counts[taxon_id] += 1
+    name, seq, qual = record
 
-    mean_qual = stats.fmean(record.quali) if record.quali else 0
+    # mean_qual = stats.fmean(record.quali) if record.quali else 0
+    mean_qual = stats.fmean([ord(x) - 33 for x in qual]) if qual else 0
 
     quals[taxon_id].append(mean_qual)
 
-    lens[taxon_id].append(len(record.seq))
+    lens[taxon_id].append(len(seq))
 
 
 def add_record(
@@ -150,15 +163,17 @@ def add_record(
 
     update_summary_with_record(taxon_id, record, out_counts, quals, lens)
 
+    name, seq, qual = record
+
     if out_handles != {} and taxon_id in out_handles:
-        out_handles[taxon_id].write(record.raw)
+        out_handles[taxon_id].write(record_to_fastq_entry(record))
     else:
         if not buffer_record_size or len(out_records[taxon_id]) < buffer_record_size:
             out_records[taxon_id].append(record)
         else:
             with open(filenames[taxon_id][file_index], "a") as f:
                 for existing_record in out_records[taxon_id]:
-                    f.write(record.raw)
+                    f.write(record_to_fastq_entry(existing_record))
             del out_records[taxon_id]
             out_records[taxon_id].append(record)
 
@@ -176,7 +191,7 @@ def save_records_to_file(out_records, filenames, file_index):
     for taxon, records in out_records.items():
         with open(filenames[taxon][file_index], "a") as f:
             for record in records:
-                f.write(record.raw)
+                f.write(record_to_fastq_entry(record))
     del out_records
 
 
@@ -220,9 +235,10 @@ def file_iterator(
         out_records = defaultdict(list)
 
     sys.stderr.write(f"Reading in {read_file}\n")
-    for record in pyfastx.Fastq(read_file):
-        total_length += len(record.seq)
-        trimmed_name = trim_read_id(record.name)
+    for record in pyfastx.Fastq(read_file, build_index=False):
+        name, seq, qual = record
+        total_length += len(seq)
+        trimmed_name = trim_read_id(name)
         if inverse:
             if trimmed_name in reads_of_interest:
                 taxon_id = read_map[trimmed_name]

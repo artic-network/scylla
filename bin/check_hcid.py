@@ -12,7 +12,6 @@ import statistics as stats
 
 from report import KrakenReport
 from taxonomy import Taxonomy
-from assignment import trim_read_id
 
 
 def load_hcid_dict(hcid_file):
