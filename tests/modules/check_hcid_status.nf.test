@@ -1,0 +1,84 @@
+nextflow_workflow {
+
+    name "Test Workflow check_hcid_status"
+    script "modules/check_hcid_status.nf"
+    workflow "check_hcid_status"
+    tag "hcid"
+
+    test("test_hcid_cchf_positive") {
+
+        when {
+            params {
+                // define parameters here. Example:
+                // outdir = "tests/results"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "cchf_test",
+                        "PlusPF",
+                        file("${projectDir}/tests/test-data/hcid/3052518/cchf_kraken_report.txt", checkIfExists: true)
+                    )
+                )
+                input[1] = Channel.of(
+                    tuple(
+                        "cchf_test",
+                        file("${projectDir}/tests/test-data/hcid/3052518/cchf_mock.fastq", checkIfExists: true)
+                    )
+                )
+                input[2] = file("${projectDir}/tests/test-data/global/taxonomy_dir", checkIfExists: true)
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").exists()
+            assert path("${outputDir}/cchf_test/qc/3052518.warning.json").exists()
+            assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").readLines().contains('Crimean Congo haemorrhagic fever (CCHF),3052518,1,10,10,10,1.0,NC_005300.2:4:0.577898|NC_005301.3:3:0.190040|NC_005302.1:3:0.813397,0')
+
+            def warningJson = path("${outputDir}/cchf_test/qc/3052518.warning.json").json
+            assert warningJson.classified_count == 10
+            assert warningJson.mapped_count == 10
+        }
+
+    }
+
+    test("test_hcid_cchf_negative") {
+
+        when {
+            params {
+                // define parameters here. Example:
+                // outdir = "tests/results"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "cchf_test",
+                        "PlusPF",
+                        file("${projectDir}/tests/test-data/hcid/3052518/cchf_kraken_report_blank.txt", checkIfExists: true)
+                    )
+                )
+                input[1] = Channel.of(
+                    tuple(
+                        "cchf_test",
+                        file("${projectDir}/tests/test-data/hcid/3052518/blank.fastq", checkIfExists: true)
+                    )
+                )
+                input[2] = file("${projectDir}/tests/test-data/global/taxonomy_dir", checkIfExists: true)
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").exists()
+            assert !path("${outputDir}/cchf_test/qc/3052518.warning.json").exists()
+            assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").readLines().contains('Crimean Congo haemorrhagic fever (CCHF),3052518,1,0,0,0,0.0,NC_005300.2:0:0.000000|NC_005301.3:0:0.000000|NC_005302.1:0:0.000000,0')
+        }
+
+    }
+
+}
