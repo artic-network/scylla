@@ -31,6 +31,7 @@ output
 work
 store_dir
 test/ref
+.nf-test*
 
 **.DS_Store
 *__pycache__*
