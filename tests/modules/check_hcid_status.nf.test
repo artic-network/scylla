@@ -27,7 +27,7 @@ nextflow_workflow {
                         file("${projectDir}/tests/test-data/hcid/3052518/cchf_mock.fastq", checkIfExists: true)
                     )
                 )
-                input[2] = file("${projectDir}/tests/test-data/3052518/tax_dump", checkIfExists: true)
+                input[2] = file("${projectDir}/tests/test-data/hcid/3052518/tax_dump", checkIfExists: true)
                 """
             }
         }
@@ -67,7 +67,7 @@ nextflow_workflow {
                         file("${projectDir}/tests/test-data/hcid/3052518/blank.fastq", checkIfExists: true)
                     )
                 )
-                input[2] = file("${projectDir}/tests/test-data/3052518/tax_dump", checkIfExists: true)
+                input[2] = file("${projectDir}/tests/test-data/hcid/3052518/tax_dump", checkIfExists: true)
                 """
             }
         }
