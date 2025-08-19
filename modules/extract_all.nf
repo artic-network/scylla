@@ -41,11 +41,8 @@ process extract_taxa_paired_reads {
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    publishDir "${params.outdir}/${unique_id}/qc", pattern: "total_length.json", mode: "copy"
-
-
-    conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    conda "bioconda::pyfastx=2.1.0"
+    container "biocontainers/pyfastx:2.1.0--py311h384fd50_4"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
@@ -54,7 +51,6 @@ process extract_taxa_paired_reads {
     output:
     tuple val(unique_id), path("*.fastq"), emit: reads
     tuple val(unique_id), path("${kreport}_summary.json"), emit: summary
-    tuple val(unique_id), path("total_length.json"), emit: length
 
     script:
     extra = ""
@@ -91,10 +87,8 @@ process extract_taxa_reads {
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    publishDir "${params.outdir}/${unique_id}/qc", pattern: "total_length.json", mode: "copy"
-
-    conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    conda "bioconda::pyfastx=2.1.0"
+    container "biocontainers/pyfastx:2.1.0--py311h384fd50_4"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
@@ -103,7 +97,6 @@ process extract_taxa_reads {
     output:
     tuple val(unique_id), path("*.f*q"), emit: reads
     tuple val(unique_id), path("${kreport}_summary.json"), emit: summary
-    tuple val(unique_id), path("total_length.json"), emit: length
 
     script:
     extra = ""
@@ -139,8 +132,8 @@ process extract_paired_virus_and_unclassified {
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    conda "bioconda::pyfastx=2.1.0"
+    container "biocontainers/pyfastx:2.1.0--py311h384fd50_4"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
@@ -171,8 +164,8 @@ process extract_virus_and_unclassified {
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    conda "bioconda::pyfastx=2.1.0"
+    container "biocontainers/pyfastx:2.1.0--py311h384fd50_4"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
@@ -203,8 +196,8 @@ process extract_paired_virus {
     errorStrategy { task.exitStatus in 2..3 ? 'ignore' : 'retry' }
     maxRetries 3
 
-    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    conda 'bioconda::pyfastx=2.1.0'
+    container "biocontainers/pyfastx:2.1.0--py311h384fd50_4"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
@@ -234,8 +227,8 @@ process extract_virus {
     errorStrategy { task.exitStatus in 2..3 ? 'ignore' : 'retry' }
     maxRetries 3
 
-    conda 'bioconda::biopython=1.78 bioconda::tabix=1.11'
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    conda 'bioconda::pyfastx=2.1.0'
+    container "biocontainers/pyfastx:2.1.0--py311h384fd50_4"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
@@ -265,8 +258,8 @@ process extract_paired_dehumanised {
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    conda "bioconda::pyfastx=2.1.0"
+    container "biocontainers/pyfastx:2.1.0--py311h384fd50_4"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
@@ -297,8 +290,8 @@ process extract_dehumanised {
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    conda "bioconda::pyfastx=2.1.0"
+    container "biocontainers/pyfastx:2.1.0--py311h384fd50_4"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)

@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 
 import sys
-import os
 import gzip
 import pyfastx
-import argparse
 import json
-from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
 import statistics as stats
@@ -14,36 +11,15 @@ import statistics as stats
 from assignment import trim_read_id
 
 
-def mean(l):
+def record_to_fastq_entry(record):
     """
-    Takes a list of numbers and returns the mean.
+    Converts a record to a FASTQ entry string.
 
     Args:
-        l (list): A list of numbers.
-
-    Returns:
-        0: If l had zero length.
-        float: The mean of items in the list.
+        record (tuple): A tuple containing (name, seq, qual).
     """
-    if len(l) == 0:
-        return 0
-    return stats.fmean(l)
-
-
-def median(l):
-    """
-    Takes a list of numbers and returns the median.
-
-    Args:
-        l (list): A list of numbers.
-
-    Returns:
-        0: If l had zero length.
-        float: The median of items in the list.
-    """
-    if len(l) == 0:
-        return 0
-    return stats.median(l)
+    name, seq, qual = record
+    return f"@{name}\n{seq}\n+\n{qual}\n"
 
 
 def check_read_files(reads):
@@ -143,9 +119,14 @@ def update_summary_with_record(taxon_id, record, out_counts, quals, lens):
         quals (dict): Taxon ID to list of quality scores (each averaged over the read) for that taxon.
         lens (dict): Taxon ID to list of read lengths for that taxon.
     """
-    name, seq, qual = record
     out_counts[taxon_id] += 1
-    quals[taxon_id].append(median([ord(x) - 33 for x in qual]))
+    name, seq, qual = record
+
+    # mean_qual = stats.fmean(record.quali) if record.quali else 0
+    mean_qual = stats.fmean([ord(x) - 33 for x in qual]) if qual else 0
+
+    quals[taxon_id].append(mean_qual)
+
     lens[taxon_id].append(len(seq))
 
 
@@ -180,18 +161,19 @@ def add_record(
         buffer_record_size (int): Number of records per taxon ID before they should be output to reduce memory use.
     """
 
-    name, seq, qual = record
     update_summary_with_record(taxon_id, record, out_counts, quals, lens)
 
+    name, seq, qual = record
+
     if out_handles != {} and taxon_id in out_handles:
-        out_handles[taxon_id].write(f"@{name}\n{seq}\n+\n{qual}\n")
+        out_handles[taxon_id].write(record_to_fastq_entry(record))
     else:
         if not buffer_record_size or len(out_records[taxon_id]) < buffer_record_size:
             out_records[taxon_id].append(record)
         else:
             with open(filenames[taxon_id][file_index], "a") as f:
                 for existing_record in out_records[taxon_id]:
-                    f.write(f"@{name}\n{seq}\n+\n{qual}\n")
+                    f.write(record_to_fastq_entry(existing_record))
             del out_records[taxon_id]
             out_records[taxon_id].append(record)
 
@@ -209,8 +191,7 @@ def save_records_to_file(out_records, filenames, file_index):
     for taxon, records in out_records.items():
         with open(filenames[taxon][file_index], "a") as f:
             for record in records:
-                name, seq, qual = record
-                f.write(f"@{name}\n{seq}\n+\n{qual}\n")
+                f.write(record_to_fastq_entry(record))
     del out_records
 
 
@@ -424,8 +405,12 @@ def generate_summary(
                     "filenames": filenames[taxon_id],
                     "qc_metrics": {
                         "num_reads": out_counts[taxon_id],
-                        "avg_qual": mean(quals[taxon_id]),
-                        "mean_len": mean(lens[taxon_id]),
+                        "avg_qual": (
+                            stats.fmean(quals[taxon_id]) if quals[taxon_id] else 0
+                        ),
+                        "mean_len": (
+                            stats.fmean(lens[taxon_id]) if lens[taxon_id] else 0
+                        ),
                         "total_len": sum(lens[taxon_id]),
                     },
                     "includes_unclassified": include_unclassified,
@@ -440,8 +425,12 @@ def generate_summary(
                     "filenames": filenames[taxon_id],
                     "qc_metrics": {
                         "num_reads": out_counts[taxon_id],
-                        "avg_qual": mean(quals[taxon_id]),
-                        "mean_len": mean(lens[taxon_id]),
+                        "avg_qual": (
+                            stats.fmean(quals[taxon_id]) if quals[taxon_id] else 0
+                        ),
+                        "mean_len": (
+                            stats.fmean(lens[taxon_id]) if lens[taxon_id] else 0
+                        ),
                         "total_len": sum(lens[taxon_id]),
                     },
                     "includes_unclassified": include_unclassified,
@@ -451,12 +440,12 @@ def generate_summary(
     with open(f"{prefix}_summary.json", "w") as f:
         json.dump(summary, f)
 
-    with open(f"total_length.json", "w") as f:
+    with open("total_length.json", "w") as f:
         json.dump({"total_len": total_length}, f)
 
     for taxon_id in quals:
-        if mean(quals[taxon_id]) > 60:
+        if stats.fmean(quals[taxon_id]) > 60:
             sys.exit(
                 1,
-                f"Mean quality score for taxon_id {taxon_id} is {mean(quals[taxon_id])} > 60. This seems unlikely! Please report this example to the DIPI group for investigation",
+                f"Mean quality score for taxon_id {taxon_id} is {stats.fmean(quals[taxon_id])} > 60. This seems unlikely! Please report this example to the DIPI group for investigation",
             )
