@@ -1,0 +1,44 @@
+{
+    "test_hcid_cchf_positive": {
+        "content": [
+            {
+                "0": [
+                    [
+                        "cchf_test",
+                        "3052518.warning.json:md5,1b59b4c73ec5eb7a87a2e6b1cc810e9a"
+                    ]
+                ],
+                "warning_ch": [
+                    [
+                        "cchf_test",
+                        "3052518.warning.json:md5,1b59b4c73ec5eb7a87a2e6b1cc810e9a"
+                    ]
+                ]
+            },
+            "hcid.counts.csv:md5,c45ab01001988dc88e4469ae29a92448"
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.04.6"
+        },
+        "timestamp": "2025-08-27T10:42:18.091043939"
+    },
+    "test_hcid_cchf_negative": {
+        "content": [
+            {
+                "0": [
+                    
+                ],
+                "warning_ch": [
+                    
+                ]
+            },
+            "hcid.counts.csv:md5,80d4f9e64b8160d3ef44f476a7833a91"
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.04.6"
+        },
+        "timestamp": "2025-08-27T11:07:15.880789807"
+    }
+}

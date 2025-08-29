@@ -9,8 +9,7 @@ nextflow_workflow {
 
         when {
             params {
-                // define parameters here. Example:
-                // outdir = "tests/results"
+                
             }
             workflow {
                 """
@@ -35,12 +34,13 @@ nextflow_workflow {
         then {
             assert workflow.success
             assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").exists()
-            assert path("${outputDir}/cchf_test/qc/3052518.warning.json").exists()
-            assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").readLines().contains('Crimean Congo haemorrhagic fever (CCHF),3052518,1,10,10,10,1.0,NC_005300.2:4:0.577898|NC_005301.3:3:0.190040|NC_005302.1:3:0.813397,0')
-
-            def warningJson = path("${outputDir}/cchf_test/qc/3052518.warning.json").json
-            assert warningJson.classified_count == 10
-            assert warningJson.mapped_count == 10
+            assert path("${outputDir}/cchf_test/qc/3052518.warning.json").exists() 
+            assert snapshot(workflow.out, path("${outputDir}/cchf_test/qc/hcid.counts.csv")).match()
+            
+            // assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").readLines().contains('Crimean Congo haemorrhagic fever (CCHF),3052518,1,10,10,10,1.0,NC_005300.2:4:0.577898|NC_005301.3:3:0.190040|NC_005302.1:3:0.813397,0')
+            // def warning_json = path("${outputDir}/cchf_test/qc/3052518.warning.json").json
+            // assert warning_json.classified_count == 10
+            // assert warning_json.mapped_count == 10
         }
 
     }
@@ -49,8 +49,7 @@ nextflow_workflow {
 
         when {
             params {
-                // define parameters here. Example:
-                // outdir = "tests/results"
+
             }
             workflow {
                 """
@@ -76,7 +75,7 @@ nextflow_workflow {
             assert workflow.success
             assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").exists()
             assert !path("${outputDir}/cchf_test/qc/3052518.warning.json").exists()
-            assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").readLines().contains('Crimean Congo haemorrhagic fever (CCHF),3052518,1,0,0,0,0.0,NC_005300.2:0:0.000000|NC_005301.3:0:0.000000|NC_005302.1:0:0.000000,0')
+            assert snapshot(workflow.out, path("${outputDir}/cchf_test/qc/hcid.counts.csv")).match()
         }
 
     }
