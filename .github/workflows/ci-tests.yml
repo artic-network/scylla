@@ -28,4 +28,4 @@ jobs:
           sudo mv nf-test /usr/local/bin/
 
       - name: Run Tests
-        run: nf-test test --ci --tag hcid --profile docker
+        run: nf-test test --ci --profile docker
