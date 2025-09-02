@@ -1,0 +1,27 @@
+nextflow_workflow {
+
+    name "Test Workflow preprocess"
+    script "modules/preprocess.nf"
+    workflow "preprocess"
+
+    test("Should run without failures") {
+
+        when {
+            params {
+                fastq = "${projectDir}/tests/test-data/barcode01/barcode01.fq.gz"
+            }
+            workflow {
+                """
+                input[0] = "barcode01"
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert snapshot(workflow.out).match()
+        }
+
+    }
+
+}
