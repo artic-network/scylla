@@ -1,0 +1,26 @@
+{
+    "Should produce spike report": {
+        "content": [
+            {
+                "0": [
+                    [
+                        "spikein_test",
+                        "spikein_test:md5,8be32c3d8c3023ebd1dab44010d05282"
+                    ]
+                ],
+                "status_ch": [
+                    [
+                        "spikein_test",
+                        "spikein_test:md5,8be32c3d8c3023ebd1dab44010d05282"
+                    ]
+                ]
+            },
+            "spike_count_summary.json:md5,c025a548e1ec45241c661eea8c7d23f6"
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.04.6"
+        },
+        "timestamp": "2025-08-27T11:24:26.855097609"
+    }
+}
