@@ -421,6 +421,7 @@ workflow extract_fractions {
     taxonomy_dir
 
     main:
+    split_kreport(kreport_ch)
     assignments_ch.combine(kreport_ch, by: [0, 1]).set { classify_ch }
     fastq_ch
         .combine(classify_ch, by: 0)
