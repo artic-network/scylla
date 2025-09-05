@@ -1,0 +1,37 @@
+{
+    "Should run without failures": {
+        "content": [
+            {
+                "0": [
+                    [
+                        "barcode01",
+                        "barcode01.fastp.fastq.gz:md5,2c00a99a41249ed138cbf4d5cf67e595"
+                    ]
+                ],
+                "1": [
+                    [
+                        "barcode01",
+                        "barcode01.fastp.fastq.gz:md5,2c00a99a41249ed138cbf4d5cf67e595"
+                    ]
+                ],
+                "combined_fastq": [
+                    [
+                        "barcode01",
+                        "barcode01.fastp.fastq.gz:md5,2c00a99a41249ed138cbf4d5cf67e595"
+                    ]
+                ],
+                "processed_fastq": [
+                    [
+                        "barcode01",
+                        "barcode01.fastp.fastq.gz:md5,2c00a99a41249ed138cbf4d5cf67e595"
+                    ]
+                ]
+            }
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.04.6"
+        },
+        "timestamp": "2025-08-26T15:49:49.076657178"
+    }
+}

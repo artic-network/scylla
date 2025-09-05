@@ -1,0 +1,33 @@
+nextflow_workflow {
+
+    name "Test Workflow qc_checks"
+    script "modules/qc_checks.nf"
+    workflow "qc_checks"
+
+    test("Should run without failures") {
+
+        when {
+            params {
+                // define parameters here. Example:
+                // outdir = "tests/results"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "test",
+                        file("${projectDir}/tests/test-data/barcode01/barcode01.fq.gz", checkIfExists: true)
+                    )
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert snapshot(workflow.out, path("${outputDir}/test/qc/total_length.json")).match()
+        }
+
+    }
+
+}

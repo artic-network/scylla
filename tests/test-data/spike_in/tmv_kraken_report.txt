@@ -1,0 +1,11 @@
+ 50.00	10	10	U	0	unclassified
+ 50.00	10	0	R	1	root
+ 50.00	10	0	R1	10239	  Viruses
+ 50.00	10	0	R2	2559587	    Riboviria
+ 50.00	10	0	K	2732396	      Orthornavirae
+ 50.00	10	0	P	2732406	        Kitrinoviricota
+ 50.00	10	0	C	2732461	          Alsuviricetes
+ 50.00	10	0	O	2732544	            Martellivirales
+ 50.00	10	0	F	675071	              Virgaviridae
+ 50.00	10	0	G	12234	                Tobamovirus
+ 50.00	10	10	S	12242	                  Tobacco mosaic virus
