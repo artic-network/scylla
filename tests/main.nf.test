@@ -10,7 +10,15 @@ nextflow_pipeline {
             params {
                 fastq = "${projectDir}/tests/test-data/barcode01/barcode01.fq.gz"
                 outdir = "$outputDir/single_long_read"
-                
+                raise_server = true
+                kraken_database                  = [
+                    "default": [
+                        "name": "PlusPF",
+                        "path":"${projectDir}/tests/test-data/database/testdb-kraken2",
+                        "host": "localhost",
+                        "port": 8080,
+                    ],
+                ]
             }
         }
 
