@@ -16,6 +16,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: Start Kraken Server
+        run: |
+          docker run -d --name kraken-server --network host \
+            -v ${{ github.workspace }}/tests/test-data:/data \
+            quay.io/biowilko/scylla:latest \
+            kraken2_server --max-requests 2 --thread-pool 1 \
+            --port 8080 --host-ip 127.0.0.1 \
+            --db /data/database/testdb-kraken2/ \
+            --confidence 0.05
 
       - name: Setup Nextflow
         uses: nf-core/setup-nextflow@v2
@@ -28,4 +38,14 @@ jobs:
           sudo mv nf-test /usr/local/bin/
 
       - name: Run Tests
-        run: nf-test test --ci --profile docker,local
+        run: nf-test test --ci --profile docker,local --tag unit
+
+      - name: upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nf-test-work-dirs-${{ github.run_id }}
+          include-hidden-files: true
+          path: ./nf-test/*
+          retention-days: 1
+          if-no-files-found: ignore

@@ -3,6 +3,7 @@ nextflow_workflow {
     name "Test Workflow assemble_taxa"
     script "modules/assemble_taxa.nf"
     workflow "assemble_taxa"
+    tag "unit"
 
     test("assemble_taxa_rnabloom") {
 

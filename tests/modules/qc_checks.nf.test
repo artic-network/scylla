@@ -3,6 +3,7 @@ nextflow_workflow {
     name "Test Workflow qc_checks"
     script "modules/qc_checks.nf"
     workflow "qc_checks"
+    tag "unit"
 
     test("Should run without failures") {
 

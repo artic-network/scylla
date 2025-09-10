@@ -3,7 +3,7 @@ nextflow_workflow {
     name "Test Workflow check_hcid_status"
     script "modules/check_hcid_status.nf"
     workflow "check_hcid_status"
-    tag "hcid"
+    tag "unit"
 
     test("test_hcid_cchf_positive") {
 

@@ -15,7 +15,7 @@ nextflow_pipeline {
                     "default": [
                         "name": "PlusPF",
                         "path":"${projectDir}/tests/test-data/database/testdb-kraken2",
-                        "host": "localhost",
+                        "host": "127.0.0.1",
                         "port": 8080,
                     ],
                 ]

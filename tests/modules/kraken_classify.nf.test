@@ -1,0 +1,45 @@
+nextflow_workflow {
+
+    name "Test Workflow kraken_classify"
+    script "modules/kraken_classification.nf"
+    workflow "kraken_classify"
+    tag "unit"
+
+    test("Should run kraken classification without failures") {
+
+        when {
+            params {
+                kraken_confidence = 0.05
+                kraken_clients = 1
+                run_bracken = false
+                threads = 1
+                kraken_database = [
+                    "default": [
+                        "name": "testdb-kraken2",
+                        "path": "${projectDir}/tests/test-data/database/testdb-kraken2",
+                        "host": "127.0.0.1",
+                        "port": 8080,
+                    ]
+                ]
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "test",
+                        file("${projectDir}/tests/test-data/barcode01/barcode01.fq.gz", checkIfExists: true)
+                    )
+                )
+                input[1] = "default"
+                input[2] = false
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            // assert snapshot(workflow.out).match()
+        }
+
+    }
+}
