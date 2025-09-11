@@ -22,8 +22,8 @@ jobs:
           docker run -d --name kraken-server --network host \
             -v ${{ github.workspace }}/tests/test-data:/data \
             quay.io/biowilko/scylla:latest \
-            kraken2_server --max-requests 2 --thread-pool 1 \
-            --port 8080 --host-ip 127.0.0.1 \
+            kraken2_server --max-requests 4 --thread-pool 1 \
+            --port 8080 --host-ip localhost \
             --db /data/database/testdb-kraken2/ \
             --confidence 0.05
 
@@ -38,7 +38,7 @@ jobs:
           sudo mv nf-test /usr/local/bin/
 
       - name: Run Tests
-        run: nf-test test --ci --profile docker,local --tag unit
+        run: nf-test test --ci --profile docker,local
 
       - name: upload logs
         if: always()
@@ -46,6 +46,6 @@ jobs:
         with:
           name: nf-test-work-dirs-${{ github.run_id }}
           include-hidden-files: true
-          path: ./nf-test/*
+          path: ./.nf-test/*
           retention-days: 1
           if-no-files-found: ignore

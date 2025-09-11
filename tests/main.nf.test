@@ -10,14 +10,14 @@ nextflow_pipeline {
             params {
                 fastq = "${projectDir}/tests/test-data/barcode01/barcode01.fq.gz"
                 outdir = "$outputDir/single_long_read"
-                raise_server = true
-                kraken_database                  = [
+                raise_server = false
+                kraken_database = [
                     "default": [
-                        "name": "PlusPF",
-                        "path":"${projectDir}/tests/test-data/database/testdb-kraken2",
-                        "host": "127.0.0.1",
+                        "name": "testdb-kraken2",
+                        "path": "${projectDir}/tests/test-data/database/testdb-kraken2",
+                        "host": "localhost",
                         "port": 8080,
-                    ],
+                    ]
                 ]
             }
         }
@@ -34,8 +34,8 @@ nextflow_pipeline {
             
             // check kraken outputs
             assert path("$params.outdir/barcode01/classifications").exists()
-            assert path("$params.outdir/barcode01/classifications/PlusPF.kraken_assignments.tsv").exists()
-            assert path("$params.outdir/barcode01/classifications/PlusPF.kraken_report.txt").exists()
+            assert path("$params.outdir/barcode01/classifications/testdb-kraken2.kraken_assignments.tsv").exists()
+            assert path("$params.outdir/barcode01/classifications/testdb-kraken2.kraken_report.txt").exists()
 
             // check qc outputs
             assert path("$params.outdir/barcode01/qc").exists()

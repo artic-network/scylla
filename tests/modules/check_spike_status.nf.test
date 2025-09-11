@@ -5,11 +5,11 @@ nextflow_workflow {
     workflow "check_spike_status"
     tag "unit"
 
-    test("Should produce spike report") {
+    test("Should produce spike report with pass") {
 
         when {
             params {
-                spike_ins = "12242"
+                spike_ins = "tobacco_mosaic_virus"
             }
             workflow {
                 """
@@ -17,13 +17,53 @@ nextflow_workflow {
                     tuple(
                         "spikein_test",
                         "PlusPF",
-                        file("${projectDir}/tests/test-data/spike_in/tmv_kraken_report.txt", checkIfExists: true)
+                        file("${projectDir}/tests/test-data/spike_in/pass/tmv_kraken_report.txt", checkIfExists: true)
                     )
                 )
                 input[1] = Channel.of(
                     tuple(
                         "spikein_test",
-                        file("${projectDir}/tests/test-data/spike_in/tmv_mock.fastq", checkIfExists: true)
+                        file("${projectDir}/tests/test-data/spike_in/pass/tmv_mock.fastq", checkIfExists: true)
+                    )
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert path("${outputDir}/spikein_test/classifications/spike_count_summary.json").exists()
+            assert path("${outputDir}/spikein_test/classifications/spike_summary.json").exists()
+            assert snapshot(workflow.out, path("${outputDir}/spikein_test/classifications/spike_count_summary.json")).match()
+
+            // def spike_summary_json = path("${outputDir}/spikein_test/classifications/spike_count_summary.json").json
+            // def data = spike_summary_json["Tobacco mosaic virus"]["12242"]
+            // assert data.name == "Tobacco mosaic virus"
+            // assert data.classified_count == 10
+            // assert data.classified_percentage == 50.0
+        }
+
+    }
+
+    test("Should produce spike report with fail") {
+
+        when {
+            params {
+                spike_ins = "tobacco_mosaic_virus"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "spikein_test",
+                        "PlusPF",
+                        file("${projectDir}/tests/test-data/spike_in/fail/tmv_kraken_report.txt", checkIfExists: true)
+                    )
+                )
+                input[1] = Channel.of(
+                    tuple(
+                        "spikein_test",
+                        file("${projectDir}/tests/test-data/spike_in/fail/tmv_mock.fastq", checkIfExists: true)
                     )
                 )
                 """
