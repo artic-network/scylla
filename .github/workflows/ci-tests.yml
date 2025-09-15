@@ -38,7 +38,7 @@ jobs:
           sudo mv nf-test /usr/local/bin/
 
       - name: Run Tests
-        run: nf-test test --ci --profile docker,local
+        run: nf-test test --ci --profile docker,local --tag ci
 
       - name: upload logs
         if: always()
