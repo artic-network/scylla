@@ -62,70 +62,7 @@ nextflow_workflow {
         }
 
         then {
-            assert snapshot(workflow.out).match()
-        }
-
-    }
-
-    test("test_extract_human") {
-
-        when {
-            params {
-                max_human_reads_before_rejection = 1
-                reject_human = true
-                kreport_splits                   = "Bacteria Viruses Metazoa"
-                extract_thresholds               = [
-                    'Viruses': [
-                        "taxon_rank": "F",
-                        "min_reads": 2,
-                        "min_percent": 0,
-                    ],
-                    'Metazoa': [
-                        "taxon_rank": "G",
-                        "min_reads": 100000000,
-                        "min_percent": 100,
-                    ],
-                    'Bacteria': [
-                        "taxon_rank": "G",
-                        "min_reads": 500,
-                        "min_percent": 1,
-                    ],
-                    'default': [
-                        "taxon_rank": "G",
-                        "min_reads": 100,
-                        "min_percent": 0.1,
-                    ],
-                ]
-            }
-            workflow {
-                """
-                input[0] = Channel.of(
-                    tuple(
-                        "human_test",
-                        file("${projectDir}/tests/test-data/human/barcode04.fq.gz", checkIfExists: true)
-                    )
-                )
-                input[1] = Channel.of(
-                    tuple(
-                        "human_test",
-                        "PlusPF",
-                        file("${projectDir}/tests/test-data/human/human.kraken_assignments.tsv", checkIfExists: true)
-                    )
-                )
-                input[2] = Channel.of(
-                    tuple(
-                        "extract_test",
-                        "PlsuPF",
-                        file("${projectDir}/tests/test-data/human/human.kraken_report.txt", checkIfExists: true)
-                    )
-                )
-                input[3] = file("${projectDir}/tests/test-data/human/tax_dump", checkIfExists: true)
-                """
-            }
-        }
-
-        then {
-            
+            assert snapshot(workflow.out, path("${outputDir}/extract_test/reads_by_taxa/1980415.fastq.gz")).match()
         }
 
     }
