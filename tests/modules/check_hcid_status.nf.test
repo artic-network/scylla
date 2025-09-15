@@ -1,11 +1,12 @@
 nextflow_workflow {
 
-    name "Test Workflow check_hcid_status"
+    name "HCID status module tests"
     script "modules/check_hcid_status.nf"
     workflow "check_hcid_status"
     tag "unit"
+    tag "ci"
 
-    test("test_hcid_cchf_positive") {
+    test("cchf_detection_success") {
 
         when {
             params {
@@ -45,7 +46,7 @@ nextflow_workflow {
 
     }
 
-    test("test_hcid_cchf_negative") {
+    test("cchf_detection_fail") {
 
         when {
             params {

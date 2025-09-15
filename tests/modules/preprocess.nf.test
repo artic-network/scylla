@@ -1,11 +1,12 @@
 nextflow_workflow {
 
-    name "Test Workflow preprocess"
+    name "Preprocess module tests"
     script "modules/preprocess.nf"
     workflow "preprocess"
     tag "unit"
+    tag "ci"
 
-    test("Should run without failures") {
+    test("preprocess_filtering_success") {
 
         when {
             params {

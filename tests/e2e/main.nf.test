@@ -1,0 +1,66 @@
+nextflow_pipeline {
+
+    name "End to end pipeline tests"
+    script "main.nf"
+    tag "e2e"
+    tag "ci"
+
+    test("ont_single_full_pipeline") {
+
+        when {
+            params {
+                fastq = "${projectDir}/tests/test-data/barcode01/barcode01.fq.gz"
+                outdir = "$outputDir/single_long_read"
+                raise_server = false
+                kraken_database = [
+                    "default": [
+                        "name": "testdb-kraken2",
+                        "path": "${projectDir}/tests/test-data/database/testdb-kraken2",
+                        "host": "localhost",
+                        "port": 8080,
+                    ]
+                ]
+            }
+        }
+
+        then {
+           assertAll(
+                // check basic has pipeline completed
+                { assert workflow.success },
+                { assert path("$params.outdir/barcode01").exists() },
+
+                // check pre-process outputs
+                { assert path("$params.outdir/barcode01/preprocess").exists() },
+                { assert path("$params.outdir/barcode01/preprocess/barcode01.fastp.fastq.gz").exists() },
+                { assert path("$params.outdir/barcode01/preprocess/barcode01.fastp.json").exists() },
+
+                // check kraken outputs
+                { assert path("$params.outdir/barcode01/classifications").exists() },
+                { assert path("$params.outdir/barcode01/classifications/testdb-kraken2.kraken_assignments.tsv").exists() },
+                { assert path("$params.outdir/barcode01/classifications/testdb-kraken2.kraken_report.txt").exists() },
+                { assert path("$params.outdir/barcode01/classifications/testdb-kraken2.kraken_report.json").exists() },
+                { assert path("$params.outdir/barcode01/classifications/testdb-kraken2.kraken.json").exists() },
+
+                // check qc outputs
+                { assert path("$params.outdir/barcode01/qc").exists() },
+                { assert path("$params.outdir/barcode01/qc/hcid.counts.csv").exists() },
+                { assert path("$params.outdir/barcode01/qc/raw_reads.stats").exists() },
+                { assert path("$params.outdir/barcode01/qc/total_length.json").exists() },
+                
+                // check read fractions
+                { assert path("$params.outdir/barcode01/read_fractions").exists() },
+                { assert path("$params.outdir/barcode01/read_fractions/human_filtered.fastq.gz").exists() },
+                { assert path("$params.outdir/barcode01/read_fractions/reads_summary_combined.json").exists() },
+                { assert path("$params.outdir/barcode01/read_fractions/unclassified.fastq.gz").exists() },
+                { assert path("$params.outdir/barcode01/read_fractions/viral_and_unclassified.fastq.gz").exists() },
+                { assert path("$params.outdir/barcode01/read_fractions/viral.fastq.gz").exists() },
+
+                { assert path("$params.outdir/barcode01/reads_by_taxa").exists() },
+                { assert path("$params.outdir/barcode01/reads_by_taxa/reads_summary_combined.json").exists() },
+                { assert path("$params.outdir/barcode01/barcode01_report.html").exists() }
+            )
+        }
+
+    }
+
+}

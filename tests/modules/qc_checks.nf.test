@@ -1,11 +1,12 @@
 nextflow_workflow {
 
-    name "Test Workflow qc_checks"
+    name "qc_checks module tests"
     script "modules/qc_checks.nf"
     workflow "qc_checks"
     tag "unit"
+    tag "ci"
 
-    test("Should run without failures") {
+    test("qc_check_success") {
 
         when {
             params {

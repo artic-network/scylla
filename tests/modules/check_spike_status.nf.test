@@ -1,11 +1,12 @@
 nextflow_workflow {
 
-    name "Test Workflow check_spike_status"
+    name "Spike status module tests"
     script "modules/check_spike_status.nf"
     workflow "check_spike_status"
     tag "unit"
+    tag "ci"
 
-    test("Should produce spike report with pass") {
+    test("tobacco_mosaic_virus_detection_success") {
 
         when {
             params {
@@ -45,7 +46,7 @@ nextflow_workflow {
 
     }
 
-    test("Should produce spike report with fail") {
+    test("tobacco_mosaic_virus_detection_fail") {
 
         when {
             params {
