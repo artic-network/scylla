@@ -33,15 +33,22 @@ nextflow_workflow {
         }
 
         then {
-            assert workflow.success
-            assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").exists()
-            assert path("${outputDir}/cchf_test/qc/3052518.warning.json").exists() 
-            assert snapshot(workflow.out, path("${outputDir}/cchf_test/qc/hcid.counts.csv")).match()
+            def warning_json = path("${outputDir}/cchf_test/qc/3052518.warning.json").json
+            assertAll(
+                { assert workflow.success },
+                { assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").exists() },
+                { assert path("${outputDir}/cchf_test/qc/3052518.warning.json").exists() },
+                { assert snapshot(workflow.out, path("${outputDir}/cchf_test/qc/hcid.counts.csv")).match() },
+                
+                // check core content in addition to snapshot
+                { assert warning_json.classified_count == 10 },
+                { assert warning_json.mapped_count == 10 },
+                // hcid references 
+                { assert warning_json.mapped_details.contains("NC_005300.2") },
+                { assert warning_json.mapped_details.contains("NC_005301.3") },
+                { assert warning_json.mapped_details.contains("NC_005302.1") },
+            )
             
-            // assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").readLines().contains('Crimean Congo haemorrhagic fever (CCHF),3052518,1,10,10,10,1.0,NC_005300.2:4:0.577898|NC_005301.3:3:0.190040|NC_005302.1:3:0.813397,0')
-            // def warning_json = path("${outputDir}/cchf_test/qc/3052518.warning.json").json
-            // assert warning_json.classified_count == 10
-            // assert warning_json.mapped_count == 10
         }
 
     }
@@ -73,10 +80,12 @@ nextflow_workflow {
         }
 
         then {
-            assert workflow.success
-            assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").exists()
-            assert !path("${outputDir}/cchf_test/qc/3052518.warning.json").exists()
-            assert snapshot(workflow.out, path("${outputDir}/cchf_test/qc/hcid.counts.csv")).match()
+            assertAll(
+                { assert workflow.success },
+                { assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").exists() },
+                { assert !path("${outputDir}/cchf_test/qc/3052518.warning.json").exists() },
+                { assert snapshot(workflow.out, path("${outputDir}/cchf_test/qc/hcid.counts.csv")).match() }
+            )
         }
 
     }
