@@ -14,11 +14,12 @@ workflow ingest {
     preprocess(unique_id)
 
     classify_and_report(preprocess.out.processed_fastq, preprocess.out.combined_fastq, params.raise_server)
-    if (params.skip_extract_taxa)
+    if (params.skip_extract_taxa) {
         extract_fractions(preprocess.out.processed_fastq, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
-    else
+    }
+    else {
         extract_all(preprocess.out.processed_fastq, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
-
+    }
 
     emit:
     html_report = classify_and_report.out.report
