@@ -1,5 +1,5 @@
 {
-    "Should run without failures": {
+    "preprocess_filtering_success": {
         "content": [
             {
                 "0": [
@@ -32,6 +32,6 @@
             "nf-test": "0.9.2",
             "nextflow": "25.04.6"
         },
-        "timestamp": "2025-08-26T15:49:49.076657178"
+        "timestamp": "2025-09-15T13:24:49.03481093"
     }
 }

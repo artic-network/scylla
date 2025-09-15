@@ -1,5 +1,23 @@
 {
-    "test_hcid_cchf_positive": {
+    "cchf_detection_fail": {
+        "content": [
+            {
+                "0": [
+                    
+                ],
+                "warning_ch": [
+                    
+                ]
+            },
+            "hcid.counts.csv:md5,80d4f9e64b8160d3ef44f476a7833a91"
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.04.6"
+        },
+        "timestamp": "2025-09-15T13:14:27.963809838"
+    },
+    "cchf_detection_success": {
         "content": [
             {
                 "0": [
@@ -21,24 +39,6 @@
             "nf-test": "0.9.2",
             "nextflow": "25.04.6"
         },
-        "timestamp": "2025-08-29T12:58:58.092573411"
-    },
-    "test_hcid_cchf_negative": {
-        "content": [
-            {
-                "0": [
-                    
-                ],
-                "warning_ch": [
-                    
-                ]
-            },
-            "hcid.counts.csv:md5,80d4f9e64b8160d3ef44f476a7833a91"
-        ],
-        "meta": {
-            "nf-test": "0.9.2",
-            "nextflow": "25.04.6"
-        },
-        "timestamp": "2025-08-27T11:07:15.880789807"
+        "timestamp": "2025-09-15T13:13:51.203986115"
     }
 }
