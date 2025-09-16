@@ -581,14 +581,16 @@ class KrakenReport:
                 print(f"Moving {changes[old_taxon_id][new_taxon_id]} counts from {old_taxon_id} to {new_taxon_id}")
                 
                 mrca = self.get_mrca(old_taxon_id, new_taxon_id)
-                #print(f"MRCA of {old_taxon_id} and {new_taxon_id} is {mrca}")
+                print(f"MRCA of {old_taxon_id} and {new_taxon_id} is {mrca}")
 
                 self.entries[old_taxon_id].ucount -= changes[old_taxon_id][new_taxon_id]
-                if old_taxon_id not in self.entries[new_taxon_id].hierarchy:
-                    self.entries[old_taxon_id].count -= changes[old_taxon_id][new_taxon_id]
-                assert self.entries[old_taxon_id].ucount >= 0
+                print(f"Removing {changes[old_taxon_id][new_taxon_id]} ucounts from {old_taxon_id}")
 
-                
+                if not (old_taxon_id == "1" and old_taxon_id in self.entries[new_taxon_id].hierarchy):
+                    self.entries[old_taxon_id].count -= changes[old_taxon_id][new_taxon_id]
+                    print(f"Removing {changes[old_taxon_id][new_taxon_id]} counts from {old_taxon_id}")
+
+                assert self.entries[old_taxon_id].ucount >= 0
 
                 if old_taxon_id != "0":
                     for taxon_id in reversed(self.entries[old_taxon_id].hierarchy):
@@ -596,19 +598,22 @@ class KrakenReport:
                             self.entries[taxon_id].count -= changes[old_taxon_id][
                                 new_taxon_id
                             ]
-                            #print(f"Removing {changes[old_taxon_id][new_taxon_id]} counts from {taxon_id}")
+                            print(f"Removing {changes[old_taxon_id][new_taxon_id]} counts from {taxon_id}")
                             assert self.entries[taxon_id].count >= 0
                         elif taxon_id == mrca:
                             break
 
-                self.entries[new_taxon_id].ucount += changes[old_taxon_id][new_taxon_id]
-                self.entries[new_taxon_id].count += changes[old_taxon_id][new_taxon_id]
+                if not (new_taxon_id == "1" and new_taxon_id in self.entries[old_taxon_id].hierarchy):
+                    self.entries[new_taxon_id].ucount += changes[old_taxon_id][new_taxon_id]
+                    self.entries[new_taxon_id].count += changes[old_taxon_id][new_taxon_id]
+                    print(f"Adding {changes[old_taxon_id][new_taxon_id]} counts and ucounts to {new_taxon_id}")
+
                 for taxon_id in reversed(self.entries[new_taxon_id].hierarchy):
                     if taxon_id != mrca:
                         self.entries[taxon_id].count += changes[old_taxon_id][
                             new_taxon_id
                         ]
-                        #print(f"Adding {changes[old_taxon_id][new_taxon_id]} counts to {taxon_id}")
+                        print(f"Adding {changes[old_taxon_id][new_taxon_id]} counts to {taxon_id}")
 
                     elif taxon_id == mrca:
                         break
