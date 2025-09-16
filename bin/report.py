@@ -395,6 +395,34 @@ class KrakenReport:
         # print(f"{count}/{total} = {percentage:.2f}")
         return percentage
 
+    def add_sorted_descendants(self, taxon_id, sorted_list):
+        """
+        Add all descendants of taxon_id to sorted_list in order of count (highest first).
+
+        Parameters:
+            taxon_id (str): a taxon ID
+            sorted_list (list): list of taxon_ids to be appended to
+        """
+        children = list(self.entries[taxon_id].children)
+        children.sort(key=lambda x: (self.entries[x].count, self.entries[x].name), reverse=True)
+        sorted_list.append(taxon_id)
+        for child in children:
+            self.add_sorted_descendants(child, sorted_list)
+
+    def sort_entries(self):
+        """
+        Sort the entries dictionary so that parent/child relationships preserved.
+        """
+
+        sorted_list = []
+
+        if "0" in self.entries:
+            sorted_list.append("0")
+        if "1" in self.entries:
+            self.add_sorted_descendants("1", sorted_list)
+
+        self.entries = dict([(key,self.entries[key]) for key in sorted_list])
+
     def to_source_target_df(
         self, out_file="source_target.csv", max_rank=None, domain=None
     ):
@@ -630,17 +658,20 @@ class KrakenReport:
         """
         set_zeroes = set()
         for taxon_id in self.entries:
-            if self.entries[taxon_id].count == 0:
+            if self.entries[taxon_id].count == 0 and taxon_id not in ["0", "1"]:
                 set_zeroes.add(taxon_id)
         for taxon_id in set_zeroes:
+            if taxon_id not in self.entries:
+                continue
             entry = self.entries[taxon_id]
             if entry.parent in self.entries:
-                print(taxon_id, entry.parent, self.entries[entry.parent].children)
+                print("Removing zero entry", taxon_id, "with parent", entry.parent, "and children", self.entries[entry.parent].children)
                 self.entries[entry.parent].children.remove(taxon_id)
             for child in entry.children:
                 if child in self.entries:
                     assert child in set_zeroes
             del self.entries[taxon_id]
+        print(f"Removed {len(set_zeroes)} zero-count entries")
 
     def update(self, new_report, changes):
         """
@@ -679,6 +710,8 @@ class KrakenReport:
         """
         Save the KrakenReport object in kraken report format
         """
+        self.sort_entries()
+
         if not file_name:
             file_name = self.file_name
         with open(file_name, "w") as out:
