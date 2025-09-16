@@ -6,36 +6,36 @@
                     [
                         "test",
                         "testdb-kraken2",
-                        "testdb-kraken2.kraken_assignments.tsv:md5,0a22288b54c339b3d193fb0dc16aae7d"
+                        "testdb-kraken2.kraken_assignments.tsv:md5,4e0ff0c093a962377307c7a547c852c6"
                     ]
                 ],
                 "1": [
                     [
                         "test",
                         "testdb-kraken2",
-                        "testdb-kraken2.kraken_report.txt:md5,ba6dd3f3e3e37859e4b5243fc8d828a1"
+                        "testdb-kraken2.kraken_report.txt:md5,589379bb70d49b40be3973eb42f03b24"
                     ]
                 ],
                 "assignments": [
                     [
                         "test",
                         "testdb-kraken2",
-                        "testdb-kraken2.kraken_assignments.tsv:md5,0a22288b54c339b3d193fb0dc16aae7d"
+                        "testdb-kraken2.kraken_assignments.tsv:md5,4e0ff0c093a962377307c7a547c852c6"
                     ]
                 ],
                 "kreport": [
                     [
                         "test",
                         "testdb-kraken2",
-                        "testdb-kraken2.kraken_report.txt:md5,ba6dd3f3e3e37859e4b5243fc8d828a1"
+                        "testdb-kraken2.kraken_report.txt:md5,589379bb70d49b40be3973eb42f03b24"
                     ]
                 ]
             }
         ],
         "meta": {
             "nf-test": "0.9.2",
-            "nextflow": "25.04.6"
+            "nextflow": "25.04.7"
         },
-        "timestamp": "2025-09-15T15:55:56.478793502"
+        "timestamp": "2025-09-16T08:14:04.781506718"
     }
 }
