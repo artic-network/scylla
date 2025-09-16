@@ -111,7 +111,7 @@ workflow get_fastq_channels {
             fastq_ch.tap { combined_fastq_ch }
         }
     }
-    else if (params.paired) {
+    else if (params.paired && params.fastq1 && params.fastq2) {
         fastq1 = file(params.fastq1, type: "file", checkIfExists: true)
         fastq2 = file(params.fastq2, type: "file", checkIfExists: true)
         fastq_ch = Channel.from([[unique_id, fastq1, fastq2]])
@@ -136,6 +136,9 @@ workflow get_fastq_channels {
             .collectFile()
             .map { it -> [it.simpleName, it] }
             .set { combined_fastq_ch }
+    }
+    else {
+        error "No input fastq files provided. Please provide either --run_dir, --fastq_dir, --fastq or --fastq1 and --fastq2 with --paired."
     }
 
     emit:
