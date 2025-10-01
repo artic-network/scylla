@@ -1,6 +1,24 @@
-# Test dataset generation
+# Tests
 
-The test FASTQ files containing CCHF HCID and Spike sequences were generated using the following process:
+To run tests:
+
+`nf-test test --profile docker`
+
+## Tags
+
+Tests are tagged with one of the 3 following tags:
+
+`ci` - Tests that will run as part of the CI pipeline
+
+`unit` - Tests for a specific workflows
+
+`e2e` - End to end tests
+
+This is useful to run a subset of tests.
+
+## Test dataset generation
+
+The test FASTQ files for HCID and Spike sequences were generated using the following process:
 - Extract the reference sequence (located in `resources/hcid_refs.fa.gz`)
 - Randomly subset to 10 reads of 1000bp length from the reference
 - Set quality scores artificially to 40 for all bases
@@ -32,3 +50,7 @@ grep -w -f <(awk '{print "^"$1}' taxids.txt) taxonomy_dir/names.dmp > subset/nam
 
 touch subset/delnodes.dmp subset/merged.dmp
 ```
+
+## Todo list
+- [ ] Illumina tests
+- [ ] More comprehensive human detection tests
