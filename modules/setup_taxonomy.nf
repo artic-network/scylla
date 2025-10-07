@@ -1,6 +1,7 @@
 process unpack_taxonomy {
     label "process_single"
     storeDir "${params.store_dir}"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     input:
     path taxonomy
