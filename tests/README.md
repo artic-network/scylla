@@ -50,6 +50,27 @@ grep -w -f <(awk '{print "^"$1}' taxids.txt) taxonomy_dir/names.dmp > subset/nam
 
 touch subset/delnodes.dmp subset/merged.dmp
 ```
+## Adding tests
+
+When adding new tests please refer to the [nf-test  documentation](https://www.nf-test.com/) as a starting point.
+
+The [nf-core training module](https://training.nextflow.io/2.4.0/side_quests/nf-test/) also provides a comprehensive walkthrough for writing tests.
+
+### Writing a test
+1. Identify what type of component you are testing - e.g process, pipeline, workflow
+2. Generate a stub using `nf-test generate`
+3. Examine and mock the inputs to that workflow
+    - How many channels?
+    - What do the channels contain? Tuples? A single path?
+    - If it contains tuples - what do they contain?
+    - Look at process inputs to help with this
+4. Assert agaisnt expected outcomes (mock data or snapshot)
+
+In general [snapshot testing](https://www.nf-test.com/docs/assertions/snapshots/) is preferred due to comparison of md5 checksums which ensures no variability in outputs. In cases where tools produce non-deterministic outputs, you can check for strings in files using `.contains()` or worst case that the file exists with `.exists()`. However the `snapshot > contains > exists` hierrarchy should be mantained where possible.
+
+### Adding tests to CI
+
+Tests in this repo are run on every pull request using GitHub Actions. To ensure any new tests run in this CI pipeline, add the `ci` tag to the test e.g `tag "ci"`. Note that tests can have multiple tags.
 
 ## Todo list
 - [ ] Illumina tests
