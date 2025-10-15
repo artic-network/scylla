@@ -33,5 +33,40 @@
             "nextflow": "25.04.6"
         },
         "timestamp": "2025-09-15T13:24:49.03481093"
+    },
+    "preprocess_filtering_with_spike_success": {
+        "content": [
+            {
+                "0": [
+                    [
+                        "tmv_mock",
+                        "tmv_mock.fastp.fastq.gz:md5,5b6778684bac2ad70fa3c47f19881b68"
+                    ]
+                ],
+                "1": [
+                    [
+                        "tmv_mock",
+                        "tmv_mock.fastp.fastq.gz:md5,5b6778684bac2ad70fa3c47f19881b68"
+                    ]
+                ],
+                "combined_fastq": [
+                    [
+                        "tmv_mock",
+                        "tmv_mock.fastp.fastq.gz:md5,5b6778684bac2ad70fa3c47f19881b68"
+                    ]
+                ],
+                "processed_fastq": [
+                    [
+                        "tmv_mock",
+                        "tmv_mock.fastp.fastq.gz:md5,5b6778684bac2ad70fa3c47f19881b68"
+                    ]
+                ]
+            }
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.04.6"
+        },
+        "timestamp": "2025-10-15T12:07:27.231809467"
     }
 }
