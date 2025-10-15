@@ -2,7 +2,7 @@
 include { get_params_and_versions } from '../modules/utils'
 include { preprocess              } from '../modules/preprocess'
 include { classify_and_report     } from '../subworkflows/classify_and_report'
-include { extract_all             } from '../modules/extract_all'
+include { extract_fractions; extract_all } from '../modules/extract_all'
 
 workflow ingest {
     take:
@@ -14,7 +14,12 @@ workflow ingest {
     preprocess(unique_id)
 
     classify_and_report(preprocess.out.processed_fastq, preprocess.out.combined_fastq, params.raise_server)
-    extract_all(preprocess.out.processed_fastq, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
+    if (params.skip_extract_taxa) {
+        extract_fractions(preprocess.out.processed_fastq, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
+    }
+    else {
+        extract_all(preprocess.out.processed_fastq, classify_and_report.out.assignments, classify_and_report.out.kreport, classify_and_report.out.taxonomy)
+    }
 
     emit:
     html_report = classify_and_report.out.report
