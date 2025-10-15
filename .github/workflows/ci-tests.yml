@@ -1,0 +1,51 @@
+name: CI Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Start Kraken Server
+        run: |
+          docker run -d --name kraken-server --network host \
+            -v ${{ github.workspace }}/tests/test-data:/data \
+            quay.io/biowilko/scylla:latest \
+            kraken2_server --max-requests 4 --thread-pool 1 \
+            --port 8080 --host-ip localhost \
+            --db /data/database/testdb-kraken2/ \
+            --confidence 0.05
+
+      - name: Setup Nextflow
+        uses: nf-core/setup-nextflow@v2
+        with:
+          version: "25.4.6"
+
+      - name: Install nf-test
+        run: |
+          wget -qO- https://get.nf-test.com | bash
+          sudo mv nf-test /usr/local/bin/
+
+      - name: Run Tests
+        run: nf-test test --ci --profile docker,local --tag ci
+
+      - name: upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nf-test-work-dirs-${{ github.run_id }}
+          include-hidden-files: true
+          path: ./.nf-test/*
+          retention-days: 1
+          if-no-files-found: ignore

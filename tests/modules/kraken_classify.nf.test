@@ -1,0 +1,42 @@
+nextflow_workflow {
+
+    name "Kraken classify module tests"
+    script "modules/kraken_classification.nf"
+    workflow "kraken_classify"
+    tag "unit"
+    tag "ci"
+
+    test("kraken2_classify_success") {
+
+        when {
+            params {
+                kraken_database = [
+                    "default": [
+                        "name": "testdb-kraken2",
+                        "path": "${projectDir}/tests/test-data/database/testdb-kraken2",
+                        "host": "localhost",
+                        "port": 8080,
+                    ]
+                ]
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "test",
+                        file("${projectDir}/tests/test-data/barcode01/barcode01.fq.gz", checkIfExists: true)
+                    )
+                )
+                input[1] = "default"
+                input[2] = false
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert snapshot(workflow.out).match()
+        }
+
+    }
+}

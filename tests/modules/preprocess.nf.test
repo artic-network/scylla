@@ -1,0 +1,29 @@
+nextflow_workflow {
+
+    name "Preprocess module tests"
+    script "modules/preprocess.nf"
+    workflow "preprocess"
+    tag "unit"
+    tag "ci"
+
+    test("preprocess_filtering_success") {
+
+        when {
+            params {
+                fastq = "${projectDir}/tests/test-data/barcode01/barcode01.fq.gz"
+            }
+            workflow {
+                """
+                input[0] = "barcode01"
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert snapshot(workflow.out).match()
+        }
+
+    }
+
+}

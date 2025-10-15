@@ -1,0 +1,32 @@
+{
+    "test_extract_all_success": {
+        "content": [
+            {
+                "0": [
+                    [
+                        "extract_test",
+                        "cchf_kraken_report.json:md5,bef08c8bdf6832b53d11fbf7fbe2f86e"
+                    ]
+                ],
+                "1": [
+                    
+                ],
+                "kraken_json": [
+                    [
+                        "extract_test",
+                        "cchf_kraken_report.json:md5,bef08c8bdf6832b53d11fbf7fbe2f86e"
+                    ]
+                ],
+                "virus": [
+                    
+                ]
+            },
+            "1980415.fastq.gz:md5,576ed8a5c76c147aeff0065b62c53f12"
+        ],
+        "meta": {
+            "nf-test": "0.9.2",
+            "nextflow": "25.04.6"
+        },
+        "timestamp": "2025-09-15T15:51:09.386608107"
+    }
+}

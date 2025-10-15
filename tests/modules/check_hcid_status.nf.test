@@ -1,0 +1,93 @@
+nextflow_workflow {
+
+    name "HCID status module tests"
+    script "modules/check_hcid_status.nf"
+    workflow "check_hcid_status"
+    tag "unit"
+    tag "ci"
+
+    test("cchf_detection_success") {
+
+        when {
+            params {
+                
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "cchf_test",
+                        "PlusPF",
+                        file("${projectDir}/tests/test-data/hcid/3052518/cchf_kraken_report.txt", checkIfExists: true)
+                    )
+                )
+                input[1] = Channel.of(
+                    tuple(
+                        "cchf_test",
+                        file("${projectDir}/tests/test-data/hcid/3052518/cchf_mock.fastq", checkIfExists: true)
+                    )
+                )
+                input[2] = file("${projectDir}/tests/test-data/hcid/3052518/tax_dump", checkIfExists: true)
+                """
+            }
+        }
+
+        then {
+            def warning_json = path("${outputDir}/cchf_test/qc/3052518.warning.json").json
+            assertAll(
+                { assert workflow.success },
+                { assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").exists() },
+                { assert path("${outputDir}/cchf_test/qc/3052518.warning.json").exists() },
+                { assert snapshot(workflow.out, path("${outputDir}/cchf_test/qc/hcid.counts.csv")).match() },
+                
+                // check core content in addition to snapshot
+                { assert warning_json.classified_count == 10 },
+                { assert warning_json.mapped_count == 10 },
+                // hcid references 
+                { assert warning_json.mapped_details.contains("NC_005300.2") },
+                { assert warning_json.mapped_details.contains("NC_005301.3") },
+                { assert warning_json.mapped_details.contains("NC_005302.1") },
+            )
+            
+        }
+
+    }
+
+    test("cchf_detection_fail") {
+
+        when {
+            params {
+
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "cchf_test",
+                        "PlusPF",
+                        file("${projectDir}/tests/test-data/hcid/3052518/cchf_kraken_report_blank.txt", checkIfExists: true)
+                    )
+                )
+                input[1] = Channel.of(
+                    tuple(
+                        "cchf_test",
+                        file("${projectDir}/tests/test-data/hcid/3052518/blank.fastq", checkIfExists: true)
+                    )
+                )
+                input[2] = file("${projectDir}/tests/test-data/hcid/3052518/tax_dump", checkIfExists: true)
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert path("${outputDir}/cchf_test/qc/hcid.counts.csv").exists() },
+                { assert !path("${outputDir}/cchf_test/qc/3052518.warning.json").exists() },
+                { assert snapshot(workflow.out, path("${outputDir}/cchf_test/qc/hcid.counts.csv")).match() }
+            )
+        }
+
+    }
+
+}

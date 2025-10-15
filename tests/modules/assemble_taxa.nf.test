@@ -1,0 +1,63 @@
+nextflow_workflow {
+
+    name "Assemble taxa module tests"
+    script "modules/assemble_taxa.nf"
+    workflow "assemble_taxa"
+    tag "unit"
+    tag "ci"
+
+    test("assemble_taxa_rnabloom") {
+
+        when {
+            params {
+                assembler = "rnabloom"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "assemble_test",
+                        "all",
+                        file("${projectDir}/tests/test-data/barcode01/barcode01.fq.gz", checkIfExists: true)
+                    )
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert path("${outputDir}/assemble_test/assemblies/all/assembly_stats.txt").exists()
+            assert path("${outputDir}/assemble_test/assemblies/all/rnabloom_assembled_contigs.fa").exists()
+        }
+
+    }
+
+    test("assemble_taxa_flye") {
+
+        when {
+            params {
+                assembler = "flye"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "assemble_test",
+                        "all",
+                        file("${projectDir}/tests/test-data/barcode01/barcode01.fq.gz", checkIfExists: true)
+                    )
+                )
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert path("${outputDir}/assemble_test/assemblies/all/assembly_stats.txt").exists()
+            assert path("${outputDir}/assemble_test/assemblies/all/flye_assembled_contigs.fa").exists()
+        }
+
+    }
+
+}

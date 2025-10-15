@@ -1,0 +1,95 @@
+nextflow_workflow {
+
+    name "Spike status module tests"
+    script "modules/check_spike_status.nf"
+    workflow "check_spike_status"
+    tag "unit"
+    tag "ci"
+
+    test("tobacco_mosaic_virus_detection_success") {
+
+        when {
+            params {
+                spike_ins = "tobacco_mosaic_virus"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "spikein_test",
+                        "PlusPF",
+                        file("${projectDir}/tests/test-data/spike_in/pass/tmv_kraken_report.txt", checkIfExists: true)
+                    )
+                )
+                input[1] = Channel.of(
+                    tuple(
+                        "spikein_test",
+                        file("${projectDir}/tests/test-data/spike_in/pass/tmv_mock.fastq", checkIfExists: true)
+                    )
+                )
+                """
+            }
+        }
+
+        then {
+            def spike_summary_json = path("${outputDir}/spikein_test/classifications/spike_count_summary.json").json
+            def data = spike_summary_json["tobacco_mosaic_virus"]["NC_001367.1"]
+            assertAll (
+                { assert workflow.success },
+                { assert path("${outputDir}/spikein_test/classifications/spike_count_summary.json").exists() },
+                { assert path("${outputDir}/spikein_test/classifications/spike_summary.json").exists() },
+                { assert snapshot(workflow.out, path("${outputDir}/spikein_test/classifications/spike_count_summary.json")).match() },
+                { assert data.name == "Tobacco mosaic virus" },
+                { assert data.classified_count == 10 },
+                { assert data.classified_percentage == 50.0 },
+                { assert data.mapped_count == 10 },
+                { assert data.mapped_percentage == 50.0 },
+            )
+        }
+
+    }
+
+    test("tobacco_mosaic_virus_detection_fail") {
+
+        when {
+            params {
+                spike_ins = "tobacco_mosaic_virus"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "spikein_test",
+                        "PlusPF",
+                        file("${projectDir}/tests/test-data/spike_in/fail/tmv_kraken_report.txt", checkIfExists: true)
+                    )
+                )
+                input[1] = Channel.of(
+                    tuple(
+                        "spikein_test",
+                        file("${projectDir}/tests/test-data/spike_in/fail/tmv_mock.fastq", checkIfExists: true)
+                    )
+                )
+                """
+            }
+        }
+
+        then {
+            def spike_summary_json = path("${outputDir}/spikein_test/classifications/spike_count_summary.json").json
+            def data = spike_summary_json["tobacco_mosaic_virus"]["NC_001367.1"]
+            assertAll(
+                { assert workflow.success },
+                { assert path("${outputDir}/spikein_test/classifications/spike_count_summary.json").exists() },
+                { assert path("${outputDir}/spikein_test/classifications/spike_summary.json").exists() },
+                { assert snapshot(workflow.out, path("${outputDir}/spikein_test/classifications/spike_count_summary.json")).match() },
+                { assert data.classified_count == 0 },
+                { assert data.classified_percentage == 0.0 },
+                { assert data.mapped_count == 0 },
+                { assert data.mapped_percentage == 0.0 },
+
+            )
+        }
+
+    }
+
+}

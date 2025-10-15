@@ -1,0 +1,69 @@
+nextflow_workflow {
+
+    name "extract_taxa module tests"
+    script "modules/extract_all.nf"
+    workflow "extract_all"
+    tag "unit"
+    tag "ci"
+
+    test("test_extract_all_success") {
+
+        when {
+            params {
+                kreport_splits                   = "Bacteria Viruses Metazoa"
+                extract_thresholds               = [
+                    'Viruses': [
+                        "taxon_rank": "F",
+                        "min_reads": 2,
+                        "min_percent": 0,
+                    ],
+                    'Metazoa': [
+                        "taxon_rank": "G",
+                        "min_reads": 100000000,
+                        "min_percent": 100,
+                    ],
+                    'Bacteria': [
+                        "taxon_rank": "G",
+                        "min_reads": 500,
+                        "min_percent": 1,
+                    ],
+                    'default': [
+                        "taxon_rank": "G",
+                        "min_reads": 100,
+                        "min_percent": 0.1,
+                    ],
+                ]
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "extract_test",
+                        file("${projectDir}/tests/test-data/extract_all/cchf_mock.fastq", checkIfExists: true)
+                    )
+                )
+                input[1] = Channel.of(
+                    tuple(
+                        "extract_test",
+                        "PlusPF",
+                        file("${projectDir}/tests/test-data/extract_all/cchf_kraken_output.txt", checkIfExists: true)
+                    )
+                )
+                input[2] = Channel.of(
+                    tuple(
+                        "extract_test",
+                        "PlsuPF",
+                        file("${projectDir}/tests/test-data/extract_all/cchf_kraken_report.txt", checkIfExists: true)
+                    )
+                )
+                input[3] = file("${projectDir}/tests/test-data/hcid/3052518/tax_dump", checkIfExists: true)
+                """
+            }
+        }
+
+        then {
+            assert snapshot(workflow.out, path("${outputDir}/extract_test/reads_by_taxa/1980415.fastq.gz")).match()
+        }
+
+    }
+}
