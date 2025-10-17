@@ -291,25 +291,25 @@ def check_spike_summary(spike_summary):
             found_mapped_all = False
 
         if found_all:
-            check[spike] = "pass"
+            check[spike] = "detected"
         elif found_any:
             check[spike] = "partial"
         else:
-            check[spike] = "fail"
+            check[spike] = "absent"
 
         if found_classified_all:
             print(f"Spike {spike} found all refs by classification")
         elif found_classified_any:
             print(f"Spike {spike} found some refs by classification")
         else:
-            print(f"Spike {spike} failed by classification")
+            print(f"Spike {spike} absent by classification")
 
         if found_mapped_all:
             print(f"Spike {spike} found all refs by mapping")
         elif found_mapped_any:
             print(f"Spike {spike} found some refs by mapping")
         else:
-            print(f"Spike {spike} failed by mapping")
+            print(f"Spike {spike} absent by mapping")
 
     with open("spike_summary.json", "w") as outfile:
         json.dump(check, outfile, indent=4, sort_keys=False)
