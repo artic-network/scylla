@@ -12,11 +12,10 @@ process check_spike_ins {
     publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", overwrite: true, pattern: "*.json"
 
     input:
-    tuple val(unique_id), val(database_name), path(kreport), path(reads)
+    tuple val(unique_id), val(database_name), path(kreport), path(reads), path(spike_mapping_stats)
     val spike_ins
     path spike_in_dict
     path spike_in_ref_dir
-    path spike_mapping_stats
 
     output:
     tuple val(unique_id), path("spike_summary.json"), emit: status, optional: true
@@ -47,8 +46,9 @@ workflow check_spike_status {
     spike_in_dict = file("${params.spike_in_dict}", type: "file", checkIfExists: true)
     spike_in_ref_dir = file("${params.spike_in_ref_dir}", type: "dir", checkIfExists: true)
 
-    kreport_ch.join(fastq_ch).set { input_ch }
-    check_spike_ins(input_ch, spike_ins, spike_in_dict, spike_in_ref_dir, spike_mapping_stats_ch)
+    kreport_ch.join(fastq_ch).join(spike_mapping_stats_ch) .set { input_ch }
+
+    check_spike_ins(input_ch, spike_ins, spike_in_dict, spike_in_ref_dir)
 
     empty_file = file("${baseDir}/resources/empty_file")
     kreport_ch
