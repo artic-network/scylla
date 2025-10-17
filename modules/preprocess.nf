@@ -24,7 +24,7 @@ process remove_spike_paired {
     conda "bioconda::minimap2 bioconda::samtools"
     container "community.wave.seqera.io/library/minimap2_samtools:c2863f226d833ac8"
     publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", overwrite: true, pattern: "*spikes*.fastq"
-    publishDir "${params.outdir}/${unique_id}/qc", mode: "copy", overwrite: true, pattern: "*.txt"
+    publishDir "${params.outdir}/${unique_id}/qc", mode: "copy", overwrite: true, pattern: "*_spike_mapping_stats.tsv"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2)
@@ -33,7 +33,7 @@ process remove_spike_paired {
     output:
       tuple val(unique_id), path("${unique_id}_removed_1.fastq"), path("${unique_id}_removed_2.fastq"), emit: removed_paired
       tuple val(unique_id), path("${unique_id}_spikes_1.fastq"), path("${unique_id}_spikes_2.fastq"), emit: spike_reads
-      tuple val(unique_id), path("read_count_removed.txt"), path("read_count_spikes.txt"), emit: stats
+      tuple val(unique_id), path("${unique_id}_spike_mapping_stats.tsv"), emit: idxstats
 
     script:
     """
@@ -42,8 +42,7 @@ process remove_spike_paired {
         samtools view -b -f 4 sorted.bam | samtools fastq -1 ${unique_id}_removed_1.fastq -2 ${unique_id}_removed_2.fastq -
         samtools view -b -F 4 sorted.bam | samtools fastq -1 ${unique_id}_spikes_1.fastq -2 ${unique_id}_spikes_2.fastq -
 
-        samtools view -c -f 4 sorted.bam > read_count_removed.txt
-        samtools view -c -F 4 sorted.bam > read_count_spikes.txt
+        samtools idxstats sorted.bam > ${unique_id}_spike_mapping_stats.tsv
     """
 }
 
@@ -54,7 +53,7 @@ process remove_spike_single {
     container "community.wave.seqera.io/library/minimap2_samtools:c2863f226d833ac8"
 
     publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", overwrite: true, pattern: "*spikes*.fastq"
-    publishDir "${params.outdir}/${unique_id}/qc", mode: "copy", overwrite: true, pattern: "*.txt"
+    publishDir "${params.outdir}/${unique_id}/qc", mode: "copy", overwrite: true, pattern: "*_spike_mapping_stats.tsv"
 
     input:
     tuple val(unique_id), path(fastq)
@@ -63,7 +62,7 @@ process remove_spike_single {
     output:
       tuple val(unique_id), path("${unique_id}_removed.fastq"), emit: removed_single
       tuple val(unique_id), path("${unique_id}_spikes.fastq"), emit: spike_reads
-      tuple val(unique_id), path("read_count_unmapped.txt"), path("read_count_mapped.txt"), emit: stats
+      tuple val(unique_id), path("${unique_id}_spike_mapping_stats.tsv"), emit: idxstats
 
     script:
     """
@@ -72,8 +71,7 @@ process remove_spike_single {
         samtools view -b -f 4 sorted.bam | samtools fastq - > ${unique_id}_removed.fastq
         samtools view -b -F 4 sorted.bam | samtools fastq - > ${unique_id}_spikes.fastq
 
-        samtools view -c -f 4 sorted.bam > read_count_unmapped.txt
-        samtools view -c -F 4 sorted.bam > read_count_mapped.txt
+        samtools idxstats sorted.bam > ${unique_id}_spike_mapping_stats.tsv
     """
 }
 
@@ -191,6 +189,8 @@ workflow preprocess {
     unique_id
 
     main:
+    def spike_mapping_stats_ch = Channel.empty()
+
     if (params.paired) {
         fastq1 = file(params.fastq1, type: "file", checkIfExists: true)
         fastq2 = file(params.fastq2, type: "file", checkIfExists: true)
@@ -203,6 +203,7 @@ workflow preprocess {
               prepare_spike_references(params.spike_ins, spike_in_dict, spike_in_ref_dir)
               remove_spike_paired(input_ch, prepare_spike_references.out.combined_ref)
               spike_removed_ch = remove_spike_paired.out.removed_paired
+              spike_mapping_stats_ch = remove_spike_paired.out.idxstats
           } else {
               spike_removed_ch = input_ch
           }
@@ -221,12 +222,13 @@ workflow preprocess {
               spike_in_dict = file(params.spike_in_dict, type: "file", checkIfExists: true)
               spike_in_ref_dir = file(params.spike_in_ref_dir, type: "dir", checkIfExists: true)
 
-              prepare_spike_references(params.spike_ins, spike_in_dict, spike_in_ref_dir)
-              remove_spike_single(input_ch, prepare_spike_references.out.combined_ref)
-              spike_removed_ch = remove_spike_single.out.removed_single
-          } else {
-              spike_removed_ch = input_ch
-          }
+          prepare_spike_references(params.spike_ins, spike_in_dict, spike_in_ref_dir)
+          remove_spike_single(input_ch, prepare_spike_references.out.combined_ref)
+          spike_removed_ch = remove_spike_single.out.removed_single
+          spike_mapping_stats_ch = remove_spike_single.out.idxstats
+      } else {
+          spike_removed_ch = input_ch
+      }
 
         fastp_single(spike_removed_ch)
 
@@ -244,12 +246,13 @@ workflow preprocess {
               spike_in_dict = file(params.spike_in_dict, type: "file", checkIfExists: true)
               spike_in_ref_dir = file(params.spike_in_ref_dir, type: "dir", checkIfExists: true)
 
-              prepare_spike_references(params.spike_ins, spike_in_dict, spike_in_ref_dir)
-              remove_spike_single(input_ch, prepare_spike_references.out.combined_ref)
-              spike_removed_ch = remove_spike_single.out.removed_single
-          } else {
-              spike_removed_ch = input_ch
-          }
+          prepare_spike_references(params.spike_ins, spike_in_dict, spike_in_ref_dir)
+          remove_spike_single(input_ch, prepare_spike_references.out.combined_ref)
+          spike_removed_ch = remove_spike_single.out.removed_single
+          spike_mapping_stats_ch = remove_spike_single.out.idxstats
+      } else {
+          spike_removed_ch = input_ch
+      }
 
         fastp_single(spike_removed_ch)
         fastp_single.out.fastq
@@ -263,4 +266,5 @@ workflow preprocess {
     emit:
     processed_fastq = processed_fastq_ch
     combined_fastq  = combined_fastq_ch
+    spike_mapping_stats  = spike_mapping_stats_ch
 }
