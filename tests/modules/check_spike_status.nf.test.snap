@@ -53,13 +53,13 @@
                 "0": [
                     [
                         "spikein_test",
-                        "spikein_test:md5,4918dccd57cf10339ad8db4f6568fd1c"
+                        "spikein_test:md5,b68e7df287a4950ca87c2f9781766df2"
                     ]
                 ],
                 "status_ch": [
                     [
                         "spikein_test",
-                        "spikein_test:md5,4918dccd57cf10339ad8db4f6568fd1c"
+                        "spikein_test:md5,b68e7df287a4950ca87c2f9781766df2"
                     ]
                 ]
             },
@@ -69,7 +69,7 @@
             "nf-test": "0.9.2",
             "nextflow": "25.04.6"
         },
-        "timestamp": "2025-10-20T12:25:03.936482188"
+        "timestamp": "2025-10-20T12:27:58.716462463"
     },
     "tobacco_mosaic_virus_detection_map_with_kraken": {
         "content": [
@@ -77,13 +77,13 @@
                 "0": [
                     [
                         "spikein_test",
-                        "spikein_test:md5,04b9444c3ec8b1ea773ba8ff80b9d9cf"
+                        "spikein_test:md5,936f0f9158f6e8bad2f9a957e7694b0f"
                     ]
                 ],
                 "status_ch": [
                     [
                         "spikein_test",
-                        "spikein_test:md5,04b9444c3ec8b1ea773ba8ff80b9d9cf"
+                        "spikein_test:md5,936f0f9158f6e8bad2f9a957e7694b0f"
                     ]
                 ]
             },
@@ -93,7 +93,7 @@
             "nf-test": "0.9.2",
             "nextflow": "25.04.6"
         },
-        "timestamp": "2025-10-20T12:24:44.438455784"
+        "timestamp": "2025-10-20T12:27:37.257290452"
     },
     "tobacco_mosaic_virus_detection_map_no_kraken": {
         "content": [
@@ -101,13 +101,13 @@
                 "0": [
                     [
                         "spikein_test",
-                        "spikein_test:md5,04b9444c3ec8b1ea773ba8ff80b9d9cf"
+                        "spikein_test:md5,936f0f9158f6e8bad2f9a957e7694b0f"
                     ]
                 ],
                 "status_ch": [
                     [
                         "spikein_test",
-                        "spikein_test:md5,04b9444c3ec8b1ea773ba8ff80b9d9cf"
+                        "spikein_test:md5,936f0f9158f6e8bad2f9a957e7694b0f"
                     ]
                 ]
             },
@@ -117,6 +117,6 @@
             "nf-test": "0.9.2",
             "nextflow": "25.04.6"
         },
-        "timestamp": "2025-10-20T12:24:25.453682103"
+        "timestamp": "2025-10-20T12:27:17.41332216"
     }
 }

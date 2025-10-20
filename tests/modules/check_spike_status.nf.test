@@ -51,7 +51,7 @@ nextflow_workflow {
                 { assert data.classified_percentage == 0.0 },
                 { assert data.mapped_count == 10 },
                 { assert data.mapped_percentage == 50.0 },
-                { assert spike_status["tobacco_mosaic_virus"] == "detected" },
+                { assert spike_status["tobacco_mosaic_virus"] == "pass" },
             )
         }
 
@@ -102,7 +102,7 @@ nextflow_workflow {
                 { assert data.classified_percentage == 50.0 },
                 { assert data.mapped_count == 10 },
                 { assert data.mapped_percentage == 50.0 },
-                { assert spike_status["tobacco_mosaic_virus"] == "detected" },
+                { assert spike_status["tobacco_mosaic_virus"] == "pass" },
             )
         }
 
@@ -152,7 +152,7 @@ nextflow_workflow {
                 { assert data.classified_percentage == 0.0 },
                 { assert data.mapped_count == 0 },
                 { assert data.mapped_percentage == 0.0 },
-                { assert spike_status["tobacco_mosaic_virus"] == "absent" },
+                { assert spike_status["tobacco_mosaic_virus"] == "fail" },
 
             )
         }
