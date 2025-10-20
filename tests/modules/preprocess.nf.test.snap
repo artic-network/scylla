@@ -14,6 +14,9 @@
                         "barcode01.fastp.fastq.gz:md5,2c00a99a41249ed138cbf4d5cf67e595"
                     ]
                 ],
+                "2": [
+                    
+                ],
                 "combined_fastq": [
                     [
                         "barcode01",
@@ -25,6 +28,9 @@
                         "barcode01",
                         "barcode01.fastp.fastq.gz:md5,2c00a99a41249ed138cbf4d5cf67e595"
                     ]
+                ],
+                "spike_mapping_stats": [
+                    
                 ]
             }
         ],
@@ -32,7 +38,7 @@
             "nf-test": "0.9.2",
             "nextflow": "25.04.6"
         },
-        "timestamp": "2025-09-15T13:24:49.03481093"
+        "timestamp": "2025-10-20T12:19:34.111930399"
     },
     "preprocess_filtering_with_spike_success": {
         "content": [
@@ -49,6 +55,12 @@
                         "tmv_mock.fastp.fastq.gz:md5,5b6778684bac2ad70fa3c47f19881b68"
                     ]
                 ],
+                "2": [
+                    [
+                        "tmv_mock",
+                        "tmv_mock_spike_mapping_stats.tsv:md5,5ae10cf230a9f985bf0e2bced9fdf7f4"
+                    ]
+                ],
                 "combined_fastq": [
                     [
                         "tmv_mock",
@@ -60,6 +72,12 @@
                         "tmv_mock",
                         "tmv_mock.fastp.fastq.gz:md5,5b6778684bac2ad70fa3c47f19881b68"
                     ]
+                ],
+                "spike_mapping_stats": [
+                    [
+                        "tmv_mock",
+                        "tmv_mock_spike_mapping_stats.tsv:md5,5ae10cf230a9f985bf0e2bced9fdf7f4"
+                    ]
                 ]
             }
         ],
@@ -67,6 +85,6 @@
             "nf-test": "0.9.2",
             "nextflow": "25.04.6"
         },
-        "timestamp": "2025-10-15T12:07:27.231809467"
+        "timestamp": "2025-10-20T12:20:06.734421901"
     }
 }
