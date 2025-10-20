@@ -37,7 +37,7 @@ process remove_spike_paired {
 
     script:
     """
-        minimap2 -ax sr $combined_reference ${fastq1} ${fastq2} | samtools view -bS - | samtools sort -o sorted.bam
+        minimap2 --secondary=no -ax sr $combined_reference ${fastq1} ${fastq2} | samtools view -bS - | samtools sort -o sorted.bam
 
         samtools view -b -f 4 sorted.bam | samtools fastq -1 ${unique_id}_removed_1.fastq -2 ${unique_id}_removed_2.fastq -
         samtools view -b -F 4 sorted.bam | samtools fastq -1 ${unique_id}_spikes_1.fastq -2 ${unique_id}_spikes_2.fastq -
@@ -66,7 +66,7 @@ process remove_spike_single {
 
     script:
     """
-        minimap2 -ax map-ont $combined_reference ${fastq} | samtools view -bS - | samtools sort -o sorted.bam
+        minimap2 --secondary=no -ax map-ont $combined_reference ${fastq} | samtools view -bS - | samtools sort -o sorted.bam
 
         samtools view -b -f 4 sorted.bam | samtools fastq - > ${unique_id}_removed.fastq
         samtools view -b -F 4 sorted.bam | samtools fastq - > ${unique_id}_spikes.fastq
