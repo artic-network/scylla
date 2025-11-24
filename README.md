@@ -1,5 +1,7 @@
 # scylla
 
+### Scylla is provided for the purposes of transparency but is only supported for the internal purposes of the mSCAPE project and should be considered unsupported otherwise. PLEASE do not use this pipeline. But if you do, you are on your own and should not expect any support whatsoever.
+
 This pipeline performs classification and taxonomic read binning for metagenomic reads
 
 For each sample provided, the following analyses are performed:
