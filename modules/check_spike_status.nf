@@ -12,7 +12,7 @@ process check_spike_ins {
     publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", overwrite: true, pattern: "*.json"
 
     input:
-    tuple val(unique_id), val(database_name), path(kreport), path(reads)
+    tuple val(unique_id), val(database_name), path(kreport), path(reads), path(spike_mapping_stats)
     val spike_ins
     path spike_in_dict
     path spike_in_ref_dir
@@ -23,21 +23,14 @@ process check_spike_ins {
     tuple val(unique_id), path("${kreport.baseName}*.json"), emit: kreport
 
     script:
-    preset = ""
-    if (params.read_type == "illumina") {
-        preset = "--illumina"
-    }
-    else if (params.paired) {
-        preset = "--illumina"
-    }
     """
         handle_spike_ins.py \
             -r ${kreport} \
-            -i ${reads} \
             --spike_ins ${spike_ins} \
             --spike_in_dict ${spike_in_dict} \
             --spike_in_ref_dir ${spike_in_ref_dir} \
-            --save_json ${preset}
+            --idxstats ${spike_mapping_stats} \
+            --save_json
         """
 }
 
@@ -45,14 +38,16 @@ workflow check_spike_status {
     take:
     kreport_ch
     fastq_ch
-
+    spike_mapping_stats_ch
+    
     main:
     spike_ins = "${params.spike_ins}"
     println(spike_ins)
     spike_in_dict = file("${params.spike_in_dict}", type: "file", checkIfExists: true)
     spike_in_ref_dir = file("${params.spike_in_ref_dir}", type: "dir", checkIfExists: true)
 
-    kreport_ch.join(fastq_ch).set { input_ch }
+    kreport_ch.join(fastq_ch).join(spike_mapping_stats_ch) .set { input_ch }
+
     check_spike_ins(input_ch, spike_ins, spike_in_dict, spike_in_ref_dir)
 
     empty_file = file("${baseDir}/resources/empty_file")
