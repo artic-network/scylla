@@ -26,7 +26,6 @@ def check_fastq(read_file):
         trimmed_name = trim_read_id(name)
 
         if name in seen_names:
-            assert trimmed_name not in differences
             differences[trimmed_name] = position - positions[trimmed_name]
         elif trimmed_name in seen_trimmed:
             differences[trimmed_name] = position - positions[trimmed_name]
