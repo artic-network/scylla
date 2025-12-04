@@ -12,9 +12,8 @@ from assignment import trim_read_id
 
 import numpy as np
 
-LOOKUP = {chr(i): 10 ** (i - 33) for i in range(33, 127)}
 
-
+# Credit to @nrminor from the μbioinfo slack for this approach!
 def ascii_to_phred(q: str, offset: int = 33) -> np.ndarray:
     # q: ASCII quality string from a single FASTQ record
     # offset: 33 for Sanger / modern Illumina, 64 for ancient Illumina
@@ -134,12 +133,6 @@ def update_summary_with_record(taxon_id, record, out_counts, quals, lens):
     name, seq, qual = record
 
     mean_qual = np.mean(ascii_to_phred(qual)) if qual else 0
-    # mean_qual = -10 * math.log(stats.fmean([LOOKUP[x] for x in qual]), 10)
-    # mean_qual = (
-    #     -10 * math.log(sum([10 ** (int(q) / -10) for q in quals]) / len(quals), 10)
-    #     if quals
-    #     else 0
-    # )
 
     quals[taxon_id].append(mean_qual)
 
