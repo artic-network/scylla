@@ -11,7 +11,6 @@ nextflow_pipeline {
             params {
                 fastq = "${projectDir}/tests/test-data/barcode01/barcode01.fq.gz"
                 outdir = "$outputDir/single_long_read"
-                raise_server = false
                 kraken_database = [
                     "default": [
                         "name": "testdb-kraken2",
