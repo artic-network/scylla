@@ -62,7 +62,11 @@ nextflow_workflow {
         }
 
         then {
-            assert snapshot(workflow.out, path("${outputDir}/extract_test/reads_by_taxa/1980415.fastq.gz")).match()
+            assert snapshot(
+                workflow.out,
+                file("${outputDir}/extract_test/reads_by_taxa/1980415.fastq.gz"),
+                file("${outputDir}/extract_test/reads_by_taxa/reads_summary_combined.json"),
+            ).match()
         }
 
     }
