@@ -38,7 +38,9 @@ nextflow_workflow {
 
         then {
             assert workflow.success
-            assert snapshot(workflow.out).match()
+            assert snapshot(
+                file("${outputDir}/test/classifications/testdb-kraken2.kraken_report.txt"),
+            ).match()
         }
 
     }
