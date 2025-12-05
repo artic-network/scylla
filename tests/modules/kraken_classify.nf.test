@@ -19,6 +19,7 @@ nextflow_workflow {
                     ]
                 ]
                 raise_server = System.getenv("CI") == "true" ? false : true
+                kraken_confidence = 0.05
             }
 
             workflow {

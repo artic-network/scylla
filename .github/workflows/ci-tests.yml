@@ -21,7 +21,7 @@ jobs:
         run: |
           docker run -d --name kraken-server --network host \
             -v ${{ github.workspace }}/tests/test-data:/data \
-            quay.io/biowilko/scylla:latest \
+            quay.io/biowilko/scylla:1.2.1 \
             kraken2_server --max-requests 4 --thread-pool 1 \
             --port 8080 --host-ip localhost \
             --db /data/database/testdb-kraken2/ \
