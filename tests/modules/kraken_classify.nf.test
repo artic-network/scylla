@@ -18,7 +18,10 @@ nextflow_workflow {
                         "port": 8080,
                     ]
                 ]
+                raise_server = System.getenv("CI") == "true" ? false : true
+                kraken_confidence = 0.05
             }
+
             workflow {
                 """
                 input[0] = Channel.of(
@@ -28,14 +31,16 @@ nextflow_workflow {
                     )
                 )
                 input[1] = "default"
-                input[2] = false
+                input[2] = ${params.raise_server}
                 """
             }
         }
 
         then {
             assert workflow.success
-            assert snapshot(workflow.out).match()
+            assert snapshot(
+                file("${outputDir}/test/classifications/testdb-kraken2.kraken_report.txt"),
+            ).match()
         }
 
     }

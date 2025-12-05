@@ -1,41 +1,12 @@
 {
     "kraken2_classify_success": {
         "content": [
-            {
-                "0": [
-                    [
-                        "test",
-                        "testdb-kraken2",
-                        "testdb-kraken2.kraken_assignments.tsv:md5,4e0ff0c093a962377307c7a547c852c6"
-                    ]
-                ],
-                "1": [
-                    [
-                        "test",
-                        "testdb-kraken2",
-                        "testdb-kraken2.kraken_report.txt:md5,589379bb70d49b40be3973eb42f03b24"
-                    ]
-                ],
-                "assignments": [
-                    [
-                        "test",
-                        "testdb-kraken2",
-                        "testdb-kraken2.kraken_assignments.tsv:md5,4e0ff0c093a962377307c7a547c852c6"
-                    ]
-                ],
-                "kreport": [
-                    [
-                        "test",
-                        "testdb-kraken2",
-                        "testdb-kraken2.kraken_report.txt:md5,589379bb70d49b40be3973eb42f03b24"
-                    ]
-                ]
-            }
+            "testdb-kraken2.kraken_report.txt:md5,589379bb70d49b40be3973eb42f03b24"
         ],
         "meta": {
             "nf-test": "0.9.2",
             "nextflow": "25.04.7"
         },
-        "timestamp": "2025-09-16T08:14:04.781506718"
+        "timestamp": "2025-12-05T11:10:38.640686"
     }
 }

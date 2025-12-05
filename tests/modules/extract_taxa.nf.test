@@ -39,7 +39,7 @@ nextflow_workflow {
                 input[0] = Channel.of(
                     tuple(
                         "extract_test",
-                        file("${projectDir}/tests/test-data/extract_all/cchf_mock.fastq", checkIfExists: true)
+                        file("${projectDir}/tests/test-data/extract_all/cchf_mock.fastq.gz", checkIfExists: true)
                     )
                 )
                 input[1] = Channel.of(
@@ -52,7 +52,7 @@ nextflow_workflow {
                 input[2] = Channel.of(
                     tuple(
                         "extract_test",
-                        "PlsuPF",
+                        "PlusPF",
                         file("${projectDir}/tests/test-data/extract_all/cchf_kraken_report.txt", checkIfExists: true)
                     )
                 )
@@ -62,7 +62,11 @@ nextflow_workflow {
         }
 
         then {
-            assert snapshot(workflow.out, path("${outputDir}/extract_test/reads_by_taxa/1980415.fastq.gz")).match()
+            assert snapshot(
+                workflow.out,
+                file("${outputDir}/extract_test/reads_by_taxa/1980415.fastq.gz"),
+                file("${outputDir}/extract_test/reads_by_taxa/reads_summary_combined.json"),
+            ).match()
         }
 
     }
