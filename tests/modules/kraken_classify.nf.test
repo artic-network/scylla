@@ -18,7 +18,9 @@ nextflow_workflow {
                         "port": 8080,
                     ]
                 ]
+                raise_server = System.getenv("CI") == "true" ? false : true
             }
+
             workflow {
                 """
                 input[0] = Channel.of(
@@ -28,7 +30,7 @@ nextflow_workflow {
                     )
                 )
                 input[1] = "default"
-                input[2] = false
+                input[2] = ${params.raise_server}
                 """
             }
         }
