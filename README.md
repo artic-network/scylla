@@ -23,21 +23,31 @@ This pipeline can be run on a single fastq/pair of fastq files, or a directory o
 
 On personal computers we recommend running with the `local` profile to ensure more reasonable resource requirements. 
 
+### HCID references
+
+The HCID reference sequences and metadata are versioned separately within [an external repository](https://github.com/ukhsa-collaboration/gpha-mscape-hcid-refs), this means that if you wish to run the pipeline from a local repository (not recommended) then you will need to ensure you clone the repository using the `--recurse-submodules` argument like this:
+
+```
+git clone --recurse-submodules https://github.com/artic-network/scylla
+```
+
+Nextflow handles this for you if you use one of the example commands below.
+
 ### Example command
 These examples use the `local` profile to set resource requirements for a laptop. This will use a smaller kraken database, and therefore when working on a cluster we recommend you remove this profile.
 
 1. Run in mSCAPE ingest mode (assumes input is a single sample, allows single/paired fastq file input).
 ```
-nextflow run main.nf --fastq test/test_data/barcode01/barcode01.fq.gz -profile docker,local
+nextflow run artic-network/scylla --fastq test/test_data/barcode01/barcode01.fq.gz -profile docker,local
 ```
 or
 ```
-nextflow run main.nf --fastq1 test/test_data/illumina/barcode02_R1.fq.gz --fastq2 test/test_data/illumina/barcode02_R2.fq.gz --paired -profile docker,local
+nextflow run artic-network/scylla --fastq1 test/test_data/illumina/barcode02_R1.fq.gz --fastq2 test/test_data/illumina/barcode02_R2.fq.gz --paired -profile docker,local
 ```
 
 2. Run on a demultiplexed run directory (providing a `run_dir`). This must either contain a subdirectory per barcode, or pairs of files with names in the format `*_R{1,2}*.f*q*`.
 ```
-nextflow run main.nf --run_dir test/test_data [--paired] -profile docker,local
+nextflow run artic-network/scylla --run_dir test/test_data [--paired] -profile docker,local
 ```
 
 3. Run a module independently of the main workflow. Supported modules are [preprocess, qc_checks, centrifuge_classification, kraken_classification, sourmash_classification, check_hcid_status, check_spike_status, extract_all, classify_novel_viruses].
