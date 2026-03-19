@@ -1,0 +1,3 @@
+[submodule "resources/hcid"]
+	path = resources/hcid
+	url = https://github.com/ukhsa-collaboration/gpha-mscape-hcid-refs

@@ -19,7 +19,7 @@ This is useful to run a subset of tests.
 ## Test dataset generation
 
 The test FASTQ files for HCID and Spike sequences were generated using the following process:
-- Extract the reference sequence (located in `resources/hcid_refs.fa.gz`)
+- Extract the reference sequence (located in `resources/<SUBMODULE-HCID>/hcid_refs.fa.gz`)
 - Randomly subset to 10 reads of 1000bp length from the reference
 - Set quality scores artificially to 40 for all bases
 - Added 10 additional reads of random nucleotides (ATCG) at 1000bp length
