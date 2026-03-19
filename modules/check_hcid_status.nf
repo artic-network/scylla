@@ -26,8 +26,8 @@ process minimap2_hcid {
         preset = "map-ont"
     }
     """
-        minimap2 -ax ${preset} ${hcid_refs} ${reads} --secondary=no -N 1 -t ${task.cpus} --sam-hit-only > hcid.mmp.sam
-        """
+    minimap2 -ax ${preset} ${hcid_refs} ${reads} --secondary=no -N 1 -t ${task.cpus} --sam-hit-only > hcid.mmp.sam
+    """
 }
 
 process check_hcid {
@@ -52,15 +52,15 @@ process check_hcid {
 
     script:
     """
-        check_hcid.py \
-            -k ${kreport} \
-            -r ${reads} \
-            -t ${taxonomy} \
-            -i ${hcid_defs} \
-            -s ${ref_sam} \
-            -d ${hcid_refs} \
-            -p "hcid"
-        """
+    check_hcid.py \
+        -k ${kreport} \
+        -r ${reads} \
+        -t ${taxonomy} \
+        -i ${hcid_defs} \
+        -s ${ref_sam} \
+        -d ${hcid_refs} \
+        -p "hcid"
+    """
 }
 
 workflow check_hcid_status {
