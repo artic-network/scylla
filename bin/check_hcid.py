@@ -195,10 +195,14 @@ def report_findings(hcid_dict, read_file, prefix):
         if hcid_dict[taxid]["mapped_found"]
         for name in hcid_dict[taxid]["mapped_read_ids"]
     }
+
     read_records = {}
     for name, seq, qual in pyfastx.Fastq(read_file, full_name=False, build_index=False):
         if name in needed:
             read_records[name] = (seq, qual)
+
+        if needed - set(read_records.keys()) == set():
+            break
 
     for taxid in hcid_dict:
         if hcid_dict[taxid]["mapped_found"]:
@@ -208,7 +212,10 @@ def report_findings(hcid_dict, read_file, prefix):
                 for mapped_name in hcid_dict[taxid]["mapped_read_ids"]:
                     record = read_records.get(mapped_name)
                     if record is None:
-                        print(f"WARNING: read {mapped_name} not found in FASTQ, skipping", file=sys.stderr)
+                        print(
+                            f"WARNING: read {mapped_name} not found in FASTQ, skipping",
+                            file=sys.stderr,
+                        )
                         continue
                     seq, qual = record
                     f_reads.write(f"@{mapped_name}\n{seq}\n+\n{qual}\n")
