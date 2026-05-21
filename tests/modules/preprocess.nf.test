@@ -26,4 +26,25 @@ nextflow_workflow {
 
     }
 
+    test("preprocess_filtering_with_spike_success") {
+
+        when {
+            params {
+                fastq = "${projectDir}/tests/test-data/spike_in/pass/tmv_mock.fastq"
+                spike_ins = "tobacco_mosaic_virus"
+            }
+            workflow {
+                """
+                input[0] = "tmv_mock"
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert snapshot(workflow.out).match()
+        }
+
+    }
+
 }

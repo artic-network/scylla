@@ -6,7 +6,7 @@ from datetime import datetime
 import json
 import os
 from collections import defaultdict
-import mappy as mp
+import gzip
 
 
 def parse_spike_in_refs(ref_file, ref_dir):
@@ -48,6 +48,35 @@ def expand_spike_in_input(list_spike_ins, spike_in_dict):
             )
             sys.exit(6)
     return spike_taxids, spike_refs
+
+
+def parse_idxstats(idxstats_file):
+    counts = defaultdict(int)
+    total_unmapped = 0
+    with open(idxstats_file, "r") as f:
+        for line in f:
+            parts = line.strip().split("\t")
+            name, _, mapped, unmapped = parts
+            mapped = int(mapped)
+            unmapped = int(unmapped)
+            if name == "*":
+                total_unmapped = unmapped
+                continue
+            counts[name] = mapped
+    counts["total"] = sum(counts.values()) + total_unmapped
+    return counts
+
+
+def read_reference_headers(spike_refs):
+    ref_headers = {}
+    for ref_path in spike_refs:
+        headers = []
+        with gzip.open(ref_path, "rt") as f:
+            for line in f:
+                if line.startswith(">"):
+                    headers.append(line[1:].strip().split()[0])
+        ref_headers[ref_path] = headers
+    return ref_headers
 
 
 def parse_depth(name):
@@ -162,43 +191,16 @@ def parse_report_file(report_file, spike_in, save_json):
     return spike_entries
 
 
-def map_to_refs(query, reference, counts, preset):
-    a = mp.Aligner(reference, best_n=1, preset=preset)  # load or build index
-    if not a:
-        raise Exception(f"ERROR: failed to load/build index for {reference}")
-
-    read_count = 0
-    for name, seq, qual in mp.fastx_read(query):  # read a fasta/q sequence
-        read_count += 1
-        for hit in a.map(seq):  # traverse alignments
-            counts[hit.ctg] += 1
-            # print("{}\t{}\t{}\t{}\t{}".format(name, hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
-            break
-        # if read_count % 1000000 == 0:
-        #    break
-    counts["total"] = read_count
-    return a.seq_names
-
-
-def identify_spike_map_counts(query, spike_refs, preset):
-    map_counts = defaultdict(int)
-    map_ids = defaultdict(list)
-    for reference in spike_refs:
-        map_ids[reference] = map_to_refs(query, reference, map_counts, preset)
-    return map_counts, map_ids
-
-
 def combine_report_and_map_counts(
-    list_spike_ins, spike_in_dict, report_entries, map_counts, map_ids
+    list_spike_ins, spike_in_dict, report_entries, map_counts, ref_headers
 ):
     spike_summary = defaultdict(lambda: {})
     for spike in list_spike_ins:
         spike_dict = defaultdict(lambda: {})
         if spike in spike_in_dict:
             spike_name = spike
-
             if spike_in_dict[spike]["ref"]:
-                for long_name in map_ids[spike_in_dict[spike]["ref"]]:
+                for long_name in ref_headers[spike_in_dict[spike]["ref"]]:
                     name, taxid, taxon_name = long_name.split("|")
                     taxon_name = taxon_name.replace("_", " ")
 
@@ -226,7 +228,7 @@ def combine_report_and_map_counts(
             spike_dict[spike].update(entry)
         elif spike.endswith("f*a") or spike.endswith("f*a.gz"):
             spike_name = spike.split("/")[-1].split(".")[0]
-            for long_name in map_ids[spike]:
+            for long_name in ref_headers[spike]:
                 name, taxid, taxon_name = long_name.split("|")
                 taxon_name = taxon_name.replace("_", " ")
 
@@ -325,10 +327,10 @@ def main():
         help="Kraken or Bracken file of taxon relationships and quantities",
     )
     parser.add_argument(
-        "-i",
-        dest="fastq_file",
+        "--idxstats",
+        dest="idxstats_file",
         required=True,
-        help="Read file",
+        help="samtools idxstats output generated during spike removal",
     )
     parser.add_argument(
         "--spike_ins",
@@ -355,21 +357,11 @@ def main():
         required=False,
         help="Save the kraken report in JSON format",
     )
-    parser.add_argument(
-        "--illumina",
-        action="store_true",
-        required=False,
-        help="Use the short read minimap preset",
-    )
 
     args = parser.parse_args()
     spike_ins = []
     for spike in args.spike_ins:
         spike_ins.extend(spike.split(","))
-
-    preset = None
-    if args.illumina:
-        preset = "sr"
 
     # Start Program
     now = datetime.now()
@@ -383,13 +375,12 @@ def main():
         args.report_file, spike_taxids, args.save_json
     )
 
-    if len(spike_taxids) > 0 or len(spike_refs) > 0:
-        map_counts, map_ids = identify_spike_map_counts(
-            args.fastq_file, spike_refs, preset
-        )
+    map_counts = parse_idxstats(args.idxstats_file)
+    ref_headers = read_reference_headers(spike_refs)
 
+    if spike_ins:
         spike_summary = combine_report_and_map_counts(
-            spike_ins, spike_in_dict, spike_kraken_entries, map_counts, map_ids
+            spike_ins, spike_in_dict, spike_kraken_entries, map_counts, ref_headers
         )
         check_spike_summary(spike_summary)
 

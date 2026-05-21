@@ -12,6 +12,7 @@ workflow classify_and_report {
     fastq_ch
     concat_fastq_ch
     raise_server
+    spike_mapping_stats_ch
 
     main:
     qc_checks(fastq_ch)
@@ -22,7 +23,7 @@ workflow classify_and_report {
     check_hcid_status(classify.out.kreport, concat_fastq_ch, setup_taxonomy.out.taxonomy)
 
     if (params.spike_ins) {
-        check_spike_status(classify.out.kreport, concat_fastq_ch)
+        check_spike_status(classify.out.kreport, concat_fastq_ch, spike_mapping_stats_ch)
     }
 
     kraken_to_json(classify.out.kreport, setup_taxonomy.out.taxonomy)
