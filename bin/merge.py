@@ -16,7 +16,6 @@ def merge_all_assignments(list_assignment_files, output_file):
     for assignment_file in list_assignment_files:
         new_assignments = KrakenAssignments(assignment_file, load=True)
         changes = kraken_assignments.update(new_assignments, changes)
-
     kraken_assignments.save()
     return changes
 

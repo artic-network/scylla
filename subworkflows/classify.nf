@@ -61,6 +61,33 @@ process merge_classifications {
         """
 }
 
+workflow reclassify {
+    take:
+    fastq_ch
+    assignments_ch
+    kreport_ch
+    raise_server
+
+    main:
+        viral_classify(fastq_ch, raise_server)
+        assignments_ch
+            .join(kreport_ch, by: [0, 1])
+            .map { unique_id, database_name, assignments, kreport -> [unique_id, assignments, kreport] }
+            .set { default_ch }
+        viral_classify.out.assignments
+            .join(viral_classify.out.kreport, by: [0, 1])
+            .map { unique_id, database_name, assignments, kreport -> [unique_id, assignments, kreport] }
+            .set { viral_ch }
+        default_ch.join(viral_ch, by: 0).set { merge_ch }
+        merge_classifications(merge_ch)
+        assignments = merge_classifications.out.assignments
+        kreport = merge_classifications.out.kreport
+
+    emit:
+    assignments = assignments
+    kreport     = kreport      
+}
+
 workflow classify {
     take:
     fastq_ch
@@ -73,19 +100,9 @@ workflow classify {
     if (params.run_viral_reclassification) {
         setup_taxonomy()
         extract_virus_fraction(fastq_ch, default_classify.out.assignments, default_classify.out.kreport, setup_taxonomy.out)
-        viral_classify(extract_virus_fraction.out.virus, raise_server)
-        default_classify.out.assignments
-            .join(default_classify.out.kreport, by: [0, 1])
-            .map { unique_id, database_name, assignments, kreport -> [unique_id, assignments, kreport] }
-            .set { default_ch }
-        viral_classify.out.assignments
-            .join(viral_classify.out.kreport, by: [0, 1])
-            .map { unique_id, database_name, assignments, kreport -> [unique_id, assignments, kreport] }
-            .set { viral_ch }
-        default_ch.join(viral_ch, by: 0).set { merge_ch }
-        merge_classifications(merge_ch)
-        assignments = merge_classifications.out.assignments
-        kreport = merge_classifications.out.kreport
+        reclassify(extract_virus_fraction.out.virus, default_classify.out.assignments, default_classify.out.kreport, raise_server)
+        assignments = reclassify.out.assignments
+        kreport = reclassify.out.kreport
     }
     else {
         assignments = default_classify.out.assignments
