@@ -17,40 +17,23 @@ process fastp_paired {
 
     script:
     """
-    mkfifo fastp_out_1 fastp_out_2
-    pigz -p ${task.cpus} -c < fastp_out_1 > ${unique_id}_1.fastp.fastq.gz &
-    BG1=\$!
-    pigz -p ${task.cpus} -c < fastp_out_2 > ${unique_id}_2.fastp.fastq.gz &
-    BG2=\$!
-
     fastp \\
         --in1 ${fastq_1} \\
         --in2 ${fastq_2} \\
-        --out1 fastp_out_1 \\
-        --out2 fastp_out_2 \\
+        --out1 ${unique_id}_1.fastp.fastq \\
+        --out2 ${unique_id}_2.fastp.fastq \\
         --json ${unique_id}.fastp.json \\
         --low_complexity_filter \\
         --thread ${task.cpus} \\
         2> ${unique_id}.fastp.log
-    FASTP_STATUS=\$?
 
-    # If fastp errored before ever opening its output FIFOs, the pigz
-    # readers above would otherwise block forever waiting for a writer.
-    if [ \$FASTP_STATUS -ne 0 ]; then
-        kill \$BG1 \$BG2 2>/dev/null || true
-    fi
-
-    wait \$BG1 2>/dev/null || true
-    wait \$BG2 2>/dev/null || true
-
-    if [ -s ${unique_id}.fastp.json ]; then
-        READS=\$(jq '.filtering_result.passed_filter_reads' ${unique_id}.fastp.json)
-    else
-        READS=0
-    fi
+    READS=\$(jq '.filtering_result.passed_filter_reads' ${unique_id}.fastp.json)
     if [ "\$READS" -eq 0 ]; then
         exit 10
     fi
+
+    pigz -p ${task.cpus} ${unique_id}_1.fastp.fastq
+    pigz -p ${task.cpus} ${unique_id}_2.fastp.fastq
     """
 }
 
@@ -74,22 +57,22 @@ process fastp_single {
     script:
 
     """
-    set -o pipefail
     fastp \\
         --in1 ${fastq} \\
-        --stdout \\
+        --out1 ${unique_id}.fastp.fastq \\
         --json ${unique_id}.fastp.json \\
         --thread ${task.cpus} \\
         --disable_adapter_trimming \\
         --low_complexity_filter \\
         --qualified_quality_phred 10 \\
-        2> ${unique_id}.fastp.log \\
-        | pigz -p ${task.cpus} -c > ${unique_id}.fastp.fastq.gz
+        2> ${unique_id}.fastp.log
 
     READS=\$(jq '.filtering_result.passed_filter_reads' ${unique_id}.fastp.json)
     if [ "\$READS" -eq 0 ]; then
         exit 10
     fi
+
+    pigz -p ${task.cpus} ${unique_id}.fastp.fastq
     """
 }
 
@@ -111,11 +94,12 @@ process paired_concatenate {
 
     script:
     """
-    set -o pipefail
     concatenate_reads.py --no-interleave \\
         ${processed_fastq_1} ${processed_fastq_2} \\
         --strict \\
-        | pigz -p ${task.cpus} -c > ${unique_id}.concatenated.fastq.gz
+        > ${unique_id}.concatenated.fastq
+
+    pigz -p ${task.cpus} ${unique_id}.concatenated.fastq
     """
 }
 
