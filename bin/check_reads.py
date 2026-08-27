@@ -8,7 +8,7 @@ import sys
 from assignment import trim_read_id
 
 
-def check_fastq(read_file, sample_size=1000):
+def check_fastq(read_file, sample_size=1000, max_illumina_read_length=1000):
     is_duplicates = True
     is_interleaved = False
     is_concat = False
@@ -34,6 +34,32 @@ def check_fastq(read_file, sample_size=1000):
     sys.stderr.write(f"Reading in {read_file}\n")
     for record in pyfastx.Fastq(read_file, build_index=False):
         name, seq, qual = record
+
+        # Illumina chemistry has a hard per-read length ceiling well under
+        # 1kb (even long-read kits top out around 600bp), so a single read
+        # longer than this proves the file cannot be interleaved or
+        # concatenated Illumina paired-end data - the entire pairing check
+        # is moot and we can stop scanning immediately, which matters a lot
+        # for very large long-read (e.g. ONT) FASTQs. Checked on every read
+        # for the whole scan (not just the reference window) since it's a
+        # free len() on data already parsed, and a degraded/fragmented run
+        # could have a run of short reads before the long ones appear.
+        #
+        # Gated on `not differences` so it never fires mid-detection once
+        # duplicate evidence has actually been seen. In practice this rarely
+        # protects the "whole ONT file accidentally duplicated onto itself"
+        # case though: that duplicate evidence only appears once the scan
+        # reaches the original file's length, and a long-read file almost
+        # always has a read over the threshold well before that - so this
+        # optimisation trades away that (rarer, non-Illumina-specific)
+        # detection in favour of the much more common speed win.
+        if not differences and len(seq) > max_illumina_read_length:
+            sys.stderr.write(
+                f"Read {name} is {len(seq)}bp (> {max_illumina_read_length}bp): "
+                "file cannot be Illumina paired-end data, skipping pairing check\n"
+            )
+            return 0
+
         trimmed_name = trim_read_id(name)
 
         if position < sample_size:
@@ -168,8 +194,23 @@ if __name__ == "__main__":
             "duplicate/interleave/concatenation detection (default: 1000)."
         ),
     )
+    parser.add_argument(
+        "--max-illumina-read-length",
+        dest="max_illumina_read_length",
+        type=int,
+        default=1000,
+        help=(
+            "A single read longer than this (bp) proves the file cannot be "
+            "Illumina paired-end data, so the pairing check is skipped "
+            "immediately (default: 1000)."
+        ),
+    )
 
     args = parser.parse_args()
 
-    exit_code = check_fastq(args.fastq, sample_size=args.sample_size)
+    exit_code = check_fastq(
+        args.fastq,
+        sample_size=args.sample_size,
+        max_illumina_read_length=args.max_illumina_read_length,
+    )
     sys.exit(exit_code)
