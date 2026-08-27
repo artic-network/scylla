@@ -44,7 +44,7 @@ process merge_classifications {
     conda "bioconda::mappy=2.28 bioconda::pyfastx=2.1.0"
     container "community.wave.seqera.io/library/mappy_pyfastx:b4cc4b80f5e5decf"
 
-    publishDir "${params.outdir}/${unique_id}/classifications/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/classifications/", mode: params.publish_dir_mode
 
     input:
     tuple val(unique_id), path(default_assignments), path(default_kreport), path(viral_assignments), path(viral_kreport)

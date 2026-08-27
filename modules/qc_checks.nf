@@ -6,8 +6,8 @@ process check_single_fastq {
 
     errorStrategy { task.exitStatus == 11 ? "ignore" : "terminate" }
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.fixed.*"
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy", pattern: "*.R*.fastq"
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode, pattern: "*.fixed.*"
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode, pattern: "*.R*.fastq"
 
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
@@ -43,7 +43,7 @@ process read_stats {
     """
     fastcat -s "${fastq.simpleName}" \
             -r "${fastq.simpleName}.stats" \
-            "${fastq}" > filtered.fastq
+            "${fastq}" > /dev/null
     """
 }
 
@@ -51,7 +51,7 @@ process publish_stats {
 
     label "process_single"
 
-    publishDir "${params.outdir}/${unique_id}/qc", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/qc", mode: params.publish_dir_mode
 
     container "${params.wf.container}:${params.wf.container_version}"
 
@@ -67,47 +67,23 @@ process publish_stats {
     """
 }
 
-process get_total_length {
+process total_length_from_stats {
 
     label "process_single"
-    label "process_more_memory"
 
-    publishDir "${params.outdir}/${unique_id}/qc", pattern: "total_length.json", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/qc", pattern: "total_length.json", mode: params.publish_dir_mode
 
-    conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
+    container "${params.wf.container}:${params.wf.container_version}"
 
     input:
-    tuple val(unique_id), path(fastq)
+    tuple val(unique_id), path(stats)
 
     output:
     tuple val(unique_id), path("total_length.json"), emit: length
 
     script:
     """
-    get_total_length.py -s ${fastq}
-    """
-}
-
-process get_total_length_paired {
-
-    label "process_single"
-    label "process_more_memory"
-
-    publishDir "${params.outdir}/${unique_id}/qc", pattern: "total_length.json", mode: "copy"
-
-    conda "bioconda::pyfastx=2.01"
-    container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
-
-    input:
-    tuple val(unique_id), path(fastq1), path(fastq2)
-
-    output:
-    tuple val(unique_id), path("total_length.json"), emit: length
-
-    script:
-    """
-    get_total_length.py -s1 ${fastq1} -s2 ${fastq2}
+    awk -F'\\t' 'NR==1{for(i=1;i<=NF;i++) if(\$i=="read_length") c=i; next} {t+=\$c} END{printf "{\\"total_len\\": %d}", t+0}' ${stats} > total_length.json
     """
 }
 
@@ -123,12 +99,10 @@ workflow qc_checks {
             .flatten()
             .collate(2)
             .set { fastq_ch }
-        get_total_length_paired(input_ch)
     }
     else {
         check_single_fastq(input_ch)
         fastq_ch = input_ch
-        get_total_length(input_ch)
     }
     read_stats(fastq_ch)
     read_stats.out
@@ -136,6 +110,7 @@ workflow qc_checks {
         .map { it -> [it.simpleName, it] }
         .set { stats_ch }
     publish_stats(stats_ch)
+    total_length_from_stats(stats_ch)
 
     emit:
     publish_stats.out

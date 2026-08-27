@@ -2,7 +2,7 @@ process fastp_paired {
 
     label "process_medium"
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode
 
     container "${params.wf.container}:${params.wf.container_version}"
 
@@ -17,27 +17,40 @@ process fastp_paired {
 
     script:
     """
+    mkfifo fastp_out_1 fastp_out_2
+    bgzip --threads ${task.cpus} -c < fastp_out_1 > ${unique_id}_1.fastp.fastq.gz &
+    BG1=\$!
+    bgzip --threads ${task.cpus} -c < fastp_out_2 > ${unique_id}_2.fastp.fastq.gz &
+    BG2=\$!
+
     fastp \\
         --in1 ${fastq_1} \\
         --in2 ${fastq_2} \\
-        --out1 ${unique_id}_1.fastp.fastq \\
-        --out2 ${unique_id}_2.fastp.fastq \\
+        --out1 fastp_out_1 \\
+        --out2 fastp_out_2 \\
         --json ${unique_id}.fastp.json \\
         --low_complexity_filter \\
         --thread ${task.cpus} \\
         2> ${unique_id}.fastp.log
+    FASTP_STATUS=\$?
 
-    if [ -s ${unique_id}_1.fastp.fastq ]; then
-        bgzip --threads ${task.cpus} -c ${unique_id}_1.fastp.fastq > ${unique_id}_1.fastp.fastq.gz
-    else
-        exit 10
+    # If fastp errored before ever opening its output FIFOs, the bgzip
+    # readers above would otherwise block forever waiting for a writer.
+    if [ \$FASTP_STATUS -ne 0 ]; then
+        kill \$BG1 \$BG2 2>/dev/null || true
     fi
 
-    if [ -s ${unique_id}_2.fastp.fastq ]; then
-        bgzip --threads ${task.cpus} -c ${unique_id}_2.fastp.fastq > ${unique_id}_2.fastp.fastq.gz
+    wait \$BG1 2>/dev/null || true
+    wait \$BG2 2>/dev/null || true
+
+    if [ -s ${unique_id}.fastp.json ]; then
+        READS=\$(jq '.filtering_result.passed_filter_reads' ${unique_id}.fastp.json)
     else
+        READS=0
+    fi
+    if [ "\$READS" -eq 0 ]; then
         exit 10
-    fi    
+    fi
     """
 }
 
@@ -45,7 +58,7 @@ process fastp_single {
 
     label "process_medium"
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode
 
     container "${params.wf.container}:${params.wf.container_version}"
 
@@ -61,19 +74,20 @@ process fastp_single {
     script:
 
     """
+    set -o pipefail
     fastp \\
         --in1 ${fastq} \\
-        --out1 ${unique_id}.fastp.fastq \\
+        --stdout \\
         --json ${unique_id}.fastp.json \\
         --thread ${task.cpus} \\
         --disable_adapter_trimming \\
         --low_complexity_filter \\
         --qualified_quality_phred 10 \\
-        2> ${unique_id}.fastp.log
+        2> ${unique_id}.fastp.log \\
+        | bgzip --threads ${task.cpus} -c > ${unique_id}.fastp.fastq.gz
 
-    if [ -s ${unique_id}.fastp.fastq ]; then
-        bgzip --threads ${task.cpus} -c ${unique_id}.fastp.fastq > ${unique_id}.fastp.fastq.gz
-    else
+    READS=\$(jq '.filtering_result.passed_filter_reads' ${unique_id}.fastp.json)
+    if [ "\$READS" -eq 0 ]; then
         exit 10
     fi
     """
@@ -85,7 +99,7 @@ process paired_concatenate {
 
     errorStrategy { task.exitStatus in [5, 8] ? 'ignore' : 'terminate' }
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode
 
     container "${params.wf.container}:${params.wf.container_version}"
 
@@ -97,13 +111,11 @@ process paired_concatenate {
 
     script:
     """
+    set -o pipefail
     concatenate_reads.py --no-interleave \\
         ${processed_fastq_1} ${processed_fastq_2} \\
         --strict \\
-        > ${unique_id}.concatenated.fastq
-
-    
-    bgzip --threads ${task.cpus} -c ${unique_id}.concatenated.fastq > ${unique_id}.concatenated.fastq.gz
+        | bgzip --threads ${task.cpus} -c > ${unique_id}.concatenated.fastq.gz
     """
 }
 

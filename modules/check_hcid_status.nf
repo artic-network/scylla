@@ -37,7 +37,7 @@ process check_hcid {
     conda "bioconda::simplesam=0.1.4.1 bioconda::pyfastx=2.2.0"
     container "community.wave.seqera.io/library/pyfastx_simplesam:9161c822eef64e5a"
 
-    publishDir "${params.outdir}/${unique_id}/qc/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/qc/", mode: params.publish_dir_mode
 
     input:
     tuple val(unique_id), val(database_name), path(kreport), path(reads), path(ref_sam)

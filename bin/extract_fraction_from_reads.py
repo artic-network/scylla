@@ -47,7 +47,7 @@ def extract_reads(
         inverse=exclude,
         include_unclassified=include_unclassified,
     )
-    out_counts, quals, lens, filenames, total_length = process_read_files(
+    out_counts, read_stats, filenames, total_length = process_read_files(
         prefixes,
         filetype,
         read_map,
@@ -55,7 +55,6 @@ def extract_reads(
         reads1,
         reads2,
         inverse=exclude,
-        get_handles=True,
     )
 
     generate_summary(
@@ -63,8 +62,7 @@ def extract_reads(
         entries,
         prefix,
         out_counts,
-        quals,
-        lens,
+        read_stats,
         filenames,
         total_length,
         include_unclassified=(include_unclassified != exclude),
