@@ -10,10 +10,10 @@ dependencies:
   - pip
   - kraken2
   - kraken2-server>=0.1.8 # not on mac
-  - fastcat
+  - fastcat=1.0.1
   - taxonkit
-  - fastp
+  - fastp=1.3.6
   - tabix
   - mako
-  - jq
+  - jq=1.8.2
   - crabz

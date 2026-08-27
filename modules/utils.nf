@@ -17,7 +17,9 @@ process get_versions {
 
     script:
     """
-    conda list > "versions_${unique_id}.txt"
+    for f in /opt/conda/conda-meta/*.json; do
+        jq -r '"\\(.name)=\\(.version)=\\(.build)"' "\$f"
+    done | sort > "versions_${unique_id}.txt"
     echo "${workflow.manifest.version}" > workflow_version_${unique_id}.txt
     """
 }
