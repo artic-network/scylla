@@ -45,7 +45,7 @@ def get_taxon_id_lists(
         entry = kraken_report.entries[taxon]
         pass_count_thresh = True
         pass_perc_thresh = True
-        if len(target_ranks) > 0 and entry.rank not in target_ranks:
+        if len(target_ranks) > 0 and entry.simple_rank not in target_ranks:
             continue
         if min_count and entry.ucount < min_count:
             pass_count_thresh = False
