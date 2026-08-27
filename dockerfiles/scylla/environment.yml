@@ -16,4 +16,4 @@ dependencies:
   - tabix
   - mako
   - jq
-  - pigz
+  - crabz
