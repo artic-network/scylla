@@ -382,7 +382,12 @@ class KrakenReport:
         elif denominator in self.domains:
             total = self.entries[self.domains[denominator]].count
         else:
-            print(f"Not a valid denominator {denominator}")
+            sys.stderr.write(
+                f"WARNING: '{denominator}' is not a valid denominator (not 'classified', "
+                "'total', or a known domain) for taxon_id "
+                f"{taxon_id} - treating its percentage as 0.0\n"
+            )
+            return 0.0
 
         if (
             denominator not in ["classified", "total"]
