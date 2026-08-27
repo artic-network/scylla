@@ -18,9 +18,9 @@ process fastp_paired {
     script:
     """
     mkfifo fastp_out_1 fastp_out_2
-    bgzip --threads ${task.cpus} -c < fastp_out_1 > ${unique_id}_1.fastp.fastq.gz &
+    pigz -p ${task.cpus} -c < fastp_out_1 > ${unique_id}_1.fastp.fastq.gz &
     BG1=\$!
-    bgzip --threads ${task.cpus} -c < fastp_out_2 > ${unique_id}_2.fastp.fastq.gz &
+    pigz -p ${task.cpus} -c < fastp_out_2 > ${unique_id}_2.fastp.fastq.gz &
     BG2=\$!
 
     fastp \\
@@ -34,7 +34,7 @@ process fastp_paired {
         2> ${unique_id}.fastp.log
     FASTP_STATUS=\$?
 
-    # If fastp errored before ever opening its output FIFOs, the bgzip
+    # If fastp errored before ever opening its output FIFOs, the pigz
     # readers above would otherwise block forever waiting for a writer.
     if [ \$FASTP_STATUS -ne 0 ]; then
         kill \$BG1 \$BG2 2>/dev/null || true
@@ -84,7 +84,7 @@ process fastp_single {
         --low_complexity_filter \\
         --qualified_quality_phred 10 \\
         2> ${unique_id}.fastp.log \\
-        | bgzip --threads ${task.cpus} -c > ${unique_id}.fastp.fastq.gz
+        | pigz -p ${task.cpus} -c > ${unique_id}.fastp.fastq.gz
 
     READS=\$(jq '.filtering_result.passed_filter_reads' ${unique_id}.fastp.json)
     if [ "\$READS" -eq 0 ]; then
@@ -115,7 +115,7 @@ process paired_concatenate {
     concatenate_reads.py --no-interleave \\
         ${processed_fastq_1} ${processed_fastq_2} \\
         --strict \\
-        | bgzip --threads ${task.cpus} -c > ${unique_id}.concatenated.fastq.gz
+        | pigz -p ${task.cpus} -c > ${unique_id}.concatenated.fastq.gz
     """
 }
 

@@ -30,7 +30,7 @@ process read_stats {
 
     label "process_low"
 
-    conda "nanoporetech::fastcat=0.15.1"
+    conda "nanoporetech::fastcat=1.0.1"
     container "${params.wf.container}:${params.wf.container_version}"
 
     input:
@@ -41,9 +41,11 @@ process read_stats {
 
     script:
     """
-    fastcat -s "${fastq.simpleName}" \
-            -r "${fastq.simpleName}.stats" \
+    fastcat fastq -s "${fastq.simpleName}" \
+            -p \
+            -o fastcat_out \
             "${fastq}" > /dev/null
+    mv fastcat_out/per_read.tsv "${fastq.simpleName}.stats"
     """
 }
 

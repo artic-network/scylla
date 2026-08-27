@@ -43,8 +43,8 @@ process extract_taxa_paired_reads {
 
     publishDir "${params.outdir}/${unique_id}/reads_by_taxa", mode: params.publish_dir_mode
 
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5 bioconda::htslib=1.20"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy:01e5d072aa220bef"
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::pigz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:46f410f7a8e15852"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreports), val(report_config_json)
@@ -81,7 +81,7 @@ REPORT_CONFIG_EOF
         fi
 
         for f in \$(ls *.f*q); do
-            bgzip --threads ${task.cpus} \$f
+            pigz -p ${task.cpus} \$f
         done
         """
 }
@@ -96,8 +96,8 @@ process extract_taxa_reads {
 
     publishDir "${params.outdir}/${unique_id}/reads_by_taxa", mode: params.publish_dir_mode
 
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5 bioconda::htslib=1.20"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy:01e5d072aa220bef"
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::pigz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:46f410f7a8e15852"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreports), val(report_config_json)
@@ -133,7 +133,7 @@ REPORT_CONFIG_EOF
         fi
 
         for f in \$(ls *.f*q); do
-            bgzip --threads ${task.cpus} \$f
+            pigz -p ${task.cpus} \$f
         done
         """
 }
@@ -148,8 +148,8 @@ process extract_paired_virus_and_unclassified {
 
     publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
 
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5 bioconda::htslib=1.20"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy:01e5d072aa220bef"
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::pigz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:46f410f7a8e15852"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
@@ -172,7 +172,7 @@ process extract_paired_virus_and_unclassified {
             --include_unclassified
 
         for f in \$(ls *.fastq); do
-            bgzip --threads ${task.cpus} \$f
+            pigz -p ${task.cpus} \$f
         done
         """
 }
@@ -187,8 +187,8 @@ process extract_virus_and_unclassified {
 
     publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
 
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5 bioconda::htslib=1.20"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy:01e5d072aa220bef"
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::pigz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:46f410f7a8e15852"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
@@ -210,7 +210,7 @@ process extract_virus_and_unclassified {
             --include_unclassified
 
         for f in \$(ls *.fastq); do
-            bgzip --threads ${task.cpus} \$f
+            pigz -p ${task.cpus} \$f
         done
         """
 }
@@ -226,8 +226,8 @@ process extract_paired_virus {
 
     publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
 
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5 bioconda::htslib=1.20"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy:01e5d072aa220bef"
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::pigz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:46f410f7a8e15852"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
@@ -248,7 +248,7 @@ process extract_paired_virus {
             --taxid 10239
 
         for f in \$(ls *.fastq); do
-            bgzip --threads ${task.cpus} \$f
+            pigz -p ${task.cpus} \$f
         done
         """
 }
@@ -263,8 +263,8 @@ process extract_virus {
 
     publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
 
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5 bioconda::htslib=1.20"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy:01e5d072aa220bef"
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::pigz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:46f410f7a8e15852"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
@@ -284,7 +284,7 @@ process extract_virus {
             --taxid 10239
 
         for f in \$(ls *.fastq); do
-            bgzip --threads ${task.cpus} \$f
+            pigz -p ${task.cpus} \$f
         done
         """
 }
@@ -300,8 +300,8 @@ process extract_paired_dehumanised {
 
     publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
 
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5 bioconda::htslib=1.20"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy:01e5d072aa220bef"
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::pigz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:46f410f7a8e15852"
 
     input:
     tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
@@ -323,7 +323,7 @@ process extract_paired_dehumanised {
             --taxid ${params.taxid_human}
 
         for f in \$(ls *.fastq); do
-            bgzip --threads ${task.cpus} \$f
+            pigz -p ${task.cpus} \$f
         done
         """
 }
@@ -338,8 +338,8 @@ process extract_dehumanised {
 
     publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
 
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5 bioconda::htslib=1.20"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy:01e5d072aa220bef"
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::pigz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:46f410f7a8e15852"
 
     input:
     tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
@@ -360,7 +360,7 @@ process extract_dehumanised {
             --taxid ${params.taxid_human}
 
         for f in \$(ls *.fastq); do
-            bgzip --threads ${task.cpus} \$f
+            pigz -p ${task.cpus} \$f
         done
         """
 }
