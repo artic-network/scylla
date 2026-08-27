@@ -401,7 +401,7 @@ def generate_summary(
                 {
                     "human_readable": entries[taxon_id].name,
                     "taxon_id": taxon_id,
-                    "tax_level": entries[taxon_id].rank,
+                    "tax_level": entries[taxon_id].simple_rank,
                     "filenames": filenames[taxon_id],
                     "qc_metrics": qc_metrics,
                     "includes_unclassified": include_unclassified,
