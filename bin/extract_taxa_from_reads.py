@@ -121,7 +121,7 @@ def extract_taxa(entries, lists_to_extract, kraken_assignment, reads1, reads2, p
         #    "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES for %s\n"
         #    % (len(lists_to_extract[taxon]), taxon)
         # )
-    read_map = kraken_assignment.get_read_map(subtaxa_map)
+    read_map = kraken_assignment.get_read_map(subtaxa_map, paired=bool(reads2))
 
     prefixes = setup_prefixes(lists_to_extract, prefix)
     out_counts, read_stats, filenames, total_length = process_read_files(

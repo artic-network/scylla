@@ -138,9 +138,9 @@ REPORT_CONFIG_EOF
         """
 }
 
-process extract_paired_virus_and_unclassified {
+process extract_fractions_paired_reads {
 
-    label "process_single"
+    label "process_low"
     label "process_more_memory"
 
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
@@ -152,34 +152,36 @@ process extract_paired_virus_and_unclassified {
     container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
 
     input:
-    tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
+    tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport), val(fraction_config_json)
     path taxonomy_dir
 
     output:
-    tuple val(unique_id), path("*.fastq.gz"), emit: reads
+    tuple val(unique_id), path("*.f*q.gz"), emit: reads
     tuple val(unique_id), path("*_summary.json"), emit: summary
     tuple val(unique_id), path("viral*_and_unclassified*.f*q.gz"), emit: virus, optional: true
 
     script:
     """
+        cat <<'FRACTION_CONFIG_EOF' > fraction_config.json
+${fraction_config_json}
+FRACTION_CONFIG_EOF
+
         extract_fraction_from_reads.py \
             -s1 ${fastq1} \
             -s2 ${fastq2} \
             -k ${kraken_assignments} \
             -t ${taxonomy_dir} \
-            -p "virus_and_unclassified" \
-            --taxid 10239 0 \
-            --include_unclassified
+            --fraction_config fraction_config.json
 
-        for f in \$(ls *.fastq); do
+        for f in \$(ls *.f*q); do
             crabz -p ${task.cpus} -f gzip -I \$f
         done
         """
 }
 
-process extract_virus_and_unclassified {
+process extract_fractions_reads {
 
-    label "process_single"
+    label "process_low"
     label "process_more_memory"
 
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
@@ -191,175 +193,27 @@ process extract_virus_and_unclassified {
     container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
 
     input:
-    tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
+    tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport), val(fraction_config_json)
     path taxonomy_dir
 
     output:
-    tuple val(unique_id), path("*.fastq.gz"), emit: reads
+    tuple val(unique_id), path("*.f*q.gz"), emit: reads
     tuple val(unique_id), path("*_summary.json"), emit: summary
     tuple val(unique_id), path("viral*_and_unclassified*.f*q.gz"), emit: virus, optional: true
 
     script:
     """
+        cat <<'FRACTION_CONFIG_EOF' > fraction_config.json
+${fraction_config_json}
+FRACTION_CONFIG_EOF
+
         extract_fraction_from_reads.py \
             -s ${fastq} \
             -k ${kraken_assignments} \
             -t ${taxonomy_dir} \
-            -p "virus_and_unclassified" \
-            --taxid 10239 0 \
-            --include_unclassified
+            --fraction_config fraction_config.json
 
-        for f in \$(ls *.fastq); do
-            crabz -p ${task.cpus} -f gzip -I \$f
-        done
-        """
-}
-
-
-process extract_paired_virus {
-
-    label 'process_single'
-    label 'process_more_memory'
-
-    errorStrategy { task.exitStatus in 2..3 ? 'ignore' : 'retry' }
-    maxRetries 3
-
-    publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
-
-    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
-
-    input:
-    tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
-    path taxonomy_dir
-
-    output:
-    tuple val(unique_id), path("*.fastq.gz"), emit: reads
-    tuple val(unique_id), path("*_summary.json"), emit: summary
-
-    script:
-    """
-        extract_fraction_from_reads.py \
-            -s1 ${fastq1} \
-            -s2 ${fastq2} \
-            -k ${kraken_assignments} \
-            -t ${taxonomy_dir} \
-            -p "virus" \
-            --taxid 10239
-
-        for f in \$(ls *.fastq); do
-            crabz -p ${task.cpus} -f gzip -I \$f
-        done
-        """
-}
-
-process extract_virus {
-
-    label 'process_single'
-    label 'process_more_memory'
-
-    errorStrategy { task.exitStatus in 2..3 ? 'ignore' : 'retry' }
-    maxRetries 3
-
-    publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
-
-    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
-
-    input:
-    tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
-    path taxonomy_dir
-
-    output:
-    tuple val(unique_id), path("*.fastq.gz"), emit: reads
-    tuple val(unique_id), path("*_summary.json"), emit: summary
-
-    script:
-    """
-        extract_fraction_from_reads.py \
-            -s ${fastq} \
-            -k ${kraken_assignments} \
-            -t ${taxonomy_dir} \
-            -p "virus" \
-            --taxid 10239
-
-        for f in \$(ls *.fastq); do
-            crabz -p ${task.cpus} -f gzip -I \$f
-        done
-        """
-}
-
-
-process extract_paired_dehumanised {
-
-    label "process_single"
-    label "process_more_memory"
-
-    errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
-    maxRetries 3
-
-    publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
-
-    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
-
-    input:
-    tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
-    path taxonomy_dir
-
-    output:
-    tuple val(unique_id), path("*.fastq.gz"), emit: reads
-    tuple val(unique_id), path("*_summary.json"), emit: summary
-
-    script:
-    """
-        extract_fraction_from_reads.py \
-            -s1 ${fastq1} \
-            -s2 ${fastq2} \
-            -k ${kraken_assignments} \
-            -t ${taxonomy_dir} \
-            -p "human_filtered" \
-            --exclude \
-            --taxid ${params.taxid_human}
-
-        for f in \$(ls *.fastq); do
-            crabz -p ${task.cpus} -f gzip -I \$f
-        done
-        """
-}
-
-process extract_dehumanised {
-
-    label "process_single"
-    label "process_more_memory"
-
-    errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
-    maxRetries 3
-
-    publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
-
-    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
-    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
-
-    input:
-    tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
-    path taxonomy_dir
-
-    output:
-    tuple val(unique_id), path("*.fastq.gz"), emit: reads
-    tuple val(unique_id), path("*_summary.json"), emit: summary
-
-    script:
-    """
-        extract_fraction_from_reads.py \
-            -s ${fastq} \
-            -k ${kraken_assignments} \
-            -t ${taxonomy_dir} \
-            -p "human_filtered" \
-            --exclude \
-            --taxid ${params.taxid_human}
-
-        for f in \$(ls *.fastq); do
+        for f in \$(ls *.f*q); do
             crabz -p ${task.cpus} -f gzip -I \$f
         done
         """
@@ -451,30 +305,44 @@ workflow extract_fractions {
     taxonomy_dir
 
     main:
+    // Every fraction here is defined the same way for every sample (unlike the per-kreport-split
+    // report_config in extract_taxa), so the config can be built once rather than per-sample.
+    fraction_config = groovy.json.JsonOutput.toJson([
+        [
+            prefix: "virus_and_unclassified",
+            taxid: ["10239", "0"],
+            exclude: false,
+            include_unclassified: true,
+        ],
+        [prefix: "virus", taxid: ["10239"], exclude: false, include_unclassified: false],
+        [
+            prefix: "human_filtered",
+            taxid: [params.taxid_human.toString()],
+            exclude: true,
+            include_unclassified: false,
+        ],
+    ])
+
     assignments_ch.combine(kreport_ch, by: [0, 1]).set { classify_ch }
     fastq_ch
         .combine(classify_ch, by: 0)
+        .map { it + [fraction_config] }
         .set { full_extract_ch }
 
     if (params.paired) {
-        extract_paired_dehumanised(full_extract_ch, taxonomy_dir)
-        extract_paired_virus_and_unclassified(full_extract_ch, taxonomy_dir)
-        extract_paired_virus(full_extract_ch, taxonomy_dir)
-        extract_paired_virus_and_unclassified.out.virus.set { virus_ch }
-        extract_paired_dehumanised.out.summary
-            .concat(extract_paired_virus_and_unclassified.out.summary, extract_paired_virus.out.summary)
-            .groupTuple()
-            .set { fractions_summary_ch }
+        extract_fractions_paired_reads(full_extract_ch, taxonomy_dir)
+        extract_fractions_paired_reads.out.virus.set { virus_ch }
+        // Unlike extract_taxa (which may group several kreport-split runs together), each
+        // sample here already gets exactly one extract_fractions_*_reads call, whose single
+        // "*_summary.json" output already resolves to all 3 fractions' summary files at once -
+        // no groupTuple() needed (and grouping a channel with one row per key here would just
+        // wrap the already-flat file list in another list).
+        extract_fractions_paired_reads.out.summary.set { fractions_summary_ch }
     }
     else {
-        extract_dehumanised(full_extract_ch, taxonomy_dir)
-        extract_virus_and_unclassified(full_extract_ch, taxonomy_dir)
-        extract_virus(full_extract_ch, taxonomy_dir)
-        extract_virus_and_unclassified.out.virus.set { virus_ch }
-        extract_dehumanised.out.summary
-            .concat(extract_virus_and_unclassified.out.summary, extract_virus.out.summary)
-            .groupTuple()
-            .set { fractions_summary_ch }
+        extract_fractions_reads(full_extract_ch, taxonomy_dir)
+        extract_fractions_reads.out.virus.set { virus_ch }
+        extract_fractions_reads.out.summary.set { fractions_summary_ch }
     }
     merge_read_summary(fractions_summary_ch, "read_fractions")
 
@@ -490,18 +358,28 @@ workflow extract_virus_fraction {
     taxonomy_dir
 
     main:
+    fraction_config = groovy.json.JsonOutput.toJson([
+        [
+            prefix: "virus_and_unclassified",
+            taxid: ["10239", "0"],
+            exclude: false,
+            include_unclassified: true,
+        ],
+    ])
+
     assignments_ch.combine(kreport_ch, by: [0, 1]).set { classify_ch }
     fastq_ch
         .combine(classify_ch, by: 0)
+        .map { it + [fraction_config] }
         .set { full_extract_ch }
 
     if (params.paired) {
-        extract_paired_virus_and_unclassified(full_extract_ch, taxonomy_dir)
-        extract_paired_virus_and_unclassified.out.virus.set { virus_ch }
+        extract_fractions_paired_reads(full_extract_ch, taxonomy_dir)
+        extract_fractions_paired_reads.out.virus.set { virus_ch }
     }
     else {
-        extract_virus_and_unclassified(full_extract_ch, taxonomy_dir)
-        extract_virus_and_unclassified.out.virus.set { virus_ch }
+        extract_fractions_reads(full_extract_ch, taxonomy_dir)
+        extract_fractions_reads.out.virus.set { virus_ch }
     }
 
     emit:

@@ -12,7 +12,7 @@ process minimap2_hcid {
     path hcid_refs
 
     output:
-    tuple val(unique_id), val(database_name), path(kreport), path(reads), path("hcid.mmp.sam")
+    tuple val(unique_id), val(database_name), path(kreport), path("hcid.mmp.sam")
 
     script:
     preset = ""
@@ -40,7 +40,7 @@ process check_hcid {
     publishDir "${params.outdir}/${unique_id}/qc/", mode: params.publish_dir_mode
 
     input:
-    tuple val(unique_id), val(database_name), path(kreport), path(reads), path(ref_sam)
+    tuple val(unique_id), val(database_name), path(kreport), path(ref_sam)
     path taxonomy
     path hcid_defs
     path hcid_refs
@@ -54,7 +54,6 @@ process check_hcid {
     """
     check_hcid.py \
         -k ${kreport} \
-        -r ${reads} \
         -t ${taxonomy} \
         -i ${hcid_defs} \
         -s ${ref_sam} \

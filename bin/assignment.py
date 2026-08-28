@@ -161,7 +161,7 @@ class KrakenAssignments:
         else:
             return False
 
-    def get_read_map(self, taxon_id_map, parents={}):
+    def get_read_map(self, taxon_id_map, parents={}, paired=True):
         """
         Parses the kraken assignment file and collects the read_ids associated with each of the
         required taxon ids. If paired reads are provided, will consider the common ancestor of
@@ -170,17 +170,34 @@ class KrakenAssignments:
         Parameters:
             taxon_id_map (iter): Iterable of taxon ids to identify reads for.
             parents (dict): A dict mapping taxon id to parent taxon id from NCBI Taxonomy
+            paired (bool): If False, the input is known to be single-end, so each read_id can only
+                           appear once in the assignment file. `extended_map` exists purely to
+                           detect a read_id's second (mate) assignment, so for single-end data it
+                           can never be used and is skipped entirely - it would otherwise be a
+                           second whole-assignment-file-sized dict alongside `read_map`.
 
         Returns:
             read_map (dict): A dict from read_id to a taxon_id in the input iterable.
         """
         read_map = defaultdict(str)
-        extended_map = defaultdict(str)
+        extended_map = defaultdict(str) if paired else None
         comments = set()
         with open(self.file_name, "r") as kfile:
             for line in kfile:
-                assignment = KrakenAssignmentEntry(line)
-                taxon_id, read_id = assignment.taxon_id, assignment.read_id
+                # Inlined rather than going through KrakenAssignmentEntry: this loop runs once per
+                # read in the whole assignment file, and only the taxon_id/read_id fields are
+                # actually used here, so there's no need to build an object, validate the raw
+                # (unstripped) line, and then split a second time to unpack.
+                fields = line.strip().split("\t")
+                if len(fields) != 5:
+                    sys.stderr.write(
+                        f"Kraken assignment line {line} badly formatted - must have 5 fields"
+                    )
+                    sys.exit(11)
+                read_id = trim_read_id(fields[1])
+                taxon_id = fields[2]
+                if taxon_id == "A":
+                    taxon_id = "81077"
 
                 corrected_taxon_id = taxon_id
                 if parents:
@@ -198,7 +215,7 @@ class KrakenAssignments:
                                 f"Assign {taxon_id} to {corrected_taxon_id} list"
                             )
 
-                if read_id in extended_map:
+                if paired and read_id in extended_map:
                     mrca_taxon_id = get_mrca(
                         corrected_taxon_id, extended_map[read_id], parents
                     )
@@ -218,10 +235,90 @@ class KrakenAssignments:
                     if corrected_taxon_id != taxon_id:
                         comments.add(f"Assign {taxon_id} to {corrected_taxon_id} list")
                     read_map[read_id] = corrected_taxon_id
-                extended_map[read_id] = taxon_id
+                if paired:
+                    extended_map[read_id] = taxon_id
         for c in comments:
             print(c)
         return read_map
+
+    def get_read_maps(self, taxon_id_maps, parents={}, paired=True):
+        """
+        Like get_read_map, but builds several independent read_maps in a single pass over the
+        assignment file, instead of one pass per taxon_id_map. Each read_map in the result is
+        computed exactly as if get_read_map had been called separately for the corresponding
+        taxon_id_map - the maps do not interact with each other in any way, this purely shares
+        the (expensive, once-per-read) file parsing work across all of them.
+
+        Parameters:
+            taxon_id_maps (list): A list of taxon_id_map iterables, one per desired read_map.
+            parents (dict): A dict mapping taxon id to parent taxon id from NCBI Taxonomy
+            paired (bool): See get_read_map.
+
+        Returns:
+            read_maps (list): A list of read_map dicts, in the same order as taxon_id_maps.
+        """
+        read_maps = [defaultdict(str) for _ in taxon_id_maps]
+        extended_maps = [defaultdict(str) if paired else None for _ in taxon_id_maps]
+        comments = set()
+        with open(self.file_name, "r") as kfile:
+            for line in kfile:
+                fields = line.strip().split("\t")
+                if len(fields) != 5:
+                    sys.stderr.write(
+                        f"Kraken assignment line {line} badly formatted - must have 5 fields"
+                    )
+                    sys.exit(11)
+                read_id = trim_read_id(fields[1])
+                taxon_id = fields[2]
+                if taxon_id == "A":
+                    taxon_id = "81077"
+
+                for read_map, extended_map, taxon_id_map in zip(
+                    read_maps, extended_maps, taxon_id_maps
+                ):
+                    corrected_taxon_id = taxon_id
+                    if parents:
+                        while (
+                            corrected_taxon_id in parents
+                            and corrected_taxon_id not in taxon_id_map
+                            and corrected_taxon_id != "1"
+                        ):
+                            corrected_taxon_id = parents[corrected_taxon_id]
+                            if (
+                                corrected_taxon_id in taxon_id_map
+                                and corrected_taxon_id != taxon_id
+                            ):
+                                comments.add(
+                                    f"Assign {taxon_id} to {corrected_taxon_id} list"
+                                )
+
+                    if paired and read_id in extended_map:
+                        mrca_taxon_id = get_mrca(
+                            corrected_taxon_id, extended_map[read_id], parents
+                        )
+                        if mrca_taxon_id in taxon_id_map:
+                            if mrca_taxon_id != read_map[read_id]:
+                                comments.add(
+                                    f"Reassign {extended_map[read_id]} (and {corrected_taxon_id}) to mrca {mrca_taxon_id} list"
+                                )
+                                read_map[read_id] = mrca_taxon_id
+                        elif read_id in read_map:
+                            comments.add(
+                                f"MRCA {mrca_taxon_id} of {extended_map[read_id]} and {corrected_taxon_id} not in taxon_id_map"
+                            )
+                            del read_map[read_id]
+
+                    elif corrected_taxon_id in taxon_id_map:
+                        if corrected_taxon_id != taxon_id:
+                            comments.add(
+                                f"Assign {taxon_id} to {corrected_taxon_id} list"
+                            )
+                        read_map[read_id] = corrected_taxon_id
+                    if paired:
+                        extended_map[read_id] = taxon_id
+        for c in comments:
+            print(c)
+        return read_maps
 
     def load_file(self, taxon_ids=None):
         """
