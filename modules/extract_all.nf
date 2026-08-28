@@ -35,7 +35,7 @@ process split_kreport {
 
 process extract_taxa_paired_reads {
 
-    label "process_single"
+    label "process_low"
     label "process_more_memory"
 
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
@@ -88,7 +88,7 @@ REPORT_CONFIG_EOF
 
 process extract_taxa_reads {
 
-    label "process_single"
+    label "process_low"
     label "process_more_memory"
 
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
@@ -404,7 +404,7 @@ workflow extract_taxa {
     // one process (and one full FASTQ read) per split.
     split_kreport.out.reports
         .map { unique_id, kreports ->
-            def kreport_list = (kreports instanceof List) ? kreports : [kreports]
+            def kreport_list = kreports instanceof List ? kreports : [kreports]
             def config = kreport_list.collect { kreport ->
                 def key = thresholds.containsKey(kreport.simpleName) ? kreport.simpleName : "default"
                 def t = thresholds.get(key)
