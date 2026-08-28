@@ -88,7 +88,7 @@ REPORT_CONFIG_EOF
 
 process extract_taxa_reads {
 
-    label "process_low"
+    label "process_medium"
     label "process_more_memory"
 
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
@@ -181,7 +181,7 @@ FRACTION_CONFIG_EOF
 
 process extract_fractions_reads {
 
-    label "process_low"
+    label "process_medium"
     label "process_more_memory"
 
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
@@ -307,21 +307,23 @@ workflow extract_fractions {
     main:
     // Every fraction here is defined the same way for every sample (unlike the per-kreport-split
     // report_config in extract_taxa), so the config can be built once rather than per-sample.
-    fraction_config = groovy.json.JsonOutput.toJson([
+    fraction_config = groovy.json.JsonOutput.toJson(
         [
-            prefix: "virus_and_unclassified",
-            taxid: ["10239", "0"],
-            exclude: false,
-            include_unclassified: true,
-        ],
-        [prefix: "virus", taxid: ["10239"], exclude: false, include_unclassified: false],
-        [
-            prefix: "human_filtered",
-            taxid: [params.taxid_human.toString()],
-            exclude: true,
-            include_unclassified: false,
-        ],
-    ])
+            [
+                prefix: "virus_and_unclassified",
+                taxid: ["10239", "0"],
+                exclude: false,
+                include_unclassified: true,
+            ],
+            [prefix: "virus", taxid: ["10239"], exclude: false, include_unclassified: false],
+            [
+                prefix: "human_filtered",
+                taxid: [params.taxid_human.toString()],
+                exclude: true,
+                include_unclassified: false,
+            ],
+        ]
+    )
 
     assignments_ch.combine(kreport_ch, by: [0, 1]).set { classify_ch }
     fastq_ch
@@ -358,14 +360,16 @@ workflow extract_virus_fraction {
     taxonomy_dir
 
     main:
-    fraction_config = groovy.json.JsonOutput.toJson([
+    fraction_config = groovy.json.JsonOutput.toJson(
         [
-            prefix: "virus_and_unclassified",
-            taxid: ["10239", "0"],
-            exclude: false,
-            include_unclassified: true,
-        ],
-    ])
+            [
+                prefix: "virus_and_unclassified",
+                taxid: ["10239", "0"],
+                exclude: false,
+                include_unclassified: true,
+            ]
+        ]
+    )
 
     assignments_ch.combine(kreport_ch, by: [0, 1]).set { classify_ch }
     fastq_ch
