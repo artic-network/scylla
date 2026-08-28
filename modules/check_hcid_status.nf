@@ -2,7 +2,7 @@
 
 process minimap2_hcid {
 
-    label "process_low"
+    label "process_medium"
 
     conda "bioconda::minimap2=2.28"
     container "community.wave.seqera.io/library/minimap2:2.28--78db3d0b6e5cb797"
