@@ -32,6 +32,7 @@ process rammap_hcid {
 process check_hcid {
 
     label "process_single"
+    label "process_more_memory"
 
     conda "bioconda::simplesam=0.1.4.1 bioconda::pyfastx=2.2.0"
     container "community.wave.seqera.io/library/pyfastx_simplesam:9161c822eef64e5a"
