@@ -23,6 +23,11 @@ process fastp_paired {
     crabz -p ${task.cpus} -f gzip -o ${unique_id}_2.fastp.fastq.gz fastp_out_2 &
     BG2=\$!
 
+    # `|| FASTP_STATUS=\$?` keeps the failure in-band: process.shell sets
+    # `bash -euo pipefail`, so a bare `fastp` failure would abort the script
+    # right here, leaving the crabz readers above orphaned and blocked on their
+    # FIFOs. A command on the left of `||` is exempt from `set -e`.
+    FASTP_STATUS=0
     fastp \\
         --in1 ${fastq_1} \\
         --in2 ${fastq_2} \\
@@ -31,17 +36,28 @@ process fastp_paired {
         --json ${unique_id}.fastp.json \\
         --low_complexity_filter \\
         --thread ${task.cpus} \\
-        2> ${unique_id}.fastp.log
-    FASTP_STATUS=\$?
+        2> ${unique_id}.fastp.log || FASTP_STATUS=\$?
 
-    # If fastp errored before ever opening its output FIFOs, the crabz
-    # readers above would otherwise block forever waiting for a writer.
-    if [ \$FASTP_STATUS -ne 0 ]; then
+    if [ "\$FASTP_STATUS" -ne 0 ]; then
+        # fastp never opened - or stopped writing to - its output FIFOs, so the
+        # crabz readers would wait for a writer forever.
         kill \$BG1 \$BG2 2>/dev/null || true
+        wait \$BG1 2>/dev/null || true
+        wait \$BG2 2>/dev/null || true
+        exit \$FASTP_STATUS
     fi
 
-    wait \$BG1 2>/dev/null || true
-    wait \$BG2 2>/dev/null || true
+    # fastp succeeded, so both crabz readers definitely had a writer: any
+    # non-zero status here is a real compression failure, and swallowing it would
+    # publish a truncated .fastq.gz as a successful task, since the read count
+    # check below only inspects fastp's own JSON.
+    CRABZ_STATUS=0
+    wait \$BG1 || CRABZ_STATUS=\$?
+    wait \$BG2 || CRABZ_STATUS=\$?
+    if [ "\$CRABZ_STATUS" -ne 0 ]; then
+        echo "ERROR: compression of fastp output failed (crabz exit \$CRABZ_STATUS)" >&2
+        exit 11
+    fi
 
     if [ -s ${unique_id}.fastp.json ]; then
         READS=\$(jq '.filtering_result.passed_filter_reads' ${unique_id}.fastp.json)

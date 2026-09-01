@@ -4,11 +4,7 @@ from collections import defaultdict
 import csv
 import sys
 
-# The top-level superkingdom/realm names used to identify a "domain" boundary
-# for percentage-of-domain calculations. Kraken2's "D" rank code no longer
-# reliably marks these in modern (2023+) NCBI taxonomy dumps - see the
-# comment where this is used in KrakenReport's report-loading loop.
-KNOWN_DOMAIN_NAMES = {"Bacteria", "Archaea", "Eukaryota", "Viruses"}
+from ranks import KNOWN_DOMAIN_NAMES
 
 
 class KrakenEntry:
@@ -360,14 +356,13 @@ class KrakenReport:
         Get a list of taxonomic domains found in the report
 
         Returns:
-            list: List of domains
+            list: List of taxon_ids of the domains found
         """
-        domains = []
-        for entry_id, entry in self.entries.items():
-            if entry.simple_rank == "D":
-                domains.append(entry_id)
-                entry.print()
-        return domains
+        # `self.domains` is populated while loading the report and already applies
+        # the name-based heuristic described there. Re-deriving this from
+        # `simple_rank == "D"` would miss any domain that modern taxonomy dumps
+        # push down to an "R1"/"R2" no-rank code.
+        return list(self.domains.values())
 
     def get_tips(self):
         """
@@ -380,7 +375,6 @@ class KrakenReport:
         for entry_id, entry in self.entries.items():
             if len(entry.children) == 0 and entry_id != "0":
                 tips.append(entry_id)
-                entry.print()
         return tips
 
     def get_rank_entries(self, rank):
@@ -396,7 +390,6 @@ class KrakenReport:
         for entry_id, entry in self.entries.items():
             if entry.simple_rank == rank:
                 subset.append(entry_id)
-                entry.print()
         return subset
 
     def get_percentage(self, taxon_id, denominator="classified"):

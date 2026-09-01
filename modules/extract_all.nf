@@ -74,14 +74,22 @@ REPORT_CONFIG_EOF
             --include_children \
             ${extra}
 
+        # "No output files at all" means no taxon/fraction was declared, which is
+        # a valid outcome for a sample rather than an error - exit 3 is ignored by
+        # this process's errorStrategy. Note this is deliberately not an
+        # "all outputs are empty" check: extract_utils.setup_outfiles creates every
+        # declared output up front, so all-empty is a publishable result.
         PATTERN=(*.f*q)
-        if [ ! -f \${PATTERN[0]} ]; then
+        if [ ! -f "\${PATTERN[0]}" ]; then
             echo "Found no output files - maybe there weren't any for this sample"
             exit 3
         fi
 
-        for f in \$(ls *.f*q); do
-            crabz -p ${task.cpus} -f gzip -I \$f
+        # Iterate the glob array rather than `\$(ls *.f*q)`: unquoted command
+        # substitution word-splits, and an unmatched glob silently no-ops under
+        # `set -e` instead of failing, which is what hid the missing guard below.
+        for f in "\${PATTERN[@]}"; do
+            crabz -p ${task.cpus} -f gzip -I "\$f"
         done
         """
 }
@@ -126,14 +134,22 @@ REPORT_CONFIG_EOF
             --include_children \
             ${extra}
 
+        # "No output files at all" means no taxon/fraction was declared, which is
+        # a valid outcome for a sample rather than an error - exit 3 is ignored by
+        # this process's errorStrategy. Note this is deliberately not an
+        # "all outputs are empty" check: extract_utils.setup_outfiles creates every
+        # declared output up front, so all-empty is a publishable result.
         PATTERN=(*.f*q)
-        if [ ! -f \${PATTERN[0]} ]; then
+        if [ ! -f "\${PATTERN[0]}" ]; then
             echo "Found no output files - maybe there weren't any for this sample"
             exit 3
         fi
 
-        for f in \$(ls *.f*q); do
-            crabz -p ${task.cpus} -f gzip -I \$f
+        # Iterate the glob array rather than `\$(ls *.f*q)`: unquoted command
+        # substitution word-splits, and an unmatched glob silently no-ops under
+        # `set -e` instead of failing, which is what hid the missing guard below.
+        for f in "\${PATTERN[@]}"; do
+            crabz -p ${task.cpus} -f gzip -I "\$f"
         done
         """
 }
@@ -173,8 +189,22 @@ FRACTION_CONFIG_EOF
             -t ${taxonomy_dir} \
             --fraction_config fraction_config.json
 
-        for f in \$(ls *.f*q); do
-            crabz -p ${task.cpus} -f gzip -I \$f
+        # "No output files at all" means no taxon/fraction was declared, which is
+        # a valid outcome for a sample rather than an error - exit 3 is ignored by
+        # this process's errorStrategy. Note this is deliberately not an
+        # "all outputs are empty" check: extract_utils.setup_outfiles creates every
+        # declared output up front, so all-empty is a publishable result.
+        PATTERN=(*.f*q)
+        if [ ! -f "\${PATTERN[0]}" ]; then
+            echo "Found no output files - maybe there weren't any for this sample"
+            exit 3
+        fi
+
+        # Iterate the glob array rather than `\$(ls *.f*q)`: unquoted command
+        # substitution word-splits, and an unmatched glob silently no-ops under
+        # `set -e` instead of failing, which is what hid the missing guard below.
+        for f in "\${PATTERN[@]}"; do
+            crabz -p ${task.cpus} -f gzip -I "\$f"
         done
         """
 }
@@ -213,8 +243,22 @@ FRACTION_CONFIG_EOF
             -t ${taxonomy_dir} \
             --fraction_config fraction_config.json
 
-        for f in \$(ls *.f*q); do
-            crabz -p ${task.cpus} -f gzip -I \$f
+        # "No output files at all" means no taxon/fraction was declared, which is
+        # a valid outcome for a sample rather than an error - exit 3 is ignored by
+        # this process's errorStrategy. Note this is deliberately not an
+        # "all outputs are empty" check: extract_utils.setup_outfiles creates every
+        # declared output up front, so all-empty is a publishable result.
+        PATTERN=(*.f*q)
+        if [ ! -f "\${PATTERN[0]}" ]; then
+            echo "Found no output files - maybe there weren't any for this sample"
+            exit 3
+        fi
+
+        # Iterate the glob array rather than `\$(ls *.f*q)`: unquoted command
+        # substitution word-splits, and an unmatched glob silently no-ops under
+        # `set -e` instead of failing, which is what hid the missing guard below.
+        for f in "\${PATTERN[@]}"; do
+            crabz -p ${task.cpus} -f gzip -I "\$f"
         done
         """
 }

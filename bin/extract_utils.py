@@ -85,6 +85,12 @@ def setup_outfiles(fastq_2, prefixes, filetype):
         prefixes (dict): A dictionary from the key (usually taxon_id) to the prefix of the output file for that key.
         filetype (str): "fasta" or "fastq" depending on input filetype.
 
+    Every returned file is also created empty, so that a key with zero extracted
+    reads still leaves a file behind: the Nextflow processes declare globbed
+    outputs (e.g. `*.f*q.gz`), which a missing file - unlike an empty one - fails
+    to match, taking the task down the retry path instead of publishing an empty
+    result.
+
     Returns:
         filenames (dict): Dictionary with keys from the prefixes, to a list of output filenames.
     """
@@ -96,6 +102,10 @@ def setup_outfiles(fastq_2, prefixes, filetype):
             filenames[key].append(f"{prefix}_2.{filetype}")
         else:
             filenames[key].append(f"{prefix}.{filetype}")
+
+    for paths in filenames.values():
+        for path in paths:
+            open(path, "w").close()
     return filenames
 
 
@@ -175,9 +185,9 @@ class TaxonWriter:
             _, evicted = self.handles.popitem(last=False)
             evicted.close()
 
-        # Append mode is safe even for the first write to a given path: each
-        # writer operates on a fresh Nextflow task working directory, so the
-        # output file never pre-exists.
+        # Append mode is required, not just safe: `setup_outfiles` has already
+        # created every declared path empty, and a handle may be evicted from the
+        # LRU cache and reopened part-way through writing a taxon.
         path = self.filenames[taxon_id][self.file_index]
         handle = open(path, "a")
         self.handles[taxon_id] = handle

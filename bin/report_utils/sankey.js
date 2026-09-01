@@ -50,7 +50,10 @@ const getSampleCounts = (data) => {
 
     const _getSampleCounts = (sample_name, _domain_name, agg, fragment) => {
         Object.entries(fragment).forEach(([key, val]) => {
-            const updated_domain = val.rank == "superkingdom" ? key : _domain_name;
+            // `domainRanks` rather than a bare "superkingdom" test: NCBI retired
+            // that rank in 2024 in favour of "domain" / "acellular root", so the
+            // old comparison matched nothing and left every tooltip's Domain null.
+            const updated_domain = domainRanks.has(val.rank) ? key : _domain_name;
             agg[key] = {
                 [sample_name]: val.count,
                 taxid: val.taxid,
