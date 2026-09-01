@@ -7,7 +7,7 @@ process make_report {
     errorStrategy "retry"
     maxRetries 3
 
-    publishDir "${params.outdir}/${unique_id}/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/", mode: params.publish_dir_mode
 
     conda "anaconda::Mako=1.2.3"
     container "${params.wf.container}:${params.wf.container_version}"

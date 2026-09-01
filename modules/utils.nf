@@ -6,7 +6,7 @@ process get_versions {
 
     conda 'environment.yml'
     container "${params.wf.container}:${params.wf.container_version}"
-    publishDir "${params.tracedir}", mode: 'copy'
+    publishDir "${params.tracedir}", mode: params.publish_dir_mode
     cpus 1
 
     input:
@@ -17,7 +17,9 @@ process get_versions {
 
     script:
     """
-    conda list > "versions_${unique_id}.txt"
+    for f in /opt/conda/conda-meta/*.json; do
+        jq -r '"\\(.name)=\\(.version)=\\(.build)"' "\$f"
+    done | sort > "versions_${unique_id}.txt"
     echo "${workflow.manifest.version}" > workflow_version_${unique_id}.txt
     """
 }
@@ -26,7 +28,7 @@ process get_versions {
 process get_params {
     container "${params.wf.container}:${params.wf.container_version}"
 
-    publishDir "${params.tracedir}", mode: 'copy'
+    publishDir "${params.tracedir}", mode: params.publish_dir_mode
     cpus 1
 
     input:

@@ -8,35 +8,91 @@ import sys
 from assignment import trim_read_id
 
 
-def check_fastq(read_file):
+def check_fastq(read_file, sample_size=1000, max_illumina_read_length=1000):
     is_duplicates = True
     is_interleaved = False
     is_concat = False
 
     position = 0
-    seen_names = set()
-    seen_trimmed = set()
-    positions = defaultdict(int)
+    # Reference structures are only ever populated from the first
+    # `sample_size` reads, so memory is bounded regardless of file size.
+    # Reads beyond that window are only *probed* against this reference,
+    # never added to it - any duplicate whose first occurrence falls
+    # outside the window is missed, but for both the interleaved case
+    # (pairs are adjacent) and the concatenated case (the whole first
+    # half is duplicated verbatim in the second half) every duplicate's
+    # first occurrence is guaranteed to fall within an early window.
+    ref_names = set()
+    ref_trimmed = set()
+    ref_positions = {}
+    ref_checks = {}
+
     differences = defaultdict(int)
-    checks = {}
+    dup_positions = []
+    early_exit = False
 
     sys.stderr.write(f"Reading in {read_file}\n")
     for record in pyfastx.Fastq(read_file, build_index=False):
         name, seq, qual = record
+
+        # Illumina chemistry has a hard per-read length ceiling well under
+        # 1kb (even long-read kits top out around 600bp), so a single read
+        # longer than this proves the file cannot be interleaved or
+        # concatenated Illumina paired-end data - the entire pairing check
+        # is moot and we can stop scanning immediately, which matters a lot
+        # for very large long-read (e.g. ONT) FASTQs. Checked on every read
+        # for the whole scan (not just the reference window) since it's a
+        # free len() on data already parsed, and a degraded/fragmented run
+        # could have a run of short reads before the long ones appear.
+        #
+        # Gated on `not differences` so it never fires mid-detection once
+        # duplicate evidence has actually been seen. In practice this rarely
+        # protects the "whole ONT file accidentally duplicated onto itself"
+        # case though: that duplicate evidence only appears once the scan
+        # reaches the original file's length, and a long-read file almost
+        # always has a read over the threshold well before that - so this
+        # optimisation trades away that (rarer, non-Illumina-specific)
+        # detection in favour of the much more common speed win.
+        if not differences and len(seq) > max_illumina_read_length:
+            sys.stderr.write(
+                f"Read {name} is {len(seq)}bp (> {max_illumina_read_length}bp): "
+                "file cannot be Illumina paired-end data, skipping pairing check\n"
+            )
+            return 0
+
         trimmed_name = trim_read_id(name)
 
-        if name in seen_names:
-            differences[trimmed_name] = position - positions[trimmed_name]
-        elif trimmed_name in seen_trimmed:
-            differences[trimmed_name] = position - positions[trimmed_name]
-        if trimmed_name in checks and checks[trimmed_name] != seq:
-            is_duplicates = False
-        positions[trimmed_name] = position
+        if position < sample_size:
+            if name in ref_names or trimmed_name in ref_trimmed:
+                differences[trimmed_name] = position - ref_positions[trimmed_name]
+                dup_positions.append(position)
+            if trimmed_name in ref_checks and ref_checks[trimmed_name] != seq:
+                is_duplicates = False
+            ref_positions[trimmed_name] = position
+            ref_names.add(name)
+            ref_trimmed.add(trimmed_name)
+            if str(position + 1).startswith("1") or str(position + 1).startswith("5"):
+                ref_checks[trimmed_name] = seq
+        elif trimmed_name in ref_trimmed:
+            differences[trimmed_name] = position - ref_positions[trimmed_name]
+            dup_positions.append(position)
+            if trimmed_name in ref_checks and ref_checks[trimmed_name] != seq:
+                is_duplicates = False
+            ref_positions[trimmed_name] = position
+
         position += 1
-        seen_names.add(name)
-        seen_trimmed.add(trimmed_name)
-        if str(position).startswith("1") or str(position).startswith("5"):
-            checks[trimmed_name] = seq
+
+        # Once we're well past the reference window and every duplicate
+        # found so far is an adjacent pair, this is confidently an
+        # interleaved file - stop scanning early rather than reading the
+        # rest of a potentially very large FASTQ just to confirm it.
+        if (
+            position >= 2 * sample_size
+            and differences
+            and set(differences.values()) == {1}
+        ):
+            early_exit = True
+            break
 
     num_seqs = position
 
@@ -45,8 +101,7 @@ def check_fastq(read_file):
         return 0
 
     difference_set = set([v for v in differences.values()])
-    position_set = set([positions[k] for k in differences])
-    min_duplicate = min(position_set)
+    min_duplicate = min(dup_positions)
     if difference_set == {1}:
         # if all pairs are next to each other, have interleaved file
         is_interleaved = True
@@ -109,13 +164,14 @@ def check_fastq(read_file):
                     out_handle = r2
                     key = "r2"
 
+    num_seqs_desc = f">= {num_seqs}" if early_exit else str(num_seqs)
     if is_duplicates:
         sys.stderr.write(
-            f"Input {num_seqs} sequences have resulted in out file with the following read counts: {out_prefix}.fixed.fastq : {counts['r']}\n"
+            f"Input {num_seqs_desc} sequences have resulted in out file with the following read counts: {out_prefix}.fixed.fastq : {counts['r']}\n"
         )
     else:
         sys.stderr.write(
-            f"Input {num_seqs} sequences have resulted in out files with the following read counts: {out_prefix}.R1.fastq : {counts['r1']}, {out_prefix}.R2.fastq : {counts['r2']}\n"
+            f"Input {num_seqs_desc} sequences have resulted in out files with the following read counts: {out_prefix}.R1.fastq : {counts['r1']}, {out_prefix}.R2.fastq : {counts['r2']}\n"
         )
 
     return 11
@@ -128,8 +184,33 @@ if __name__ == "__main__":
         )
     )
     parser.add_argument("--fastq", help="Input FASTQ.")
+    parser.add_argument(
+        "--sample-size",
+        dest="sample_size",
+        type=int,
+        default=1000,
+        help=(
+            "Number of leading reads to use to build the reference set for "
+            "duplicate/interleave/concatenation detection (default: 1000)."
+        ),
+    )
+    parser.add_argument(
+        "--max-illumina-read-length",
+        dest="max_illumina_read_length",
+        type=int,
+        default=1000,
+        help=(
+            "A single read longer than this (bp) proves the file cannot be "
+            "Illumina paired-end data, so the pairing check is skipped "
+            "immediately (default: 1000)."
+        ),
+    )
 
     args = parser.parse_args()
 
-    exit_code = check_fastq(args.fastq)
+    exit_code = check_fastq(
+        args.fastq,
+        sample_size=args.sample_size,
+        max_illumina_read_length=args.max_illumina_read_length,
+    )
     sys.exit(exit_code)

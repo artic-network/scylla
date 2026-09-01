@@ -12,6 +12,8 @@ from io import StringIO
 import json
 import os
 
+from ranks import DOMAIN_RANKS, RANKS
+
 
 def make_output_report(
     report_to_generate, template, version, sample, data_for_report={}
@@ -161,6 +163,10 @@ def main():
         "classifier": args.classifier,
         "classification_database": args.classification_database,
         "warnings": warnings,
+        # The report's JS shares this vocabulary with aggregate_lineages_bracken.py
+        # rather than keeping its own copy - see bin/ranks.py.
+        "ranks": json.dumps(RANKS),
+        "domain_ranks": json.dumps(DOMAIN_RANKS),
     }
 
     outfile = args.prefix + "_report.html"

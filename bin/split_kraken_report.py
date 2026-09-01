@@ -111,9 +111,15 @@ def parse_report_file(report_file, split_strings, split_rank, ignore, save_json)
                 max_depth = depth
                 ignore_entry = False
             elif add_hierarchy:
-                for ancestor in hierarchy:
-                    if ancestor not in lines[key]:
-                        lines[key].append(ancestor)
+                # Ancestors always belong before any already-collected content
+                # for this key (they're shallower than everything else in
+                # lines[key] by construction) - prepend rather than append, or
+                # a later parser that assumes strict top-to-bottom depth-first
+                # order (e.g. report.py's sequential domain tracking) sees
+                # descendants before the ancestor row that establishes their
+                # domain/rank context.
+                missing_ancestors = [a for a in hierarchy if a not in lines[key]]
+                lines[key] = missing_ancestors + lines[key]
 
             hierarchy.append(line)
             if ignore_entry:

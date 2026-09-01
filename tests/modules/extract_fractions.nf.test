@@ -1,0 +1,64 @@
+nextflow_workflow {
+
+    name "extract fractions module tests"
+    script "modules/extract_all.nf"
+    workflow "extract_virus_fraction"
+    tag "unit"
+    tag "ci"
+
+    // extract_virus_fraction declares a single fraction, so a sample with no viral
+    // and no unclassified reads has nothing to write. The extraction must still
+    // publish empty files: the process declares a required `*.f*q.gz` output, and a
+    // missing file - unlike an empty one - fails the glob and sends the task down
+    // the retry path instead of succeeding with an empty result.
+    test("test_extract_virus_fraction_no_matching_reads") {
+
+        when {
+            params {
+                paired = false
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    tuple(
+                        "no_virus_test",
+                        file("${projectDir}/tests/test-data/extract_all/cchf_mock.fastq.gz", checkIfExists: true)
+                    )
+                )
+                // Every read is classified to root (taxid 1), so neither taxid 10239
+                // nor the unclassified bin matches any read.
+                input[1] = Channel.of(
+                    tuple(
+                        "no_virus_test",
+                        "PlusPF",
+                        file("${projectDir}/tests/test-data/extract_all/root_only_kraken_output.txt", checkIfExists: true)
+                    )
+                )
+                input[2] = Channel.of(
+                    tuple(
+                        "no_virus_test",
+                        "PlusPF",
+                        file("${projectDir}/tests/test-data/extract_all/cchf_kraken_report.txt", checkIfExists: true)
+                    )
+                )
+                input[3] = file("${projectDir}/tests/test-data/hcid/3052518/tax_dump", checkIfExists: true)
+                """
+            }
+        }
+
+        then {
+            def fraction_dir = "${outputDir}/no_virus_test/read_fractions"
+            assertAll(
+                // Must succeed, rather than be ignored via the process's exit-3
+                // no-output guard: empty output is a publishable result here.
+                { assert workflow.success },
+                { assert path("${fraction_dir}/viral_and_unclassified.fastq.gz").exists() },
+                { assert path("${fraction_dir}/unclassified.fastq.gz").exists() },
+                // Valid, empty gzip members rather than zero-byte files.
+                { assert path("${fraction_dir}/viral_and_unclassified.fastq.gz").linesGzip.size() == 0 },
+                { assert path("${fraction_dir}/unclassified.fastq.gz").linesGzip.size() == 0 },
+            )
+        }
+
+    }
+}

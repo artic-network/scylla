@@ -45,7 +45,7 @@ def get_taxon_id_lists(
         entry = kraken_report.entries[taxon]
         pass_count_thresh = True
         pass_perc_thresh = True
-        if len(target_ranks) > 0 and entry.rank not in target_ranks:
+        if len(target_ranks) > 0 and entry.simple_rank not in target_ranks:
             continue
         if min_count and entry.ucount < min_count:
             pass_count_thresh = False
@@ -108,9 +108,7 @@ def setup_prefixes(lists_to_extract, prefix=None):
     return outprefix
 
 
-def extract_taxa(
-    kraken_report, lists_to_extract, kraken_assignment, reads1, reads2, prefix
-):
+def extract_taxa(entries, lists_to_extract, kraken_assignment, reads1, reads2, prefix):
     # open read files
     filetype, zipped = check_read_files(reads1)
 
@@ -123,10 +121,10 @@ def extract_taxa(
         #    "INCLUDING PARENTS/CHILDREN, HAVE %i TAXA TO INCLUDE IN READ FILES for %s\n"
         #    % (len(lists_to_extract[taxon]), taxon)
         # )
-    read_map = kraken_assignment.get_read_map(subtaxa_map)
+    read_map = kraken_assignment.get_read_map(subtaxa_map, paired=bool(reads2))
 
     prefixes = setup_prefixes(lists_to_extract, prefix)
-    out_counts, quals, lens, filenames, total_length = process_read_files(
+    out_counts, read_stats, filenames, total_length = process_read_files(
         prefixes,
         filetype,
         read_map,
@@ -134,21 +132,71 @@ def extract_taxa(
         reads1,
         reads2,
         inverse=False,
-        get_handles=False,
     )
 
     generate_summary(
         lists_to_extract,
-        kraken_report.entries,
+        entries,
         prefix,
         out_counts,
-        quals,
-        lens,
+        read_stats,
         filenames,
         total_length,
         short=False,
     )
     return out_counts
+
+
+def load_report_and_extract(
+    report_file,
+    loaded_taxonomy,
+    taxid,
+    target_ranks,
+    min_count,
+    min_count_descendants,
+    min_percent,
+    top_n,
+    include_parents,
+    include_children,
+    max_human,
+    merged_lists_to_extract,
+    merged_entries,
+):
+    """
+    Load a single kraken report, apply the human-count guard, identify the taxon ID lists to extract from it, and
+    merge the result into the (possibly already-populated) merged_lists_to_extract/merged_entries structures. Used
+    to combine several kreport splits (e.g. Bacteria/Viruses/Metazoa/default) into a single extraction pass.
+
+    A taxon can legitimately appear in more than one split report (split_kraken_report.py copies ancestor lines into
+    each split that needs them), so results are merged via set union rather than overwritten. Entries are merged
+    first-report-wins, since the same taxon_id should describe the same name/rank regardless of which split it was
+    read from.
+    """
+    sys.stderr.write(f"Loading kraken report {report_file}\n")
+    kraken_report = KrakenReport(report_file)
+    if max_human:
+        # Exits the whole process immediately (sys.exit(2)) if this report's
+        # human read count exceeds the threshold - this intentionally fails
+        # the entire combined extraction, not just this one report's share.
+        kraken_report.check_host({"9606": max_human})
+
+    lists_to_extract = get_taxon_id_lists(
+        kraken_report,
+        loaded_taxonomy,
+        names=taxid,
+        target_ranks=target_ranks,
+        min_count=min_count,
+        min_count_descendants=min_count_descendants,
+        min_percent=min_percent,
+        top_n=top_n,
+        include_parents=include_parents,
+        include_children=include_children,
+    )
+
+    for taxon, subtaxa in lists_to_extract.items():
+        merged_lists_to_extract[taxon] |= subtaxa
+    for taxon_id, entry in kraken_report.entries.items():
+        merged_entries.setdefault(taxon_id, entry)
 
 
 def check_out_counts(out_counts, kraken_report):
@@ -173,8 +221,20 @@ def main():
     parser.add_argument(
         "-r",
         dest="report_file",
-        required=True,
-        help="Kraken or Bracken file of taxon relationships and quantities",
+        required=False,
+        help="Kraken or Bracken file of taxon relationships and quantities. Mutually exclusive with --report_config.",
+    )
+    parser.add_argument(
+        "--report_config",
+        dest="report_config",
+        required=False,
+        help=(
+            "Path to a JSON file listing multiple kreport splits to extract from in a single pass over the read "
+            "file(s), instead of a single -r report. Each entry is an object with keys 'report' (path), 'rank' "
+            "(a rank code or list of rank codes, same as --rank), 'min_count_descendants' and 'min_percent'. "
+            "Results across all reports are merged (taxa unioned, first-report-wins on name/rank metadata). "
+            "Mutually exclusive with -r."
+        ),
     )
     parser.add_argument(
         "-t",
@@ -295,6 +355,9 @@ def main():
         "G": "G",
         "S": "S",
     }
+    if bool(args.report_file) == bool(args.report_config):
+        parser.error("Exactly one of -r/--report_file or --report_config must be provided.")
+
     if args.rank:
         target_ranks = [rank_dict[r] for r in args.rank]
     else:
@@ -305,34 +368,61 @@ def main():
         sys.stderr.write("Loading taxonomy\n")
         loaded_taxonomy = Taxonomy(args.taxonomy)
 
-    # Load kraken report entries
-    sys.stderr.write("Loading kraken report\n")
-    kraken_report = KrakenReport(args.report_file)
-    if args.max_human:
-        kraken_report.check_host({"9606": args.max_human})
-
     # Initialize kraken assignment file
     sys.stderr.write("Loading kraken assignments\n")
     kraken_assignment = KrakenAssignments(args.kraken_assignment_file)
 
+    merged_lists_to_extract = defaultdict(set)
+    merged_entries = {}
+
     sys.stderr.write("Identifying lists to extract\n")
-    lists_to_extract = get_taxon_id_lists(
-        kraken_report,
-        loaded_taxonomy,
-        names=args.taxid,
-        target_ranks=target_ranks,
-        min_count=args.min_count,
-        min_count_descendants=args.min_count_descendants,
-        min_percent=args.min_percent,
-        top_n=args.top_n,
-        include_parents=args.include_parents,
-        include_children=args.include_children,
-    )
+    if args.report_config:
+        with open(args.report_config) as f:
+            report_config = json.load(f)
+        for report_entry in report_config:
+            entry_rank = report_entry.get("rank")
+            if entry_rank is None:
+                entry_target_ranks = target_ranks
+            elif isinstance(entry_rank, list):
+                entry_target_ranks = [rank_dict[r] for r in entry_rank]
+            else:
+                entry_target_ranks = [rank_dict[entry_rank]]
+            load_report_and_extract(
+                report_entry["report"],
+                loaded_taxonomy,
+                args.taxid,
+                entry_target_ranks,
+                args.min_count,
+                report_entry.get("min_count_descendants"),
+                report_entry.get("min_percent"),
+                args.top_n,
+                args.include_parents,
+                args.include_children,
+                args.max_human,
+                merged_lists_to_extract,
+                merged_entries,
+            )
+    else:
+        load_report_and_extract(
+            args.report_file,
+            loaded_taxonomy,
+            args.taxid,
+            target_ranks,
+            args.min_count,
+            args.min_count_descendants,
+            args.min_percent,
+            args.top_n,
+            args.include_parents,
+            args.include_children,
+            args.max_human,
+            merged_lists_to_extract,
+            merged_entries,
+        )
 
     sys.stderr.write("Extracting reads from file\n")
     out_counts = extract_taxa(
-        kraken_report,
-        lists_to_extract,
+        merged_entries,
+        merged_lists_to_extract,
         kraken_assignment,
         args.reads1,
         args.reads2,

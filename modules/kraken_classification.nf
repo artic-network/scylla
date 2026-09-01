@@ -34,7 +34,7 @@ process bracken {
 
     errorStrategy { "ignore" }
 
-    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: params.publish_dir_mode
 
     conda "bioconda::bracken=2.7"
     container "biocontainers/bracken:2.9--py39h1f90b4d_0"
@@ -64,7 +64,7 @@ process kraken_to_json {
 
     label "process_low"
 
-    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: params.publish_dir_mode
 
     conda "bioconda::taxonkit=0.15.1 python=3.10"
     container "${params.wf.container}:${params.wf.container_version}"
