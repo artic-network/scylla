@@ -592,7 +592,7 @@ const rankSelect = renderSelect('#rank-select', ranks);
 rankSelect.property('value', default_rank);
 
 // Initialise rank table
-const default_rank_table = "serotype";
+const default_rank_table = "species";
 
 // Initialise cutoff
 const default_cutoff = 5;
