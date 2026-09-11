@@ -59,6 +59,12 @@ def get_taxon_id_lists(
             pass_perc_thresh = False
         if len(names) > 0 and entry.name not in names and taxon not in names:
             continue
+        if entry.rank != entry.simple_rank:
+            parent = entry.parent
+            while parent.rank != parent.simple_rank:
+                parent = parent.parent
+            if parent in lists_to_extract:
+                continue
         if not pass_count_thresh and not pass_perc_thresh:
             continue
 
@@ -68,7 +74,7 @@ def get_taxon_id_lists(
             while len(lookup) > 0:
                 parent = lookup.pop()
                 if parent in loaded_taxonomy.parents and parent != "1":
-                    lookup.append(loaded_taxonomy.parents[lookup])
+                    lookup.append(loaded_taxonomy.parents[parent])
                 if parent in kraken_report.entries and parent != "1":
                     lookup.append(kraken_report.entries[parent].parent)
                 if parent != "1":
@@ -356,7 +362,9 @@ def main():
         "S": "S",
     }
     if bool(args.report_file) == bool(args.report_config):
-        parser.error("Exactly one of -r/--report_file or --report_config must be provided.")
+        parser.error(
+            "Exactly one of -r/--report_file or --report_config must be provided."
+        )
 
     if args.rank:
         target_ranks = [rank_dict[r] for r in args.rank]
