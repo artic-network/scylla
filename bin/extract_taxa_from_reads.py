@@ -61,8 +61,11 @@ def get_taxon_id_lists(
             continue
         if entry.rank != entry.simple_rank:
             parent = entry.parent
-            while parent.rank != parent.simple_rank:
-                parent = parent.parent
+            while (
+                kraken_report.entries[parent].rank
+                != kraken_report.entries[parent].simple_rank
+            ):
+                parent = kraken_report.entries[parent].parent
             if parent in lists_to_extract:
                 continue
         if not pass_count_thresh and not pass_perc_thresh:
