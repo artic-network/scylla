@@ -10,7 +10,7 @@ process kraken2_client {
     container "${params.wf.container}:${params.wf.container_version}"
     containerOptions { workflow.profile != "singularity" ? "--network host" : "" }
 
-    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: params.publish_dir_mode
 
     input:
     tuple val(database_name), val(host), val(port)

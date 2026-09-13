@@ -23,7 +23,7 @@ process assemble_flye {
     conda "bioconda::flye=2.9"
     container "biocontainers/flye:2.9--py39h6935b12_1"
 
-    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: 'copy', pattern: "flye/assembly.fasta", saveAs: { filename -> "flye_assembled_contigs.fa" }
+    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: params.publish_dir_mode, pattern: "flye/assembly.fasta", saveAs: { filename -> "flye_assembled_contigs.fa" }
 
     input:
     tuple val(unique_id), val(taxon), path(fastq)
@@ -44,7 +44,7 @@ process assemble_rnabloom {
     conda "bioconda::rnabloom"
     container "docker.io/jdelling7igfl/rnabloom:2.0.1"
 
-    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: 'copy', pattern: "rnabloom/rnabloom.transcripts.fa", saveAs: { filename -> "rnabloom_assembled_contigs.fa" }
+    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: params.publish_dir_mode, pattern: "rnabloom/rnabloom.transcripts.fa", saveAs: { filename -> "rnabloom_assembled_contigs.fa" }
 
     input:
     tuple val(unique_id), val(taxon), path(fastq)
@@ -65,7 +65,7 @@ process assemble_megahit {
     conda "bioconda::megahit conda-forge::bzip2 conda-forge::libcxx=8.0"
     container "biocontainers/mulled-v2-0f92c152b180c7cd39d9b0e6822f8c89ccb59c99:8ec213d21e5d03f9db54898a2baeaf8ec729b447-0"
 
-    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: 'copy', pattern: "megahit/final.contigs.fa", saveAs: { filename -> "megahit_assembled_contigs.fa" }
+    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: params.publish_dir_mode, pattern: "megahit/final.contigs.fa", saveAs: { filename -> "megahit_assembled_contigs.fa" }
 
     input:
     tuple val(unique_id), val(taxon), path(fastq)
@@ -87,7 +87,7 @@ process assemble_rnaspades {
     conda "bioconda::spades=3.15 conda-forge::pyyaml==3.12"
     container "biocontainers/spades:3.15.5--h95f258a_1"
 
-    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: 'copy', pattern: "rnaspades/soft_filtered_transcripts.fasta", saveAs: { filename -> "rnaspades_assembled_contigs.fa" }
+    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: params.publish_dir_mode, pattern: "rnaspades/soft_filtered_transcripts.fasta", saveAs: { filename -> "rnaspades_assembled_contigs.fa" }
 
     input:
     tuple val(unique_id), val(taxon), path(fastq)
@@ -108,7 +108,7 @@ process assemble_megahit_paired {
     conda "bioconda::megahit conda-forge::bzip2 conda-forge::libcxx=8.0"
     container "biocontainers/mulled-v2-0f92c152b180c7cd39d9b0e6822f8c89ccb59c99:8ec213d21e5d03f9db54898a2baeaf8ec729b447-0"
 
-    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: 'copy', pattern: "megahit/final.contigs.fa", saveAs: { filename -> "megahit_assembled_contigs.fa" }
+    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: params.publish_dir_mode, pattern: "megahit/final.contigs.fa", saveAs: { filename -> "megahit_assembled_contigs.fa" }
 
     input:
     tuple val(unique_id), val(taxon), path(fastq_1), path(fastq_2)
@@ -130,7 +130,7 @@ process assemble_rnaspades_paired {
     conda "bioconda::spades=3.15 conda-forge::pyyaml==3.12"
     container "biocontainers/spades:3.15.5--h95f258a_1"
 
-    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: 'copy', pattern: "rnaspades/soft_filtered_transcripts.fasta", saveAs: { filename -> "rnaspades_assembled_contigs.fa" }
+    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: params.publish_dir_mode, pattern: "rnaspades/soft_filtered_transcripts.fasta", saveAs: { filename -> "rnaspades_assembled_contigs.fa" }
 
     input:
     tuple val(unique_id), val(taxon), path(fastq_1), path(fastq_2)
@@ -151,7 +151,7 @@ process generate_assembly_stats {
     conda "bioconda::bbmap"
     container "biocontainers/bbmap:39.01--h92535d8_1"
 
-    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: 'copy', pattern: "assembly_stats.txt"
+    publishDir "${params.outdir}/${unique_id}/assemblies/${taxon}", mode: params.publish_dir_mode, pattern: "assembly_stats.txt"
 
     input:
     tuple val(unique_id), val(taxon), path(contigs)

@@ -8,8 +8,8 @@ process check_spike_ins {
     conda "bioconda::mappy=2.26"
     container "biocontainers/mappy:2.26--py310h83093d7_1"
 
-    publishDir "${params.outdir}/${unique_id}/qc/", mode: 'copy', pattern: "spike*.json"
-    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", overwrite: true, pattern: "*.json"
+    publishDir "${params.outdir}/${unique_id}/qc/", mode: params.publish_dir_mode, pattern: "spike*.json"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: params.publish_dir_mode, overwrite: true, pattern: "*.json"
 
     input:
     tuple val(unique_id), val(database_name), path(kreport), path(reads)

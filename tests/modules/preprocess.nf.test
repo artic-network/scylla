@@ -21,7 +21,32 @@ nextflow_workflow {
 
         then {
             assert workflow.success
-            assert snapshot(workflow.out).match()
+
+            // fastp streams straight into bgzip (--stdout) to avoid writing an
+            // uncompressed intermediate; under multiple threads this does not
+            // guarantee a stable read order across environments, even though
+            // the read content itself is unaffected. So rather than comparing
+            // the raw file's hash (which would vary with thread count), build
+            // an order-insensitive fingerprint: hash each record, sort those
+            // hashes, then hash the sorted list.
+            def fastqFile = path("${outputDir}/barcode01/preprocess/barcode01.fastp.fastq.gz")
+            assert fastqFile.exists()
+
+            def content = new java.util.zip.GZIPInputStream(fastqFile.newInputStream()).getText("UTF-8")
+            def lines = content.split("\n", -1) as List
+            if (lines && lines[-1] == "") {
+                lines = lines[0..-2]
+            }
+            assert lines.size() % 4 == 0
+            def records = lines.collate(4)
+            def recordStrings = records.collect { it.join("\n") }.sort()
+
+            def digest = java.security.MessageDigest.getInstance("MD5")
+            def hashBytes = digest.digest(recordStrings.join("\n").getBytes("UTF-8"))
+            def hashHex = hashBytes.collect { String.format("%02x", it) }.join("")
+
+            assert records.size() == 11040
+            assert hashHex == "a6d738290aa83c622ac7ad8ee7715999"
         }
 
     }

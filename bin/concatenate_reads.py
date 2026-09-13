@@ -22,74 +22,91 @@ def enforce_headers(f1_header, f2_header):
         sys.exit(8)
 
 
+FLUSH_BYTES = 1 << 20
+
+
+def _close_out(f_out):
+    if f_out is not sys.stdout:
+        f_out.close()
+
+
 def join_w_separator(f1, f2, f_out, strict=False, sep="|"):
-    readlines = True
     ix = 0
 
     # Use 'G', which is in most Phred scores.
     # http://en.wikipedia.org/wiki/FASTQ_format
     phred_sep = "|" * len(sep)
 
-    while readlines:
+    buf = []
+    buf_len = 0
+
+    while True:
         f1_line = f1.readline()
         f2_line = f2.readline()
 
         if f1_line == "":
-            readlines = False
+            if buf:
+                f_out.write("".join(buf))
             f1.close()
             f2.close()
-            f_out.close()
+            _close_out(f_out)
             if f2_line != "":
                 raise Exception("Input FASTQ files do not match in length.")
-            continue
+            return
 
         if ix % 4 == 0:  # Header
             if strict:  # Fail if they don't match up to the first whitespace
                 enforce_headers(f1_line, f2_line)
 
             # Write the header out
-            f_out.write(f1_line)
+            line = f1_line
 
         elif (ix - 1) % 4 == 0:  # Sequence
-            f_out.write(f1_line.strip() + sep + f2_line)
+            line = f1_line.strip() + sep + f2_line
         elif (ix - 2) % 4 == 0:  # Separator
-            f_out.write("+\n")
+            line = "+\n"
         else:
-            f_out.write(f1_line.strip() + phred_sep + f2_line)
+            line = f1_line.strip() + phred_sep + f2_line
+
+        buf.append(line)
+        buf_len += len(line)
+        if buf_len >= FLUSH_BYTES:
+            f_out.write("".join(buf))
+            buf = []
+            buf_len = 0
 
         ix += 1
 
 
 def join_interleaved(f1, f2, f_out, strict=False):
-    readlines = True
     ix = 0
     f1_lines = []
     f2_lines = []
+    buf = []
+    buf_len = 0
 
-    def flush_buffer(f_out, f1_lines, f2_lines):
+    def flush_record(f1_lines, f2_lines):
+        nonlocal buf, buf_len
         if f1_lines and f2_lines:
             assert len(f1_lines) == 4
             assert len(f2_lines) == 4
-            f_out.write(f1_lines[0])
-            f_out.write(f1_lines[1])
-            f_out.write(f1_lines[2])
-            f_out.write(f1_lines[3])
-            f_out.write(f2_lines[0])
-            f_out.write(f2_lines[1])
-            f_out.write(f2_lines[2])
-            f_out.write(f2_lines[3])
+            for line in f1_lines:
+                buf.append(line)
+                buf_len += len(line)
+            for line in f2_lines:
+                buf.append(line)
+                buf_len += len(line)
 
             f1_lines = []
             f2_lines = []
 
         return f1_lines, f2_lines
 
-    while readlines:
+    while True:
         f1_line = f1.readline()
         f2_line = f2.readline()
 
         if f1_line == "":
-            readlines = False
             if f2_line != "":
                 raise Exception("Input FASTQ files do not match in length.")
             break
@@ -98,17 +115,23 @@ def join_interleaved(f1, f2, f_out, strict=False):
             if strict:
                 enforce_headers(f1_line, f2_line)
 
-            f1_lines, f2_lines = flush_buffer(f_out, f1_lines, f2_lines)
+            f1_lines, f2_lines = flush_record(f1_lines, f2_lines)
+            if buf_len >= FLUSH_BYTES:
+                f_out.write("".join(buf))
+                buf = []
+                buf_len = 0
 
         # Fill buffer up to 4 lines
         f1_lines.append(f1_line)
         f2_lines.append(f2_line)
         ix += 1
 
-    _, _ = flush_buffer(f_out, f1_lines, f2_lines)
+    flush_record(f1_lines, f2_lines)
+    if buf:
+        f_out.write("".join(buf))
     f1.close()
     f2.close()
-    f_out.close()
+    _close_out(f_out)
 
 
 if __name__ == "__main__":
@@ -151,18 +174,18 @@ if __name__ == "__main__":
     if ".gz" in args.fastq1 or ".gzip" in args.fastq1:
         f1 = gzip.open(args.fastq1, mode="rt")
     else:
-        f1 = open(args.fastq1, mode="rt")
+        f1 = open(args.fastq1, mode="rt", buffering=FLUSH_BYTES)
     if ".gz" in args.fastq2 or ".gzip" in args.fastq2:
         f2 = gzip.open(args.fastq2, mode="rt")
     else:
-        f2 = open(args.fastq2, mode="rt")
+        f2 = open(args.fastq2, mode="rt", buffering=FLUSH_BYTES)
 
     if args.output_fastq is None:
         f_out = sys.stdout
     elif args.gzip:
-        f_out = gzip.open(args.output_fastq, mode="w")
+        f_out = gzip.open(args.output_fastq, mode="wt")
     else:
-        f_out = open(args.output_fastq, mode="w")
+        f_out = open(args.output_fastq, mode="w", buffering=FLUSH_BYTES)
 
     if not args.no_interleave:
         join_interleaved(f1, f2, f_out, strict=args.strict)

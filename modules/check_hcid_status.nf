@@ -1,18 +1,17 @@
 // module to check for HCID
 
-process minimap2_hcid {
+process rammap_hcid {
 
-    label "process_low"
+    label "process_medium"
 
-    conda "bioconda::minimap2=2.28"
-    container "community.wave.seqera.io/library/minimap2:2.28--78db3d0b6e5cb797"
+    container "quay.io/biowilko/rammap:1.1.2"
 
     input:
     tuple val(unique_id), val(database_name), path(kreport), path(reads)
     path hcid_refs
 
     output:
-    tuple val(unique_id), val(database_name), path(kreport), path(reads), path("hcid.mmp.sam")
+    tuple val(unique_id), val(database_name), path(kreport), path("hcid.mmp.sam")
 
     script:
     preset = ""
@@ -26,21 +25,22 @@ process minimap2_hcid {
         preset = "map-ont"
     }
     """
-    minimap2 -ax ${preset} ${hcid_refs} ${reads} --secondary=no -N 1 -t ${task.cpus} --sam-hit-only > hcid.mmp.sam
+    rammap -ax ${preset} --secondary=no -N 1 -t ${task.cpus} --sam-hit-only ${hcid_refs} ${reads} > hcid.mmp.sam
     """
 }
 
 process check_hcid {
 
     label "process_single"
+    label "process_more_memory"
 
     conda "bioconda::simplesam=0.1.4.1 bioconda::pyfastx=2.2.0"
     container "community.wave.seqera.io/library/pyfastx_simplesam:9161c822eef64e5a"
 
-    publishDir "${params.outdir}/${unique_id}/qc/", mode: 'copy'
+    publishDir "${params.outdir}/${unique_id}/qc/", mode: params.publish_dir_mode
 
     input:
-    tuple val(unique_id), val(database_name), path(kreport), path(reads), path(ref_sam)
+    tuple val(unique_id), val(database_name), path(kreport), path(ref_sam)
     path taxonomy
     path hcid_defs
     path hcid_refs
@@ -54,7 +54,6 @@ process check_hcid {
     """
     check_hcid.py \
         -k ${kreport} \
-        -r ${reads} \
         -t ${taxonomy} \
         -i ${hcid_defs} \
         -s ${ref_sam} \
@@ -75,8 +74,8 @@ workflow check_hcid_status {
     hcid_refs = file("${projectDir}/resources/hcid/hcid_refs.fa.gz")
 
     kreport_ch.join(fastq_ch).set { input_ch }
-    minimap2_hcid(input_ch, hcid_refs)
-    check_hcid(minimap2_hcid.out, taxonomy, hcid_defs, hcid_refs)
+    rammap_hcid(input_ch, hcid_refs)
+    check_hcid(rammap_hcid.out, taxonomy, hcid_defs, hcid_refs)
     check_hcid.out.warnings.set { warning_ch }
 
     emit:

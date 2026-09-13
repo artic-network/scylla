@@ -162,6 +162,14 @@
           "default": "output",
           "title": "Output folder name",
           "description": "Directory for output of all user-facing files."
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "enum": ["copy", "copyNoFollow", "link", "rellink", "symlink", "move"],
+          "title": "Output publishing mode",
+          "description": "Method used to publish output files to the output directory.",
+          "help_text": "Set to 'symlink' to avoid duplicating large files on disk between the Nextflow work directory and the output directory."
         }
       }
     },

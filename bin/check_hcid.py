@@ -74,10 +74,18 @@ def check_report_for_hcid(hcid_dict, taxonomy_dir, kreport_file):
             hcid_dict[taxid]["classified_parent_found"] = True
 
 
-def map_to_refs(query, ref_sam):
+_COMPLEMENT_TABLE = str.maketrans("ACGTNacgtn", "TGCANtgcan")
+
+
+def reverse_complement(seq):
+    return seq.translate(_COMPLEMENT_TABLE)[::-1]
+
+
+def map_to_refs(ref_sam):
     counts = defaultdict(int)
     ranges = defaultdict(list)
     read_ids = defaultdict(list)
+    read_seqs = {}
 
     in_file = open(ref_sam, "r")
     in_sam = Reader(in_file)
@@ -91,8 +99,20 @@ def map_to_refs(query, ref_sam):
         counts[sam_record.rname] += 1
         ranges[sam_record.rname].append(sam_record.coords)
         read_ids[sam_record.rname].append(sam_record.qname)
+        # SAM always reports SEQ/QUAL in forward-reference-strand orientation, so a
+        # reverse-strand (flag 16) alignment's SEQ/QUAL is the reverse-complement of what
+        # was actually in the original FASTQ - undo that here, so the reads exported below
+        # match the original file exactly, the same as reading them from the FASTQ (as this
+        # used to do, via a second full decompression pass) would have given.
+        if sam_record.flag == 16:
+            read_seqs[sam_record.qname] = (
+                reverse_complement(sam_record.seq),
+                sam_record.qual[::-1],
+            )
+        else:
+            read_seqs[sam_record.qname] = (sam_record.seq, sam_record.qual)
 
-    return counts, ranges, read_ids
+    return counts, ranges, read_ids, read_seqs
 
 
 def check_pileup(ref, ref_ranges, reference_file, min_coverage=0):
@@ -122,8 +142,8 @@ def coverage_hist(coverages):
     return hist
 
 
-def check_ref_coverage(hcid_dict, query, reference, ref_sam):
-    counts, ranges, read_ids = map_to_refs(query, ref_sam)
+def check_ref_coverage(hcid_dict, reference, ref_sam):
+    counts, ranges, read_ids, read_seqs = map_to_refs(ref_sam)
 
     for taxon in hcid_dict:
         taxon_found = True
@@ -169,8 +189,10 @@ def check_ref_coverage(hcid_dict, query, reference, ref_sam):
                 hcid_dict[taxon]["mapped_additional"]
             ) / len(hcid_dict[taxon]["additional_refs"])
 
+    return read_seqs
 
-def report_findings(hcid_dict, read_file, prefix):
+
+def report_findings(hcid_dict, read_seqs, prefix):
     keys = [
         "name",
         "taxon_id",
@@ -189,20 +211,6 @@ def report_findings(hcid_dict, read_file, prefix):
             w.writerow({key: hcid_dict[taxid][key] for key in keys})
 
     found = []
-    needed = {
-        name
-        for taxid in hcid_dict
-        if hcid_dict[taxid]["mapped_found"]
-        for name in hcid_dict[taxid]["mapped_read_ids"]
-    }
-
-    read_records = {}
-    for name, seq, qual in pyfastx.Fastq(read_file, full_name=False, build_index=False):
-        if name in needed:
-            read_records[name] = (seq, qual)
-
-        if needed - set(read_records.keys()) == set():
-            break
 
     for taxid in hcid_dict:
         if hcid_dict[taxid]["mapped_found"]:
@@ -210,10 +218,10 @@ def report_findings(hcid_dict, read_file, prefix):
             lens = []
             with open("%s.reads.fq" % taxid, "w") as f_reads:
                 for mapped_name in hcid_dict[taxid]["mapped_read_ids"]:
-                    record = read_records.get(mapped_name)
+                    record = read_seqs.get(mapped_name)
                     if record is None:
                         print(
-                            f"WARNING: read {mapped_name} not found in FASTQ, skipping",
+                            f"WARNING: read {mapped_name} not found in SAM, skipping",
                             file=sys.stderr,
                         )
                         continue
@@ -251,12 +259,6 @@ def main():
         dest="kreport_file",
         required=False,
         help="Kraken or Bracken file of taxon relationships and quantities",
-    )
-    parser.add_argument(
-        "-r",
-        dest="reads",
-        required=True,
-        help="FASTQ of reads",
     )
     parser.add_argument(
         "-t",
@@ -304,9 +306,9 @@ def main():
     sys.stderr.write("Check kraken report for counts\n")
     check_report_for_hcid(hcid_dict, args.taxonomy, args.kreport_file)
     sys.stderr.write("Check mapped coverage\n")
-    check_ref_coverage(hcid_dict, args.reads, args.ref_fasta, args.ref_sam)
+    read_seqs = check_ref_coverage(hcid_dict, args.ref_fasta, args.ref_sam)
     sys.stderr.write("Report findings\n")
-    report_findings(hcid_dict, args.reads, args.prefix)
+    report_findings(hcid_dict, read_seqs, args.prefix)
 
     now = datetime.now()
     time = now.strftime("%m/%d/%Y, %H:%M:%S")

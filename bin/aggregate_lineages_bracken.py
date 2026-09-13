@@ -6,30 +6,17 @@ import argparse
 import json
 import sys
 
+from ranks import RANKS, UNCLASSIFIED_RANK
+
 UNCLASSIFIED = "Unclassified"
 UNKNOWN = "Unknown"
-
-RANKS = [
-    "superkingdom",
-    "clade",
-    "kingdom",
-    "phylum",
-    "subphylum",
-    "class",
-    "order",
-    "family",
-    "genus",
-    "species",
-    "subspecies",
-    "serotype",
-]
 
 
 def update_or_create_unclassified(entries, unclassified_count):
     """Handle unclassified entries."""
     entries[UNCLASSIFIED] = {
         "taxid": 0,
-        "rank": RANKS[0],
+        "rank": UNCLASSIFIED_RANK,
         "count": int(unclassified_count),
         "children": {
             UNKNOWN: {
@@ -65,10 +52,12 @@ def update_or_create_count(entry, entries, bracken_counts):
             new_entry = {"taxid": taxid, "rank": rank, "count": count, "children": {}}
             previous[name] = new_entry
             previous = new_entry["children"]
-            continue
-
-        current["count"] += count
-        previous = current["children"]
+        else:
+            current["count"] += count
+            previous = current["children"]
+        # Assigned on both branches: skipping it on the new-entry branch meant the
+        # species -> subspecies fallback above only fired when the parent species
+        # node happened to already exist in the tree.
         previous_rank = rank
 
     return entries

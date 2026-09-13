@@ -15,7 +15,7 @@ process split_kreport {
     conda "python=3.10"
     container "biocontainers/python:3.10"
 
-    publishDir "${params.outdir}/${unique_id}/classifications", mode: "copy", overwrite: false, pattern: "*.json"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: params.publish_dir_mode, overwrite: false, pattern: "*.json"
 
     input:
     tuple val(unique_id), val(database_name), path(kreport)
@@ -35,22 +35,24 @@ process split_kreport {
 
 process extract_taxa_paired_reads {
 
-    label "process_single"
+    label "process_low"
     label "process_more_memory"
 
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5"
-    container "community.wave.seqera.io/library/pyfastx_numpy:4f433c0c1a08ec40"
+    publishDir "${params.outdir}/${unique_id}/reads_by_taxa", mode: params.publish_dir_mode
+
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
 
     input:
-    tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
+    tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreports), val(report_config_json)
     path taxonomy_dir
 
     output:
-    tuple val(unique_id), path("*.fastq"), emit: reads
-    tuple val(unique_id), path("${kreport}_summary.json"), emit: summary
+    tuple val(unique_id), path("*.f*q.gz"), emit: reads
+    tuple val(unique_id), path("*_summary.json"), emit: summary
 
     script:
     extra = ""
@@ -58,45 +60,60 @@ process extract_taxa_paired_reads {
         extra += " --max_human ${params.max_human_reads_before_rejection}"
     }
     """
+        cat <<'REPORT_CONFIG_EOF' > report_config.json
+${report_config_json}
+REPORT_CONFIG_EOF
+
         extract_taxa_from_reads.py \
             -s1 ${fastq1} \
             -s2 ${fastq2} \
             -k ${kraken_assignments} \
-            -r ${kreport} \
             -t ${taxonomy_dir} \
-            -p ${kreport} \
+            -p ${unique_id} \
+            --report_config report_config.json \
             --include_children \
-            --min_count_descendants ${min_reads} \
-            --rank ${taxon_rank} \
-            --min_percent ${min_percent} \
             ${extra}
 
+        # "No output files at all" means no taxon/fraction was declared, which is
+        # a valid outcome for a sample rather than an error - exit 3 is ignored by
+        # this process's errorStrategy. Note this is deliberately not an
+        # "all outputs are empty" check: extract_utils.setup_outfiles creates every
+        # declared output up front, so all-empty is a publishable result.
         PATTERN=(*.f*q)
-        if [ ! -f \${PATTERN[0]} ]; then
+        if [ ! -f "\${PATTERN[0]}" ]; then
             echo "Found no output files - maybe there weren't any for this sample"
             exit 3
         fi
+
+        # Iterate the glob array rather than `\$(ls *.f*q)`: unquoted command
+        # substitution word-splits, and an unmatched glob silently no-ops under
+        # `set -e` instead of failing, which is what hid the missing guard below.
+        for f in "\${PATTERN[@]}"; do
+            crabz -p ${task.cpus} -f gzip -I "\$f"
+        done
         """
 }
 
 process extract_taxa_reads {
 
-    label "process_single"
+    label "process_medium"
     label "process_more_memory"
 
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5"
-    container "community.wave.seqera.io/library/pyfastx_numpy:4f433c0c1a08ec40"
+    publishDir "${params.outdir}/${unique_id}/reads_by_taxa", mode: params.publish_dir_mode
+
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
 
     input:
-    tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport), val(taxon_rank), val(min_reads), val(min_percent)
+    tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreports), val(report_config_json)
     path taxonomy_dir
 
     output:
-    tuple val(unique_id), path("*.f*q"), emit: reads
-    tuple val(unique_id), path("${kreport}_summary.json"), emit: summary
+    tuple val(unique_id), path("*.f*q.gz"), emit: reads
+    tuple val(unique_id), path("*_summary.json"), emit: summary
 
     script:
     extra = ""
@@ -104,246 +121,153 @@ process extract_taxa_reads {
         extra += " --max_human ${params.max_human_reads_before_rejection}"
     }
     """
+        cat <<'REPORT_CONFIG_EOF' > report_config.json
+${report_config_json}
+REPORT_CONFIG_EOF
+
         extract_taxa_from_reads.py \
             -s ${fastq} \
             -k ${kraken_assignments} \
-            -r ${kreport} \
             -t ${taxonomy_dir} \
-            -p ${kreport} \
+            -p ${unique_id} \
+            --report_config report_config.json \
             --include_children \
-            --min_count_descendants ${min_reads} \
-            --rank ${taxon_rank} \
-            --min_percent ${min_percent} \
             ${extra}
 
+        # "No output files at all" means no taxon/fraction was declared, which is
+        # a valid outcome for a sample rather than an error - exit 3 is ignored by
+        # this process's errorStrategy. Note this is deliberately not an
+        # "all outputs are empty" check: extract_utils.setup_outfiles creates every
+        # declared output up front, so all-empty is a publishable result.
         PATTERN=(*.f*q)
-        if [ ! -f \${PATTERN[0]} ]; then
+        if [ ! -f "\${PATTERN[0]}" ]; then
             echo "Found no output files - maybe there weren't any for this sample"
             exit 3
         fi
+
+        # Iterate the glob array rather than `\$(ls *.f*q)`: unquoted command
+        # substitution word-splits, and an unmatched glob silently no-ops under
+        # `set -e` instead of failing, which is what hid the missing guard below.
+        for f in "\${PATTERN[@]}"; do
+            crabz -p ${task.cpus} -f gzip -I "\$f"
+        done
         """
 }
 
-process extract_paired_virus_and_unclassified {
+process extract_fractions_paired_reads {
 
-    label "process_single"
+    label "process_low"
     label "process_more_memory"
 
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5"
-    container "community.wave.seqera.io/library/pyfastx_numpy:4f433c0c1a08ec40"
+    publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
+
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
 
     input:
-    tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
+    tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport), val(fraction_config_json)
     path taxonomy_dir
 
     output:
-    tuple val(unique_id), path("*.fastq"), emit: reads
+    tuple val(unique_id), path("*.f*q.gz"), emit: reads
     tuple val(unique_id), path("*_summary.json"), emit: summary
-
-    script:
-    """
-        extract_fraction_from_reads.py \
-            -s1 ${fastq1} \
-            -s2 ${fastq2} \
-            -k ${kraken_assignments} \
-            -t ${taxonomy_dir} \
-            -p "virus_and_unclassified" \
-            --taxid 10239 0 \
-            --include_unclassified
-        """
-}
-
-process extract_virus_and_unclassified {
-
-    label "process_single"
-    label "process_more_memory"
-
-    errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
-    maxRetries 3
-
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5"
-    container "community.wave.seqera.io/library/pyfastx_numpy:4f433c0c1a08ec40"
-
-    input:
-    tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
-    path taxonomy_dir
-
-    output:
-    tuple val(unique_id), path("*.fastq"), emit: reads
-    tuple val(unique_id), path("*_summary.json"), emit: summary
-
-    script:
-    """
-        extract_fraction_from_reads.py \
-            -s ${fastq} \
-            -k ${kraken_assignments} \
-            -t ${taxonomy_dir} \
-            -p "virus_and_unclassified" \
-            --taxid 10239 0 \
-            --include_unclassified
-        """
-}
-
-
-process extract_paired_virus {
-
-    label 'process_single'
-    label 'process_more_memory'
-
-    errorStrategy { task.exitStatus in 2..3 ? 'ignore' : 'retry' }
-    maxRetries 3
-
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5"
-    container "community.wave.seqera.io/library/pyfastx_numpy:4f433c0c1a08ec40"
-
-    input:
-    tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
-    path taxonomy_dir
-
-    output:
-    tuple val(unique_id), path("*.fastq"), emit: reads
-    tuple val(unique_id), path("*_summary.json"), emit: summary
-
-    script:
-    """
-        extract_fraction_from_reads.py \
-            -s1 ${fastq1} \
-            -s2 ${fastq2} \
-            -k ${kraken_assignments} \
-            -t ${taxonomy_dir} \
-            -p "virus" \
-            --taxid 10239
-        """
-}
-
-process extract_virus {
-
-    label 'process_single'
-    label 'process_more_memory'
-
-    errorStrategy { task.exitStatus in 2..3 ? 'ignore' : 'retry' }
-    maxRetries 3
-
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5"
-    container "community.wave.seqera.io/library/pyfastx_numpy:4f433c0c1a08ec40"
-
-    input:
-    tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
-    path taxonomy_dir
-
-    output:
-    tuple val(unique_id), path("*.fastq"), emit: reads
-    tuple val(unique_id), path("*_summary.json"), emit: summary
-
-    script:
-    """
-        extract_fraction_from_reads.py \
-            -s ${fastq} \
-            -k ${kraken_assignments} \
-            -t ${taxonomy_dir} \
-            -p "virus" \
-            --taxid 10239
-        """
-}
-
-
-process extract_paired_dehumanised {
-
-    label "process_single"
-    label "process_more_memory"
-
-    errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
-    maxRetries 3
-
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5"
-    container "community.wave.seqera.io/library/pyfastx_numpy:4f433c0c1a08ec40"
-
-    input:
-    tuple val(unique_id), path(fastq1), path(fastq2), val(database_name), path(kraken_assignments), path(kreport)
-    path taxonomy_dir
-
-    output:
-    tuple val(unique_id), path("*.fastq"), emit: reads
-    tuple val(unique_id), path("*_summary.json"), emit: summary
-
-    script:
-    """
-        extract_fraction_from_reads.py \
-            -s1 ${fastq1} \
-            -s2 ${fastq2} \
-            -k ${kraken_assignments} \
-            -t ${taxonomy_dir} \
-            -p "human_filtered" \
-            --exclude \
-            --taxid ${params.taxid_human}
-        """
-}
-
-process extract_dehumanised {
-
-    label "process_single"
-    label "process_more_memory"
-
-    errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
-    maxRetries 3
-
-    conda "bioconda::pyfastx=2.2.0 conda-forge::numpy=2.3.5"
-    container "community.wave.seqera.io/library/pyfastx_numpy:4f433c0c1a08ec40"
-
-    input:
-    tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport)
-    path taxonomy_dir
-
-    output:
-    tuple val(unique_id), path("*.fastq"), emit: reads
-    tuple val(unique_id), path("*_summary.json"), emit: summary
-
-    script:
-    """
-        extract_fraction_from_reads.py \
-            -s ${fastq} \
-            -k ${kraken_assignments} \
-            -t ${taxonomy_dir} \
-            -p "human_filtered" \
-            --exclude \
-            --taxid ${params.taxid_human}
-        """
-}
-
-process bgzip_extracted_taxa {
-
-    label "process_medium"
-
-    publishDir "${params.outdir}/${unique_id}/${prefix}", mode: "copy"
-
-    conda "bioconda::tabix=1.11"
-    container "${params.wf.container}:${params.wf.container_version}"
-
-    input:
-    tuple val(unique_id), path(read_files)
-    val prefix
-
-    output:
-    tuple val(unique_id), path("*.f*q.gz")
     tuple val(unique_id), path("viral*_and_unclassified*.f*q.gz"), emit: virus, optional: true
 
     script:
     """
-          for f in \$(ls *.f*q)
-            do
-            bgzip --threads ${task.cpus} \$f
-            done
-          """
+        cat <<'FRACTION_CONFIG_EOF' > fraction_config.json
+${fraction_config_json}
+FRACTION_CONFIG_EOF
+
+        extract_fraction_from_reads.py \
+            -s1 ${fastq1} \
+            -s2 ${fastq2} \
+            -k ${kraken_assignments} \
+            -t ${taxonomy_dir} \
+            --fraction_config fraction_config.json
+
+        # "No output files at all" means no taxon/fraction was declared, which is
+        # a valid outcome for a sample rather than an error - exit 3 is ignored by
+        # this process's errorStrategy. Note this is deliberately not an
+        # "all outputs are empty" check: extract_utils.setup_outfiles creates every
+        # declared output up front, so all-empty is a publishable result.
+        PATTERN=(*.f*q)
+        if [ ! -f "\${PATTERN[0]}" ]; then
+            echo "Found no output files - maybe there weren't any for this sample"
+            exit 3
+        fi
+
+        # Iterate the glob array rather than `\$(ls *.f*q)`: unquoted command
+        # substitution word-splits, and an unmatched glob silently no-ops under
+        # `set -e` instead of failing, which is what hid the missing guard below.
+        for f in "\${PATTERN[@]}"; do
+            crabz -p ${task.cpus} -f gzip -I "\$f"
+        done
+        """
+}
+
+process extract_fractions_reads {
+
+    label "process_medium"
+    label "process_more_memory"
+
+    errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
+    maxRetries 3
+
+    publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
+
+    conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
+    container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
+
+    input:
+    tuple val(unique_id), path(fastq), val(database_name), path(kraken_assignments), path(kreport), val(fraction_config_json)
+    path taxonomy_dir
+
+    output:
+    tuple val(unique_id), path("*.f*q.gz"), emit: reads
+    tuple val(unique_id), path("*_summary.json"), emit: summary
+    tuple val(unique_id), path("viral*_and_unclassified*.f*q.gz"), emit: virus, optional: true
+
+    script:
+    """
+        cat <<'FRACTION_CONFIG_EOF' > fraction_config.json
+${fraction_config_json}
+FRACTION_CONFIG_EOF
+
+        extract_fraction_from_reads.py \
+            -s ${fastq} \
+            -k ${kraken_assignments} \
+            -t ${taxonomy_dir} \
+            --fraction_config fraction_config.json
+
+        # "No output files at all" means no taxon/fraction was declared, which is
+        # a valid outcome for a sample rather than an error - exit 3 is ignored by
+        # this process's errorStrategy. Note this is deliberately not an
+        # "all outputs are empty" check: extract_utils.setup_outfiles creates every
+        # declared output up front, so all-empty is a publishable result.
+        PATTERN=(*.f*q)
+        if [ ! -f "\${PATTERN[0]}" ]; then
+            echo "Found no output files - maybe there weren't any for this sample"
+            exit 3
+        fi
+
+        # Iterate the glob array rather than `\$(ls *.f*q)`: unquoted command
+        # substitution word-splits, and an unmatched glob silently no-ops under
+        # `set -e` instead of failing, which is what hid the missing guard below.
+        for f in "\${PATTERN[@]}"; do
+            crabz -p ${task.cpus} -f gzip -I "\$f"
+        done
+        """
 }
 
 process merge_read_summary {
 
     label "process_single"
 
-    publishDir "${params.outdir}/${unique_id}/${prefix}", pattern: "reads_summary_combined.json", mode: "copy"
+    publishDir "${params.outdir}/${unique_id}/${prefix}", pattern: "reads_summary_combined.json", mode: params.publish_dir_mode
 
     container "${params.wf.container}:${params.wf.container_version}"
 
@@ -371,41 +295,45 @@ workflow extract_taxa {
     main:
     thresholds = params.extract_thresholds
     split_kreport(kreport_ch)
-    split_kreport.out.reports
-        .transpose()
-        .map { unique_id, kreport -> [unique_id, kreport, kreport.simpleName, thresholds.containsKey(kreport.simpleName)] }
-        .branch { unique_id, kreport, key, status ->
-            valid: status
-            return tuple(unique_id, kreport, key)
-            invalid: !status
-            return tuple(unique_id, kreport, "default")
-        }
-        .set { result }
-    result.valid
-        .concat(result.invalid)
-        .map { unique_id, kreport, key -> [unique_id, kreport, thresholds.get(key, "false").get("taxon_rank", "false"), thresholds.get(key, "false").get("min_reads", "false"), thresholds.get(key, "false").get("min_percent", "false")] }
-        .set { kreport_params_ch }
 
-    assignments_ch.combine(kreport_params_ch, by: 0).set { classify_ch }
+    // Build one report_config JSON per sample describing every kreport split
+    // for that sample, so extract_taxa_reads/extract_taxa_paired_reads can
+    // extract from all of them in a single pass over the FASTQ, instead of
+    // one process (and one full FASTQ read) per split.
+    split_kreport.out.reports
+        .map { unique_id, kreports ->
+            def kreport_list = kreports instanceof List ? kreports : [kreports]
+            def config = kreport_list.collect { kreport ->
+                def key = thresholds.containsKey(kreport.simpleName) ? kreport.simpleName : "default"
+                def t = thresholds.get(key)
+                [
+                    report: kreport.name,
+                    rank: t.taxon_rank,
+                    min_count_descendants: t.min_reads,
+                    min_percent: t.min_percent,
+                ]
+            }
+            [unique_id, kreport_list, groovy.json.JsonOutput.toJson(config)]
+        }
+        .set { report_config_ch }
+
+    assignments_ch.combine(report_config_ch, by: 0).set { classify_ch }
     fastq_ch
         .combine(classify_ch, by: 0)
         .set { extract_ch }
 
     if (params.paired) {
         extract_taxa_paired_reads(extract_ch, taxonomy_dir)
-        extract_taxa_paired_reads.out.reads.set { extracted_taxa }
         extract_taxa_paired_reads.out.summary
             .groupTuple()
             .set { reads_summary_ch }
     }
     else {
         extract_taxa_reads(extract_ch, taxonomy_dir)
-        extract_taxa_reads.out.reads.set { extracted_taxa }
         extract_taxa_reads.out.summary
             .groupTuple()
             .set { reads_summary_ch }
     }
-    bgzip_extracted_taxa(extracted_taxa, "reads_by_taxa")
     merge_read_summary(reads_summary_ch, "reads_by_taxa")
 
     emit:
@@ -421,40 +349,51 @@ workflow extract_fractions {
     taxonomy_dir
 
     main:
+    // Every fraction here is defined the same way for every sample (unlike the per-kreport-split
+    // report_config in extract_taxa), so the config can be built once rather than per-sample.
+    fraction_config = groovy.json.JsonOutput.toJson(
+        [
+            [
+                prefix: "virus_and_unclassified",
+                taxid: ["10239", "0"],
+                exclude: false,
+                include_unclassified: true,
+            ],
+            [prefix: "virus", taxid: ["10239"], exclude: false, include_unclassified: false],
+            [
+                prefix: "human_filtered",
+                taxid: [params.taxid_human.toString()],
+                exclude: true,
+                include_unclassified: false,
+            ],
+        ]
+    )
+
     assignments_ch.combine(kreport_ch, by: [0, 1]).set { classify_ch }
     fastq_ch
         .combine(classify_ch, by: 0)
+        .map { it + [fraction_config] }
         .set { full_extract_ch }
 
     if (params.paired) {
-        extract_paired_dehumanised(full_extract_ch, taxonomy_dir)
-        extract_paired_virus_and_unclassified(full_extract_ch, taxonomy_dir)
-        extract_paired_virus(full_extract_ch, taxonomy_dir)
-        extract_paired_dehumanised.out.reads
-            .concat(extract_paired_virus_and_unclassified.out.reads, extract_paired_virus.out.reads)
-            .set { extracted_fractions }
-        extract_paired_dehumanised.out.summary
-            .concat(extract_paired_virus_and_unclassified.out.summary, extract_paired_virus.out.summary)
-            .groupTuple()
-            .set { fractions_summary_ch }
+        extract_fractions_paired_reads(full_extract_ch, taxonomy_dir)
+        extract_fractions_paired_reads.out.virus.set { virus_ch }
+        // Unlike extract_taxa (which may group several kreport-split runs together), each
+        // sample here already gets exactly one extract_fractions_*_reads call, whose single
+        // "*_summary.json" output already resolves to all 3 fractions' summary files at once -
+        // no groupTuple() needed (and grouping a channel with one row per key here would just
+        // wrap the already-flat file list in another list).
+        extract_fractions_paired_reads.out.summary.set { fractions_summary_ch }
     }
     else {
-        extract_dehumanised(full_extract_ch, taxonomy_dir)
-        extract_virus_and_unclassified(full_extract_ch, taxonomy_dir)
-        extract_virus(full_extract_ch, taxonomy_dir)
-        extract_dehumanised.out.reads
-            .concat(extract_virus_and_unclassified.out.reads, extract_virus.out.reads)
-            .set { extracted_fractions }
-        extract_dehumanised.out.summary
-            .concat(extract_virus_and_unclassified.out.summary, extract_virus.out.summary)
-            .groupTuple()
-            .set { fractions_summary_ch }
+        extract_fractions_reads(full_extract_ch, taxonomy_dir)
+        extract_fractions_reads.out.virus.set { virus_ch }
+        extract_fractions_reads.out.summary.set { fractions_summary_ch }
     }
-    bgzip_extracted_taxa(extracted_fractions, "read_fractions")
     merge_read_summary(fractions_summary_ch, "read_fractions")
 
     emit:
-    virus = bgzip_extracted_taxa.out.virus
+    virus = virus_ch
 }
 
 workflow extract_virus_fraction {
@@ -465,23 +404,34 @@ workflow extract_virus_fraction {
     taxonomy_dir
 
     main:
+    fraction_config = groovy.json.JsonOutput.toJson(
+        [
+            [
+                prefix: "virus_and_unclassified",
+                taxid: ["10239", "0"],
+                exclude: false,
+                include_unclassified: true,
+            ]
+        ]
+    )
+
     assignments_ch.combine(kreport_ch, by: [0, 1]).set { classify_ch }
     fastq_ch
         .combine(classify_ch, by: 0)
+        .map { it + [fraction_config] }
         .set { full_extract_ch }
 
     if (params.paired) {
-        extract_paired_virus_and_unclassified(full_extract_ch, taxonomy_dir)
-        extract_paired_virus_and_unclassified.out.reads.set { extracted_fractions }
+        extract_fractions_paired_reads(full_extract_ch, taxonomy_dir)
+        extract_fractions_paired_reads.out.virus.set { virus_ch }
     }
     else {
-        extract_virus_and_unclassified(full_extract_ch, taxonomy_dir)
-        extract_virus_and_unclassified.out.reads.set { extracted_fractions }
+        extract_fractions_reads(full_extract_ch, taxonomy_dir)
+        extract_fractions_reads.out.virus.set { virus_ch }
     }
-    bgzip_extracted_taxa(extracted_fractions, "read_fractions")
 
     emit:
-    virus = bgzip_extracted_taxa.out.virus
+    virus = virus_ch
 }
 
 

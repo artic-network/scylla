@@ -27,7 +27,7 @@ process run_virbot {
     errorStrategy 'ignore'
 
     container "docker.io/rmcolq/virbot:latest"
-    publishDir "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', saveAs: { it == "virbot/output.vb.fasta" ? "discovered_contigs.fa" : "tax_assignments.tsv" }
+    publishDir "${params.outdir}/${unique_id}/discovery/${taxon}", mode: params.publish_dir_mode, saveAs: { it == "virbot/output.vb.fasta" ? "discovered_contigs.fa" : "tax_assignments.tsv" }
 
     input:
     tuple val(unique_id), val(taxon), path(contigs)
@@ -116,7 +116,7 @@ process select_Riboviria {
     conda "bioconda::bbmap"
     container "biocontainers/bbmap:39.01--h5c4e2a8_0"
 
-    publishDir "${params.outdir}/${unique_id}/discovery/${taxon}", mode: 'copy', saveAs: { it == "RNA_viral_contigs.fa" ? "discovered_contigs.fa" : "tax_assignments.tsv" }
+    publishDir "${params.outdir}/${unique_id}/discovery/${taxon}", mode: params.publish_dir_mode, saveAs: { it == "RNA_viral_contigs.fa" ? "discovered_contigs.fa" : "tax_assignments.tsv" }
 
     input:
     tuple val(unique_id), val(taxon), path(contigs), path(tax_assignments)

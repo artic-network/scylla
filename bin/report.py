@@ -4,6 +4,8 @@ from collections import defaultdict
 import csv
 import sys
 
+from ranks import KNOWN_DOMAIN_NAMES
+
 
 class KrakenEntry:
     """
@@ -51,6 +53,20 @@ class KrakenEntry:
             return self.__dict__ == other.__dict__
         else:
             return False
+
+    @property
+    def simple_rank(self):
+        """
+        The rank code collapsed to its base letter (e.g. "G1"/"G2" -> "G", "R1"/"R2" -> "R").
+
+        Kraken2 appends a number to a rank code for "no rank" clades inserted between two standard
+        ranks (this became common with the 2023+ NCBI taxonomy restructuring, which added extra
+        intermediate clades at many levels, not just around the domain). Code that wants to match a
+        taxon against one of the standard rank letters (D/K/P/C/O/F/G/S) should compare against this
+        rather than `rank` directly, or numbered variants like "G1" will never match "G". `rank`
+        itself is left untouched so it round-trips exactly for KrakenReport.save().
+        """
+        return self.rank[0] if self.rank else self.rank
 
     def print(self):
         """
@@ -204,7 +220,7 @@ class KrakenReport:
         for entry_id, entry in self.entries.items():
             if entry.sibling_rank > 0 or entry.parent is None:
                 continue
-            if entry.rank in ["D", "R", "R1"]:
+            if entry.simple_rank in ["D", "R"]:
                 entry.set_sibling_rank(1)
             elif len(self.entries[entry.parent].children) == 1:
                 entry.set_sibling_rank(1)
@@ -300,8 +316,22 @@ class KrakenReport:
         domain = None
         for row in df:
             try:
-                if row["Rank"] == "D":
-                    domain = row["Scientific Name"].strip()
+                name = row["Scientific Name"].strip()
+                # Kraken2's "D" rank code reliably marked superkingdom-level
+                # nodes in older NCBI taxonomy dumps, but the 2023+ taxonomy
+                # restructuring inserted extra no-rank clades above some
+                # domains (e.g. a new Kingdom rank within Bacteria), which
+                # pushes those domain nodes down to a "R1"/"R2"/... no-rank
+                # code instead of "D" - the rank code alone no longer
+                # reliably identifies the domain boundary (and naively taking
+                # "the last R-rank before a standard rank" doesn't work
+                # either, since some domains like Viruses have their own
+                # no-rank sub-clades - e.g. Duplodnaviria - below them before
+                # hitting a standard rank). Matching on the well-known,
+                # taxonomically-stable domain/realm names directly is robust
+                # to this rank-code churn either way.
+                if row["Rank"] == "D" or name in KNOWN_DOMAIN_NAMES:
+                    domain = name
                     self.domains[domain] = row["Taxonomy ID"]
                 entry = KrakenEntry(row=row, domain=domain, hierarchy=hierarchy)
 
@@ -326,14 +356,13 @@ class KrakenReport:
         Get a list of taxonomic domains found in the report
 
         Returns:
-            list: List of domains
+            list: List of taxon_ids of the domains found
         """
-        domains = []
-        for entry_id, entry in self.entries.items():
-            if entry.rank == "D":
-                domains.append(entry_id)
-                entry.print()
-        return domains
+        # `self.domains` is populated while loading the report and already applies
+        # the name-based heuristic described there. Re-deriving this from
+        # `simple_rank == "D"` would miss any domain that modern taxonomy dumps
+        # push down to an "R1"/"R2" no-rank code.
+        return list(self.domains.values())
 
     def get_tips(self):
         """
@@ -346,7 +375,6 @@ class KrakenReport:
         for entry_id, entry in self.entries.items():
             if len(entry.children) == 0 and entry_id != "0":
                 tips.append(entry_id)
-                entry.print()
         return tips
 
     def get_rank_entries(self, rank):
@@ -360,9 +388,8 @@ class KrakenReport:
         """
         subset = []
         for entry_id, entry in self.entries.items():
-            if entry.rank == rank:
+            if entry.simple_rank == rank:
                 subset.append(entry_id)
-                entry.print()
         return subset
 
     def get_percentage(self, taxon_id, denominator="classified"):
@@ -382,7 +409,12 @@ class KrakenReport:
         elif denominator in self.domains:
             total = self.entries[self.domains[denominator]].count
         else:
-            print(f"Not a valid denominator {denominator}")
+            sys.stderr.write(
+                f"WARNING: '{denominator}' is not a valid denominator (not 'classified', "
+                "'total', or a known domain) for taxon_id "
+                f"{taxon_id} - treating its percentage as 0.0\n"
+            )
+            return 0.0
 
         if (
             denominator not in ["classified", "total"]
@@ -437,21 +469,7 @@ class KrakenReport:
                     continue
 
             # filter if an intermediate rank
-            if entry.rank not in [
-                "K",
-                "D",
-                "D1",
-                "D2",
-                "P",
-                "C",
-                "O",
-                "F",
-                "G",
-                "G1",
-                "S",
-                "S1",
-                "S2",
-            ]:
+            if entry.simple_rank not in ["K", "D", "P", "C", "O", "F", "G", "S"]:
                 skip.add(entry_id)
                 continue
 
@@ -495,7 +513,7 @@ class KrakenReport:
             taxon_ids = [e for e in self.entries.keys()]
         else:
             taxon_ids = [
-                e for e in self.entries.keys() if self.entries[e].rank in ranks
+                e for e in self.entries.keys() if self.entries[e].simple_rank in ranks
             ]
         return pd.DataFrame(
             {sample_id: [self.entries[e].count for e in taxon_ids]}, index=taxon_ids

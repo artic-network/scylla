@@ -53,7 +53,11 @@ class Taxonomy:
 
     def __init__(self, taxonomy_dir=None, taxon_ids=None):
         self.parents = defaultdict(str)
-        self.children = defaultdict(set)
+        # A list, not a set: each taxon_id appears on exactly one line of
+        # nodes.dmp, so it is only ever appended to one parent's list once -
+        # no dedup is needed, and a list is substantially lighter than a set
+        # of mostly-single-element sets across ~2.6M taxa.
+        self.children = defaultdict(list)
         self.entries = defaultdict(TaxonEntry)
 
         if taxonomy_dir:
@@ -83,7 +87,7 @@ class Taxonomy:
                     fields = line.split("\t|\t")
                     taxon_id, parent_taxon_id = fields[0], fields[1]
                     self.parents[taxon_id] = parent_taxon_id
-                    self.children[parent_taxon_id].add(taxon_id)
+                    self.children[parent_taxon_id].append(taxon_id)
         except:
             sys.stderr.write(
                 f"ERROR: Could not find taxonomy nodes.dmp file in {taxonomy_dir}"
@@ -113,6 +117,8 @@ class Taxonomy:
                 for line in f:
                     fields = line.split("\t|\t")
                     taxon_id, rank = fields[0], fields[2]
+                    if taxon_id not in taxon_ids:
+                        continue
                     self.entries[taxon_id].taxon_id = taxon_id
                     self.entries[taxon_id].rank = rank
         except:
