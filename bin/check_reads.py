@@ -8,7 +8,51 @@ import sys
 from assignment import trim_read_id
 
 
-def check_fastq(read_file, sample_size=1000, max_illumina_read_length=1000):
+def check_fastq(
+    read_file, sample_size=1000, max_illumina_read_length=1000, full_scan=True
+):
+    """
+    Detect whether a single FASTQ actually holds paired reads - interleaved,
+    concatenated, or straightforwardly duplicated - and split it if so.
+
+    Args:
+        read_file (str): Path to the FASTQ to check.
+        sample_size (int): Number of leading reads used to build the reference
+            set of read names. Ignored for name tracking when full_scan is set,
+            where every read joins the reference; still bounds the much more
+            expensive sequence snapshots either way.
+        max_illumina_read_length (int): Read length above which the file cannot
+            be Illumina paired-end data. Only consulted when full_scan is False.
+        full_scan (bool): Examine the whole file - the default. Every read is
+            read, and every read joins the reference set, so a duplicate is
+            found wherever its first occurrence falls. Clearing this enables
+            three shortcuts, each of which trades detection for throughput:
+
+              * a read longer than max_illumina_read_length proves the file is
+                not Illumina paired-end and abandons the check immediately. That
+                misses a long-read file concatenated onto itself, because the
+                duplicate evidence only appears once the scan reaches the
+                original file's length - by which point a long read has almost
+                always already been seen;
+              * once past the reference window with every duplicate so far an
+                adjacent pair, the file is confidently interleaved and scanning
+                stops. That misses any non-adjacent duplicate later in the file,
+                and makes the reported sequence count a lower bound;
+              * only the leading `sample_size` reads join the reference, so any
+                duplicate whose first occurrence falls beyond the window is
+                invisible. This is what keeps memory flat regardless of input
+                size, and it costs nothing for the two cases this check targets,
+                since interleaved pairs are adjacent and a concatenated file
+                repeats its whole first half.
+
+    The cost of the default is that the reference grows with the file: one dict
+    entry per distinct trimmed read name. Sequence snapshots stay bounded to the
+    leading window in both modes, since holding a sequence per read would
+    dominate that on long-read input.
+
+    Returns:
+        int: 0 if nothing needed fixing, 11 if the file was split.
+    """
     is_duplicates = True
     is_interleaved = False
     is_concat = False
@@ -22,9 +66,15 @@ def check_fastq(read_file, sample_size=1000, max_illumina_read_length=1000):
     # (pairs are adjacent) and the concatenated case (the whole first
     # half is duplicated verbatim in the second half) every duplicate's
     # first occurrence is guaranteed to fall within an early window.
-    ref_names = set()
-    ref_trimmed = set()
+    # Trimmed read name -> the position it was last seen at. This is the whole
+    # reference: a previously kept set of full names and a separate set of
+    # trimmed names were both redundant with it. trim_read_id is deterministic,
+    # so seeing a full name again implies seeing its trimmed form again, and the
+    # set of trimmed names is exactly this dict's key set. Collapsing the three
+    # matters because under a full scan this grows with the file.
     ref_positions = {}
+    # Trimmed read name -> sequence, for a sparse sample of early reads. Used
+    # only to tell real mates (different sequences) from a verbatim duplicate.
     ref_checks = {}
 
     differences = defaultdict(int)
@@ -52,8 +102,9 @@ def check_fastq(read_file, sample_size=1000, max_illumina_read_length=1000):
         # reaches the original file's length, and a long-read file almost
         # always has a read over the threshold well before that - so this
         # optimisation trades away that (rarer, non-Illumina-specific)
-        # detection in favour of the much more common speed win.
-        if not differences and len(seq) > max_illumina_read_length:
+        # detection in favour of the much more common speed win. That trade is
+        # exactly what full_scan declines to make.
+        if not full_scan and not differences and len(seq) > max_illumina_read_length:
             sys.stderr.write(
                 f"Read {name} is {len(seq)}bp (> {max_illumina_read_length}bp): "
                 "file cannot be Illumina paired-end data, skipping pairing check\n"
@@ -62,18 +113,27 @@ def check_fastq(read_file, sample_size=1000, max_illumina_read_length=1000):
 
         trimmed_name = trim_read_id(name)
 
-        if position < sample_size:
-            if name in ref_names or trimmed_name in ref_trimmed:
+        # Under a full scan every read joins the reference, so a duplicate is
+        # caught wherever in the file its first occurrence falls. Otherwise only
+        # the leading `sample_size` reads do: later reads are still probed
+        # against that reference but never added to it, which bounds memory at
+        # the cost of missing any duplicate first seen past the window.
+        if full_scan or position < sample_size:
+            if trimmed_name in ref_positions:
                 differences[trimmed_name] = position - ref_positions[trimmed_name]
                 dup_positions.append(position)
             if trimmed_name in ref_checks and ref_checks[trimmed_name] != seq:
                 is_duplicates = False
             ref_positions[trimmed_name] = position
-            ref_names.add(name)
-            ref_trimmed.add(trimmed_name)
-            if str(position + 1).startswith("1") or str(position + 1).startswith("5"):
+            # Sequence snapshots stay bounded to the leading window even under a
+            # full scan. They only need to catch mates whose sequences differ,
+            # and keeping a sequence per read would dominate memory on long-read
+            # input far more than the names do.
+            if position < sample_size and (
+                str(position + 1).startswith("1") or str(position + 1).startswith("5")
+            ):
                 ref_checks[trimmed_name] = seq
-        elif trimmed_name in ref_trimmed:
+        elif trimmed_name in ref_positions:
             differences[trimmed_name] = position - ref_positions[trimmed_name]
             dup_positions.append(position)
             if trimmed_name in ref_checks and ref_checks[trimmed_name] != seq:
@@ -85,9 +145,12 @@ def check_fastq(read_file, sample_size=1000, max_illumina_read_length=1000):
         # Once we're well past the reference window and every duplicate
         # found so far is an adjacent pair, this is confidently an
         # interleaved file - stop scanning early rather than reading the
-        # rest of a potentially very large FASTQ just to confirm it.
+        # rest of a potentially very large FASTQ just to confirm it. Under
+        # full_scan we keep reading, so a non-adjacent duplicate further in
+        # still reclassifies the file as concatenated rather than interleaved.
         if (
-            position >= 2 * sample_size
+            not full_scan
+            and position >= 2 * sample_size
             and differences
             and set(differences.values()) == {1}
         ):
@@ -206,11 +269,26 @@ if __name__ == "__main__":
         ),
     )
 
+    parser.add_argument(
+        "--no-full-scan",
+        dest="no_full_scan",
+        action="store_true",
+        default=False,
+        help=(
+            "Stop reading as soon as the answer looks settled, instead of "
+            "scanning every record. Faster on large inputs, at the cost of "
+            "missing a long-read file concatenated onto itself and any "
+            "non-adjacent duplicate that appears late in an otherwise "
+            "interleaved file."
+        ),
+    )
+
     args = parser.parse_args()
 
     exit_code = check_fastq(
         args.fastq,
         sample_size=args.sample_size,
         max_illumina_read_length=args.max_illumina_read_length,
+        full_scan=not args.no_full_scan,
     )
     sys.exit(exit_code)

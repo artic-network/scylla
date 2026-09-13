@@ -20,8 +20,12 @@ process check_single_fastq {
     tuple val(unique_id), path("*.R1.fastq"), path("*.R2.fastq"), optional: true, emit: paired_fastq
 
     script:
+    extra = ""
+    if (!params.full_fastq_scan) {
+        extra += " --no-full-scan"
+    }
     """
-    check_reads.py --fastq ${fastq}
+    check_reads.py --fastq ${fastq} ${extra}
     """
 }
 
