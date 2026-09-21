@@ -6,7 +6,7 @@ process get_versions {
 
     conda 'environment.yml'
     container "${params.wf.container}:${params.wf.container_version}"
-    publishDir "${params.tracedir}", mode: params.publish_dir_mode
+    publishDir "${params.tracedir}", mode: params.publish_dir_mode, overwrite: true
     cpus 1
 
     input:
@@ -28,7 +28,7 @@ process get_versions {
 process get_params {
     container "${params.wf.container}:${params.wf.container_version}"
 
-    publishDir "${params.tracedir}", mode: params.publish_dir_mode
+    publishDir "${params.tracedir}", mode: params.publish_dir_mode, overwrite: true
     cpus 1
 
     input:
