@@ -15,7 +15,7 @@ process split_kreport {
     conda "python=3.10"
     container "biocontainers/python:3.10"
 
-    publishDir "${params.outdir}/${unique_id}/classifications", mode: params.publish_dir_mode, overwrite: false, pattern: "*.json"
+    publishDir "${params.outdir}/${unique_id}/classifications", mode: params.publish_dir_mode, overwrite: true, pattern: "*.json", enabled: !(params.spike_ins && !params.module)
 
     input:
     tuple val(unique_id), val(database_name), path(kreport)
@@ -41,7 +41,7 @@ process extract_taxa_paired_reads {
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    publishDir "${params.outdir}/${unique_id}/reads_by_taxa", mode: params.publish_dir_mode
+    publishDir "${params.outdir}/${unique_id}/reads_by_taxa", mode: params.publish_dir_mode, overwrite: true
 
     conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
     container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
@@ -102,7 +102,7 @@ process extract_taxa_reads {
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    publishDir "${params.outdir}/${unique_id}/reads_by_taxa", mode: params.publish_dir_mode
+    publishDir "${params.outdir}/${unique_id}/reads_by_taxa", mode: params.publish_dir_mode, overwrite: true
 
     conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
     container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
@@ -162,7 +162,7 @@ process extract_fractions_paired_reads {
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
+    publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode, overwrite: true
 
     conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
     container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
@@ -217,7 +217,7 @@ process extract_fractions_reads {
     errorStrategy { task.exitStatus in 2..3 ? "ignore" : "retry" }
     maxRetries 3
 
-    publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode
+    publishDir "${params.outdir}/${unique_id}/read_fractions", mode: params.publish_dir_mode, overwrite: true
 
     conda "bioconda::pyfastx=2.3.1 conda-forge::numpy=2.5.2 bioconda::htslib=1.24 conda-forge::crabz"
     container "community.wave.seqera.io/library/htslib_pyfastx_numpy_which_pruned:a5bd0b38d76bbba6"
@@ -267,7 +267,7 @@ process merge_read_summary {
 
     label "process_single"
 
-    publishDir "${params.outdir}/${unique_id}/${prefix}", pattern: "reads_summary_combined.json", mode: params.publish_dir_mode
+    publishDir "${params.outdir}/${unique_id}/${prefix}", pattern: "reads_summary_combined.json", mode: params.publish_dir_mode, overwrite: true
 
     container "${params.wf.container}:${params.wf.container_version}"
 

@@ -6,8 +6,8 @@ process check_single_fastq {
 
     errorStrategy { task.exitStatus == 11 ? "ignore" : "terminate" }
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode, pattern: "*.fixed.*"
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode, pattern: "*.R*.fastq"
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode, overwrite: true, pattern: "*.fixed.*"
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode, overwrite: true, pattern: "*.R*.fastq"
 
     conda "bioconda::pyfastx=2.01"
     container "biocontainers/pyfastx:2.0.1--py39h3d4b85c_0"
@@ -57,7 +57,7 @@ process publish_stats {
 
     label "process_single"
 
-    publishDir "${params.outdir}/${unique_id}/qc", mode: params.publish_dir_mode
+    publishDir "${params.outdir}/${unique_id}/qc", mode: params.publish_dir_mode, overwrite: true
 
     container "${params.wf.container}:${params.wf.container_version}"
 
@@ -77,7 +77,7 @@ process total_length_from_stats {
 
     label "process_single"
 
-    publishDir "${params.outdir}/${unique_id}/qc", pattern: "total_length.json", mode: params.publish_dir_mode
+    publishDir "${params.outdir}/${unique_id}/qc", pattern: "total_length.json", mode: params.publish_dir_mode, overwrite: true
 
     container "${params.wf.container}:${params.wf.container_version}"
 

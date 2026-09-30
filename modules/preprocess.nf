@@ -2,7 +2,7 @@ process fastp_paired {
 
     label "process_medium"
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode, overwrite: true
 
     container "${params.wf.container}:${params.wf.container_version}"
 
@@ -74,7 +74,7 @@ process fastp_single {
 
     label "process_medium"
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode, overwrite: true
 
     container "${params.wf.container}:${params.wf.container_version}"
 
@@ -115,7 +115,7 @@ process paired_concatenate {
 
     errorStrategy { task.exitStatus in [5, 8] ? 'ignore' : 'terminate' }
 
-    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode
+    publishDir "${params.outdir}/${unique_id}/preprocess/", mode: params.publish_dir_mode, overwrite: true
 
     container "${params.wf.container}:${params.wf.container_version}"
 
